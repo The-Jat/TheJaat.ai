@@ -1,0 +1,9 @@
+{
+    "name": "Comment",
+    "namespace": "Botble\\Comment\\",
+    "provider": "Botble\\Comment\\Providers\\CommentServiceProvider",
+    "author": "Botble Technologies",
+    "url": "https://botble.com",
+    "version": "1.0.1",
+    "description": "Ajax Comments"
+}
