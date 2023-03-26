@@ -2,9 +2,11 @@
 
 use Botble\Base\Facades\DashboardMenuFacade;
 use Botble\Base\Facades\PageTitleFacade;
+use Botble\Base\Facades\CourseTitleFacade;
 use Botble\Base\Supports\DashboardMenu;
 use Botble\Base\Supports\Editor;
 use Botble\Base\Supports\PageTitle;
+use Botble\Base\Supports\CourseTitle;
 use Illuminate\Support\Arr;
 
 if (!function_exists('anchor_link')) {
@@ -72,6 +74,16 @@ if (!function_exists('page_title')) {
     function page_title(): PageTitle
     {
         return PageTitleFacade::getFacadeRoot();
+    }
+}
+
+if (!function_exists('course_title')) {
+    /**
+     * @return CourseTitle
+     */
+    function course_title(): CourseTitle
+    {
+        return CourseTitleFacade::getFacadeRoot();
     }
 }
 

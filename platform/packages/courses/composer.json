@@ -1,0 +1,21 @@
+{
+    "name": "botble/course",
+    "description": "Course package",
+    "type": "package",
+    "autoload": {
+        "psr-4": {
+            "Botble\\Course\\": "src"
+        }
+    },
+    "require": {
+        "botble/platform": "*@dev",
+        "botble/revision": "*@dev"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Botble\\Course\\Providers\\CourseServiceProvider"
+            ]
+        }
+    }
+}

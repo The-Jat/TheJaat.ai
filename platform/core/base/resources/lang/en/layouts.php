@@ -21,4 +21,5 @@ return [
     'n_a' => 'N/A',
     'page_loaded_time' => 'Page loaded in',
     'view_website' => 'View website',
+    'course_section' => 'Courses',
 ];

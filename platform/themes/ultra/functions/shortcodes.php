@@ -26,6 +26,9 @@ app()->booted(function () {
         add_shortcode('trending-posts', __('Trending posts'), __('Trending posts'), function () {
             return Theme::partial('shortcodes.trending-posts');
         });
+        add_shortcode('non-trending-posts', __('Non Trending posts'), __('Non Trending posts'), function () {
+            return 'This is non trending';//Theme::partial('shortcodes.trending-posts');
+        });
 
         add_shortcode('posts-grid', __('Posts Grid'), __('Posts Grid'), function ($shortcode) {
             $attributes = $shortcode->toArray();
