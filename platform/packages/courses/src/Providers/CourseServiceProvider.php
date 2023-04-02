@@ -53,14 +53,14 @@ class CourseServiceProvider extends ServiceProvider
             if (function_exists('admin_bar')) {
                 ViewFacade::composer('*', function () {
                     if (Auth::check() && Auth::user()->hasPermission('courses.create')) {
-                        admin_bar()->registerLink(trans('packages/course::courses.menu_name'), route('courses.create'), 'add-new');
+                        admin_bar()->registerLink(trans('packages/courses::courses.menu_name'), route('courses.create'), 'add-new');
                     }
                 });
             }
         });
 
         if (function_exists('shortcode')) {
-            view()->composer(['packages/course::themes.course'], function (View $view) {
+            view()->composer(['packages/courses::themes.course'], function (View $view) {
                 $view->withShortcodes();
             });
         }

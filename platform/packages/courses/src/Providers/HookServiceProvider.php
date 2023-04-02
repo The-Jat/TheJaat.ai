@@ -75,10 +75,10 @@ class HookServiceProvider extends ServiceProvider
                     [
                         'id'         => 'homepage_id',
                         'type'       => 'customSelect',
-                        'label'      => trans('packages/course::courses.settings.show_on_front'),
+                        'label'      => trans('packages/courses::courses.settings.show_on_front'),
                         'attributes' => [
                             'name'    => 'homepage_id',
-                            'list'    => ['' => trans('packages/course::courses.settings.select')] + $courses,
+                            'list'    => ['' => trans('packages/courses::courses.settings.select')] + $courses,
                             'value'   => '',
                             'options' => [
                                 'class' => 'form-control',
@@ -96,7 +96,7 @@ class HookServiceProvider extends ServiceProvider
     public function registerMenuOptions()
     {
         if (Auth::user()->hasPermission('courses.index')) {
-            Menu::registerMenuOptions(Course::class, trans('packages/course::courses.menu'));
+            Menu::registerMenuOptions(Course::class, trans('packages/courses::courses.menu'));
         }
     }
 
@@ -114,7 +114,7 @@ class HookServiceProvider extends ServiceProvider
         return (new DashboardWidgetInstance())
             ->setType('stats')
             ->setPermission('courses.index')
-            ->setTitle(trans('packages/course::courses.courses'))
+            ->setTitle(trans('packages/courses::courses.courses'))
             ->setKey('widget_total_pages')
             ->setIcon('far fa-file-alt')
             ->setColor('#32c5d2')

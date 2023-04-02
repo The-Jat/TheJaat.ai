@@ -80,10 +80,10 @@ class CourseService
 
         if (function_exists('admin_bar') && Auth::check() && Auth::user()->hasPermission('courses.edit')) {
             admin_bar()
-                ->registerLink(trans('packages/course::courses.edit_this_page'), route('courses.edit', $course->id));
+                ->registerLink(trans('packages/courses::courses.edit_this_page'), route('courses.edit', $course->id));
         }
 
-        do_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, PAGE_MODULE_SCREEN_NAME, $course);
+        do_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, COURSE_MODULE_SCREEN_NAME, $course);
 
         Theme::breadcrumb()
             ->add(__('Home'), route('public.index'))
@@ -91,7 +91,7 @@ class CourseService
 
         return [
             'view'         => 'course',
-            'default_view' => 'packages/course::themes.course',
+            'default_view' => 'packages/courses::themes.course',
             'data'         => compact('course'),
             'slug'         => $course->slug,
         ];

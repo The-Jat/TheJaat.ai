@@ -92,7 +92,7 @@ class CourseController extends BaseController
     {
         $course = $this->courseRepository->findOrFail($id);
 
-        course_title()->setTitle(trans('packages/course::courses.edit') . ' "' . $course->name . '"');
+        course_title()->setTitle(trans('packages/courses::courses.edit') . ' "' . $course->name . '"');
 
         event(new BeforeEditContentEvent($request, $course));
 
@@ -133,7 +133,7 @@ class CourseController extends BaseController
 
             event(new DeletedContentEvent(COURSE_MODULE_SCREEN_NAME, $request, $course));
 
-            return $response->setMessage(trans('packages/course::courses.deleted'));
+            return $response->setMessage(trans('packages/courses::courses.deleted'));
         } catch (Exception $exception) {
             return $response
                 ->setError()

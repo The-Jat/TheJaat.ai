@@ -13,6 +13,8 @@ use Botble\Blog\Services\BlogService;
 use Botble\Dashboard\Supports\DashboardWidgetInstance;
 use Botble\Page\Models\Page;
 use Botble\Page\Repositories\Interfaces\PageInterface;
+use Botble\Course\Models\Course;
+use Botble\Course\Repositories\Interfaces\CourseInterface;
 use Eloquent;
 use Html;
 use Illuminate\Routing\Events\RouteMatched;
@@ -41,6 +43,10 @@ class HookServiceProvider extends ServiceProvider
         if (defined('PAGE_MODULE_SCREEN_NAME')) {
             add_filter(PAGE_FILTER_FRONT_PAGE_CONTENT, [$this, 'renderBlogPage'], 2, 2);
             add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, [$this, 'addAdditionNameToPageName'], 147, 2);
+        }
+        if (defined('COURSE_MODULE_SCREEN_NAME')) {
+            add_filter(COURSE_FILTER_FRONT_COURSE_CONTENT, [$this, 'renderBlogCourse'], 2, 2);
+            add_filter(COURSE_FILTER_COURSE_NAME_IN_ADMIN_LIST, [$this, 'addAdditionNameToCourseName'], 147, 2);
         }
 
         Event::listen(RouteMatched::class, function () {
@@ -263,12 +269,56 @@ class HookServiceProvider extends ServiceProvider
         return $content;
     }
 
+
+    /**
+     * @param string|null $content
+     * @param Page $page
+     * @return array|string|null
+     */
+    public function renderBlogCourse(?string $content, Course $page)
+    {
+        if ($page->id == theme_option('blog_page_id', setting('blog_page_id'))) {
+            $view = 'plugins/blog::themes.loop';
+
+            if (view()->exists(Theme::getThemeNamespace() . '::views.loop')) {
+                $view = Theme::getThemeNamespace() . '::views.loop';
+            }
+
+            return view($view, [
+                'posts' => get_all_posts(
+                    true,
+                    theme_option('number_of_posts_in_a_category', 12),
+                    ['slugable', 'categories', 'categories.slugable', 'author']
+                ),
+            ])
+                ->render();
+        }
+
+        return $content;
+    }
+
     /**
      * @param string|null $name
      * @param Page $page
      * @return string|null
      */
     public function addAdditionNameToPageName(?string $name, Page $page)
+    {
+        if ($page->id == theme_option('blog_page_id', setting('blog_page_id'))) {
+            $subTitle = Html::tag('span', trans('plugins/blog::base.blog_page'), ['class' => 'additional-page-name'])
+                ->toHtml();
+
+            if (Str::contains($name, ' —')) {
+                return $name . ', ' . $subTitle;
+            }
+
+            return $name . ' —' . $subTitle;
+        }
+
+        return $name;
+    }
+
+    public function addAdditionNameToCourseName(?string $name, Course $page)
     {
         if ($page->id == theme_option('blog_page_id', setting('blog_page_id'))) {
             $subTitle = Html::tag('span', trans('plugins/blog::base.blog_page'), ['class' => 'additional-page-name'])

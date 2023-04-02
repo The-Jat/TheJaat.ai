@@ -34,7 +34,7 @@ class CourseTable extends TableAbstract
     public function __construct(DataTables $table, UrlGenerator $urlGenerator, CourseInterface $courseRepository)
     {
         parent::__construct($table, $urlGenerator);
-
+        
         $this->repository = $courseRepository;
 
         if (!Auth::user()->hasAnyPermission(['courses.edit', 'courses.destroy'])) {
@@ -48,8 +48,7 @@ class CourseTable extends TableAbstract
      */
     public function ajax()
     {
-        $courseTemplates = get_page_templates();
-
+        $courseTemplates = get_course_templates();
         $data = $this->table
             ->eloquent($this->query())
             ->editColumn('name', function ($item) {
@@ -60,12 +59,12 @@ class CourseTable extends TableAbstract
                 }
 
                 if (function_exists('theme_option') && BaseHelper::isHomepage($item->id)) {
-                    $name .= Html::tag('span', ' — ' . trans('packages/course::courses.front_page'), [
+                    $name .= Html::tag('span', ' — ' . trans('packages/courses::courses.front_page'), [
                         'class' => 'additional-page-name',
                     ])->toHtml();
                 }
 
-                return apply_filters(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, $name, $item);
+                return apply_filters(COURSE_FILTER_COURSE_NAME_IN_ADMIN_LIST, $name, $item);
             })
             ->editColumn('checkbox', function ($item) {
                 return $this->getCheckbox($item->id);
@@ -169,7 +168,7 @@ class CourseTable extends TableAbstract
             'template'   => [
                 'title'    => trans('core/base::tables.template'),
                 'type'     => 'customSelect',
-                'choices'  => get_page_templates(),
+                'choices'  => get_course_templates(),
                 'validate' => 'required',
             ],
             'created_at' => [
