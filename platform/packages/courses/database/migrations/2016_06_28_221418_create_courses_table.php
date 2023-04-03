@@ -16,6 +16,8 @@ return new class () extends Migration {
             $table->string('name', 120);
             $table->longText('content')->nullable();
             $table->integer('user_id')->references('id')->on('users');
+            $table->integer('parent_id')->nullable();
+            $table->integer('level')->default(0);
             $table->string('image', 255)->nullable();
             $table->string('template', 60)->nullable();
             $table->tinyInteger('is_featured')->default(0);

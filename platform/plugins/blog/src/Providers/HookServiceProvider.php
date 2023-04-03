@@ -272,7 +272,7 @@ class HookServiceProvider extends ServiceProvider
 
     /**
      * @param string|null $content
-     * @param Page $page
+     * @param Course $page
      * @return array|string|null
      */
     public function renderBlogCourse(?string $content, Course $page)

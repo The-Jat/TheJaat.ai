@@ -40,6 +40,14 @@ class CourseForm extends FormAbstract
                     'data-counter' => 400,
                 ],
             ])
+            ->add('level', 'number', [
+                'label'      => trans('core/base::forms.level'),
+                'label_attr' => ['class' => 'control-label'],
+                'attr'       => [
+                    'placeholder'  => trans('core/base::forms.level_placeholder'),
+                    'data-counter' => 5,
+                ],
+            ])
             ->add('is_featured', 'onOff', [
                 'label'         => trans('core/base::forms.is_featured'),
                 'label_attr'    => ['class' => 'control-label'],

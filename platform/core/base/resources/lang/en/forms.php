@@ -48,4 +48,6 @@ return [
     'expand_all' => 'Expand all',
     'collapse_all' => 'Collapse all',
     'view_new_tab' => 'Open in new tab',
+    'level' => 'Level',
+    'level_placeholder' => 'The parent child relation',
 ];
