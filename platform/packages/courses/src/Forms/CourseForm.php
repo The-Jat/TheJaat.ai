@@ -47,7 +47,15 @@ class CourseForm extends FormAbstract
                     'placeholder'  => trans('core/base::forms.level_placeholder'),
                     'data-counter' => 5,
                 ],
+                'default_value' => 0,
             ])
+
+            ->add('Categories', 'customSelect', [
+                'label'      => trans('core/base::forms.categories'),
+                'label_attr' => ['class' => 'control-label'],
+                'choices'    => get_topics($this->level->getOptions()),
+            ])
+
             ->add('is_featured', 'onOff', [
                 'label'         => trans('core/base::forms.is_featured'),
                 'label_attr'    => ['class' => 'control-label'],

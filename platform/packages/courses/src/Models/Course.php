@@ -70,6 +70,8 @@ class Course extends BaseModel
         'is_featured',
         'status',
         'user_id',
+        'level',
+        'parent_id'
     ];
 
     /**

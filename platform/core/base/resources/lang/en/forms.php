@@ -50,4 +50,5 @@ return [
     'view_new_tab' => 'Open in new tab',
     'level' => 'Level',
     'level_placeholder' => 'The parent child relation',
+    'categories' => 'Categories',
 ];

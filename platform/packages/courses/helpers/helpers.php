@@ -56,3 +56,14 @@ if (!function_exists('get_course_templates')) {
         return Template::getCourseTemplates();
     }
 }
+
+if (!function_exists('get_topics')) {
+    /**
+     * @return array
+     */
+    function get_topics($num)
+    {
+        //  dd($num['value']);
+        return array($num['value']);//Template::getCourseTemplates();
+    }
+}
