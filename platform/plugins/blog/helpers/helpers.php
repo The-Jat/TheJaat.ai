@@ -4,6 +4,7 @@ use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
 use Botble\Base\Supports\SortItemsWithChildrenHelper;
 use Botble\Blog\Repositories\Interfaces\CategoryInterface;
+use Botble\Course\Repositories\Interfaces\CourseInterface;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
 use Botble\Blog\Repositories\Interfaces\TagInterface;
 use Botble\Blog\Supports\PostFormat;
@@ -195,6 +196,36 @@ if (!function_exists('get_category_by_id')) {
     }
 }
 
+if (!function_exists('get_course_parents')) {
+    /**
+     * @param array $args
+     * @return array
+     */
+    function get_course_parents(array $args = []): array
+    {
+        $indent = Arr::get($args, 'indent', '——');
+
+        $repo = app(CourseInterface::class);
+
+        $categories = $repo->getCourses(Arr::get($args, 'select', ['*']), [
+            'created_at' => 'DESC',
+            //'is_default' => 'DESC',
+            //'order'      => 'ASC',
+        ]);
+        
+        $categories = sort_item_with_children($categories);
+        
+        foreach ($categories as $category) {
+            $depth = (int)$category->depth;
+            $indentText = str_repeat($indent, $depth);
+            $category->indent_text = $indentText;
+        }
+        // dd($categories);
+
+        return $categories;
+    }
+}
+
 if (!function_exists('get_categories')) {
     /**
      * @param array $args
@@ -211,6 +242,7 @@ if (!function_exists('get_categories')) {
             'is_default' => 'DESC',
             'order'      => 'ASC',
         ]);
+        dd($categories);
 
         $categories = sort_item_with_children($categories);
 

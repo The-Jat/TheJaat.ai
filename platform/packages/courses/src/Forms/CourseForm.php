@@ -19,10 +19,24 @@ class CourseForm extends FormAbstract
      */
     public function buildForm()
     {
+        $list = get_course_parents();
+// dd($list);
+        $parents = [];
+        foreach ($list as $row) {
+            // dd($list);
+            if ($this->getModel() && ($this->model->id === $row->id || $this->model->id === $row->parent_id) || $row->parent_id != 0 ) {
+                continue;
+            }
+            // dd($row->name);
+            $parents[$row->id] = $row->indent_text . ' ' . $row->name;
+            // dd($parents);
+        }
+        $parents = [0 => trans('plugins/blog::categories.none')] + $parents;
         $this
             ->setupModel(new Course())
             ->setValidatorClass(CourseRequest::class)
             ->withCustomFields()
+            // ->addCustomField('tags', TagField::class)
             ->add('name', 'text', [
                 'label'      => trans('core/base::forms.name'),
                 'label_attr' => ['class' => 'control-label required'],
@@ -30,6 +44,15 @@ class CourseForm extends FormAbstract
                     'placeholder'  => trans('core/base::forms.name_placeholder'),
                     'data-counter' => 120,
                 ],
+            ])
+            
+            ->add('parent_id', 'customSelect', [
+                'label'      => trans('core/base::forms.parent'),
+                'label_attr' => ['class' => 'control-label required'],
+                'attr'       => [
+                    'class' => 'select-search-full',
+                ],
+                'choices'    => $parents,
             ])
             ->add('description', 'textarea', [
                 'label'      => trans('core/base::forms.description'),

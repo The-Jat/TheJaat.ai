@@ -35,4 +35,11 @@ interface CourseInterface extends RepositoryInterface
      * @return mixed
      */
     public function getAllCourses($active = true);
+
+    /**
+     * @param array $select
+     * @param array $orderBy
+     * @return Collection
+     */
+    public function getCourses(array $select, array $orderBy);
 }

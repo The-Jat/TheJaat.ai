@@ -51,6 +51,10 @@ class MenuSeeder extends BaseSeeder
                             'url'   => '/galleries',
                         ],
                         [
+                            'title' => 'Courses',
+                            'url'   => '/courses',
+                        ],
+                        [
                             'title'          => 'Category layouts',
                             'reference_id'   => 6,
                             'reference_type' => Page::class,

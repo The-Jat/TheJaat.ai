@@ -84,4 +84,21 @@ class CourseRepository extends RepositoriesAbstract implements CourseInterface
 
         return $this->applyBeforeExecuteQuery($data)->get();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getCourses(array $select, array $orderBy)
+    {
+        $data = $this->model
+            ->where('status', BaseStatusEnum::PUBLISHED)
+            ->with('slugable')
+            ->select($select);
+
+        foreach ($orderBy as $by => $direction) {
+            $data = $data->orderBy($by, $direction);
+        }
+
+        return $this->applyBeforeExecuteQuery($data)->get();
+    }
 }
