@@ -17,6 +17,11 @@ interface CourseInterface extends RepositoryInterface
     public function getFeaturedCourses($limit);
 
     /**
+     * @param int $limit
+     */
+    public function getChildFromParent($parent_id);
+
+    /**
      * @param array $array
      * @param array $select
      * @return mixed
@@ -35,6 +40,19 @@ interface CourseInterface extends RepositoryInterface
      * @return mixed
      */
     public function getAllCourses($active = true);
+
+     /**
+     * @param int $perPage
+     * @param bool $active
+     * @return mixed
+     */
+    public function getAllCourses2($perPage = 12, $active = true, array $with = ['slugable']);
+
+    /**
+     * @param array $filters
+     * @return mixed
+     */
+    public function getFilters(array $filters);
 
     /**
      * @param array $select

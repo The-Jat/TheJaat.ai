@@ -26,6 +26,14 @@ class CourseCacheDecorator extends CacheAbstractDecorator implements CourseInter
     /**
      * {@inheritDoc}
      */
+    public function getChildFromParent($parent_id)
+    {
+        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function whereIn($array, $select = [])
     {
         return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
@@ -43,6 +51,22 @@ class CourseCacheDecorator extends CacheAbstractDecorator implements CourseInter
      * {@inheritDoc}
      */
     public function getAllCourses($active = true)
+    {
+        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getAllCourses2($perPage = 12, $active = true, array $with = ['slugable'])
+    {
+        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getFilters(array $filters)
     {
         return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
     }

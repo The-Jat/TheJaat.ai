@@ -2,6 +2,7 @@
 
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
+use Botble\Blog\Repositories\Interfaces\CourseInterface;
 use Botble\PostCollection\Repositories\Interfaces\PostCollectionInterface;
 use Botble\Theme\Supports\ThemeSupport;
 use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
@@ -26,8 +27,37 @@ app()->booted(function () {
         add_shortcode('trending-posts', __('Trending posts'), __('Trending posts'), function () {
             return Theme::partial('shortcodes.trending-posts');
         });
-        add_shortcode('non-trending-posts', __('Non Trending posts'), __('Non Trending posts'), function () {
-            return 'This is non trending';//Theme::partial('shortcodes.trending-posts');
+        add_shortcode('all-courses', __('All Courses'), __('All Courses'), function ($shortcode) {
+            // $limit = $shortcode->limit ? (int)$shortcode->limit : 12;
+            // $layout = $shortcode->layout ?: 'default';
+            // $courses = get_all_courses2(true, $limit);
+            // //  dd($courses);
+            // return Theme::partial('shortcodes.all-courses', compact('courses', 'layout'));
+        
+            $attributes = $shortcode->toArray();
+            // dd($attributes);
+            $queryPosts = [
+                //'categories'         => $attributes['categories'] ?? '',
+                //'categories_exclude' => $attributes['categories_exclude'] ?? '',
+                'include'            => $attributes['include'] ?? '',
+                'exclude'            => $attributes['exclude'] ?? '',
+                'limit'              => $attributes['limit'] ? (int)$attributes['limit'] : 4,
+                'order_by'           => $attributes['order_by'] ?? 'updated_at',
+                'order'              => $attributes['order'] ?? 'desc',
+            ];
+            $title = $attributes['title'] ?? '';
+            $subtitle = $attributes['subtitle'] ?? '';
+            $style = $attributes['style'] ?? 2;
+
+            $coursesPosts = query_courses($queryPosts);
+// dd($posts);
+            // return Theme::partial('shortcodes.posts-grid', compact('posts', 'title', 'subtitle', 'style'));
+           return Theme::partial('shortcodes.all-courses', compact('coursesPosts', 'title', 'subtitle', 'style'));
+  
+        });
+
+        shortcode()->setAdminConfig('all-courses', function ($attributes) {
+            return Theme::partial('shortcodes.all-courses-admin-config', compact('attributes'));
         });
 
         add_shortcode('posts-grid', __('Posts Grid'), __('Posts Grid'), function ($shortcode) {

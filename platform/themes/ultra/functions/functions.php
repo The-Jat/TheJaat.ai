@@ -4,10 +4,12 @@ use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\MetaBox as MetaBoxModel;
 use Botble\Blog\Models\Category;
 use Botble\Blog\Models\Post;
+use Botble\Course\Models\Course;
 use Botble\Blog\Repositories\Caches\PostCacheDecorator;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Comment\Repositories\Interfaces\CommentRecommendInterface;
+use Botble\Course\Repositories\Interfaces\CourseInterface;
 use Botble\Member\Models\Member;
 use Botble\Member\Repositories\Interfaces\MemberInterface;
 use Botble\Slug\Models\Slug;
@@ -115,6 +117,34 @@ if (is_plugin_active('blog')) {
             }
 
             return app(PostInterface::class)->getFilters($filters);
+        }
+    }
+
+    if (!function_exists('query_courses')) {
+        /**
+         * @param array $params
+         * @return Collection
+         */
+        function query_courses(array $params)
+        {
+            $filters = [
+                'limit'              => empty($params['limit']) ? 10 : $params['limit'],
+                //'format_type'        => $params['format_type'] ?? '',
+                //'categories'         => empty($params['categories']) ? null : explode(',', $params['categories']),
+                // 'categories_exclude' => empty($params['categories_exclude']) ? null : explode(
+                //     ',',
+                //     $params['categories_exclude']
+                // ),
+                'exclude'            => empty($params['exclude']) ? null : explode(',', $params['exclude']),
+                'include'            => empty($params['include']) ? null : explode(',', $params['include']),
+                'order_by'           => empty($params['order_by']) ? 'updated_at' : $params['order_by'],
+            ];
+
+            // if (isset($params['featured'])) {
+            //     $filters['featured'] = $params['featured'];
+            // }
+
+            return app(CourseInterface::class)->getFilters($filters);
         }
     }
 
@@ -426,6 +456,23 @@ if (!function_exists('get_time_to_read')) {
      * @return string
      */
     function get_time_to_read(Post $post)
+    {
+        $timeToRead = MetaBox::getMetaData($post, 'time_to_read', true);
+
+        if ($timeToRead) {
+            return number_format($timeToRead);
+        }
+
+        return number_format(strlen(strip_tags($post->content)) / 300);
+    }
+}
+
+if (!function_exists('get_time_to_read_course_page')) {
+    /**
+     * @param Post $post
+     * @return string
+     */
+    function get_time_to_read_course_page(Course $post)
     {
         $timeToRead = MetaBox::getMetaData($post, 'time_to_read', true);
 

@@ -101,6 +101,22 @@ if (!function_exists('get_all_posts')) {
     }
 }
 
+if (!function_exists('get_all_courses2')) {
+    /**
+     * @param boolean $active
+     * @param int $perPage
+     * @param array $with
+     * @return Collection
+     */
+    function get_all_courses2(
+        bool  $active = true,
+        int   $perPage = 12,
+        array $with = []//['slugable', 'categories', 'categories.slugable', 'author']
+    ) {
+        return app(CourseInterface::class)->getAllCourses2($perPage, $active, $with);
+    }
+}
+
 if (!function_exists('get_recent_posts')) {
     /**
      * @param int $limit
