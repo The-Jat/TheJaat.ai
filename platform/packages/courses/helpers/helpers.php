@@ -26,6 +26,18 @@ if (!function_exists('get_child_from_parent')) {
     }
 }
 
+// get the course by the passed id.
+if (!function_exists('get_course_by_id')) {
+    /**
+     * @param int $limit
+     * @return mixed
+     */
+    function get_course_by_id($id)
+    {
+        return app(CourseInterface::class)->getCourseById($id);
+    }
+}
+
 if (!function_exists('get_course_by_slug')) {
     /**
      * @param string $slug

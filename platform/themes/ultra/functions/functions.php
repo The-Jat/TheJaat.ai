@@ -29,6 +29,16 @@ register_page_template([
     'right-sidebar'  => __('Right sidebar'),
 ]);
 
+register_course_template([
+    'default'        => __('Default'),
+    'course'         => __('Course'),
+    'full'           => __('Full'),
+    'homepage'       => __('Homepage'),
+    'homepage2'      => __('Homepage 2'),
+    'no-breadcrumbs' => __('No Breadcrumbs'),
+    'right-sidebar'  => __('Right sidebar'),
+]);
+
 register_sidebar([
     'id'          => 'footer_sidebar_1',
     'name'        => __('Footer sidebar 1'),

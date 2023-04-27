@@ -17,9 +17,14 @@ interface CourseInterface extends RepositoryInterface
     public function getFeaturedCourses($limit);
 
     /**
-     * @param int $limit
+     * @param int $parent_id
      */
     public function getChildFromParent($parent_id);
+
+    /**
+     * @param int $id
+     */
+    public function getCourseById($id);
 
     /**
      * @param array $array

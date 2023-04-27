@@ -50,6 +50,18 @@ class CourseRepository extends RepositoriesAbstract implements CourseInterface
         return $this->applyBeforeExecuteQuery($data)->get();
     }
 
+    public function getCourseById($id)
+    {
+        $data = $this->model
+            ->where(['status' => BaseStatusEnum::PUBLISHED, 'id' => $id])
+            ->orderBy('created_at')
+            // ->limit($limit)
+            ->orderBy('created_at', 'desc');
+
+        //  ddd($this->applyBeforeExecuteQuery($data)->get());
+        return $this->applyBeforeExecuteQuery($data)->get();
+    }
+
     /**
      * {@inheritDoc}
      */

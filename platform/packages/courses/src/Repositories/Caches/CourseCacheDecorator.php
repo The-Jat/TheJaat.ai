@@ -34,6 +34,14 @@ class CourseCacheDecorator extends CacheAbstractDecorator implements CourseInter
     /**
      * {@inheritDoc}
      */
+    public function getCourseById($id)
+    {
+        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function whereIn($array, $select = [])
     {
         return $this->getDataIfExistCache(__FUNCTION__, func_get_args());

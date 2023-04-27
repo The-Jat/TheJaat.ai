@@ -1,3 +1,4 @@
+@php Theme::layout('no-breadcrumbs') @endphp
 <!-- Recent Posts Start -->
 <div class="pt-50 background-white">
     <div class="container">

@@ -178,6 +178,20 @@ class HookServiceProvider extends ServiceProvider
                     ->render();
             });
         }
+
+        if (!$this->app->environment('demo') && config('packages.theme.general.enable_custom_html_shortcode')) {
+            add_shortcode('add important block', __('Add Important Blocks'), __('Add Important content'), function ($shortCode) {
+                
+                // dd(html_entity_decode($shortCode->content));
+                return html_entity_decode($shortCode->content);
+            });
+
+            shortcode()->setAdminConfig('add important block', function ($attributes, $content) {
+                //   dd($attributes);
+                return view('packages/theme::shortcodes.important-block', compact('attributes', 'content'))
+                    ->render();
+            });
+        }
     }
 
     /**

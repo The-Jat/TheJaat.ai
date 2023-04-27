@@ -262,6 +262,30 @@ app()->booted(function () {
         });
     }
 
+    add_shortcode('the-block', __('The Block'), __('The Blocks'), function ($shortcode) {
+        // dd($shortcode);
+
+        $attributes = $shortcode->toArray();//Arr::get($shortcode, 'attributes');
+
+        // $attributes['content'] = html_entity_decode(nl2br(e($attributes['content'])));
+        // dd($attributes);
+
+
+        return Theme::partial('shortcodes.the-block', compact('attributes'));
+
+        // return Theme::partial('shortcodes.theme-galleries2', compact('shortcode'));
+    });
+
+    shortcode()->setAdminConfig('the-block', function ($shortcode) {
+        // dd($attributes);
+        // return  dd($attributes);
+        // return Theme::partial('shortcodes.theme-galleries-admin-config2', compact('attributes'));
+
+        //$attributes = $attributes = $shortcode->toArray();//Arr::get($shortcode, 'attributes');
+
+        return Theme::partial('shortcodes.the-block-admin-config', compact('shortcode'));//, 'attributes'));
+    });
+
     if (is_plugin_active('gallery')) {
         add_shortcode('theme-galleries', __('Theme Galleries'), __('Theme Galleries'), function ($shortcode) {
             return Theme::partial('shortcodes.theme-galleries', compact('shortcode'));

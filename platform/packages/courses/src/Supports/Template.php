@@ -22,8 +22,8 @@ class Template
         }
 
         config([
-            'packages.course.general.templates' => array_merge(
-                config('packages.course.general.templates'),
+            'packages.courses.general.templates' => array_merge(
+                config('packages.courses.general.templates'),
                 $validTemplates
             ),
         ]);
@@ -49,6 +49,6 @@ class Template
      */
     public static function getCourseTemplates(): array
     {
-        return (array)config('packages.course.general.templates', []);
+        return (array)config('packages.courses.general.templates', []);
     }
 }
