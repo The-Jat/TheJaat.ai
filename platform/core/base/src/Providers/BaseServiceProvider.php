@@ -199,15 +199,6 @@ class BaseServiceProvider extends ServiceProvider
                 'permissions' => ['users.index'],
             ])
             ->registerItem([
-                'id'          => 'cms-core-course-section',
-                'priority'    => 999,
-                'parent_id'   => null,
-                'name'        => 'core/base::layouts.course_section',
-                'icon'        => 'fa fa-user-shield',
-                'url'         => null,
-                'permissions' => ['users.index'],
-            ])
-            ->registerItem([
                 'id'          => 'cms-core-system-information',
                 'priority'    => 5,
                 'parent_id'   => 'cms-core-platform-administration',
