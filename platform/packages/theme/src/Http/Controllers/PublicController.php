@@ -3,7 +3,7 @@
 namespace Botble\Theme\Http\Controllers;
 
 use BaseHelper;
-//use Botble\Page\Models\Page;
+use Botble\Page\Models\Page;
 use Botble\Page\Services\PageService;
 use Botble\Theme\Events\RenderingHomePageEvent;
 use Botble\Theme\Events\RenderingSingleEvent;
