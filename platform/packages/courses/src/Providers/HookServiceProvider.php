@@ -64,29 +64,31 @@ class HookServiceProvider extends ServiceProvider
         $courses = $this->app->make(CourseInterface::class)
             ->pluck('name', 'id', ['status' => BaseStatusEnum::PUBLISHED]);
 
-        theme_option()
-            ->setSection([
-                'title'      => 'Course',
-                'desc'       => 'Theme options for Course',
-                'id'         => 'opt-text-subsection-course',
-                'subsection' => true,
-                'icon'       => 'fa fa-book',
-                'fields'     => [
-                    [
-                        'id'         => 'homepage_id',
-                        'type'       => 'customSelect',
-                        'label'      => trans('packages/courses::courses.settings.show_on_front'),
-                        'attributes' => [
-                            'name'    => 'homepage_id',
-                            'list'    => ['' => trans('packages/courses::courses.settings.select')] + $courses,
-                            'value'   => '',
-                            'options' => [
-                                'class' => 'form-control',
-                            ],
-                        ],
-                    ],
-                ],
-            ]);
+    
+            // No need as of now.....
+        // theme_option()
+        //     ->setSection([
+        //         'title'      => 'Course',
+        //         'desc'       => 'Theme options for Course',
+        //         'id'         => 'opt-text-subsection-course',
+        //         'subsection' => true,
+        //         'icon'       => 'fa fa-book',
+        //         'fields'     => [
+        //             [
+        //                 'id'         => 'homepage_id',
+        //                 'type'       => 'customSelect',
+        //                 'label'      => trans('packages/courses::courses.settings.show_on_front'),
+        //                 'attributes' => [
+        //                     'name'    => 'homepage_id',
+        //                     'list'    => ['' => trans('packages/courses::courses.settings.select')] + $courses,
+        //                     'value'   => '',
+        //                     'options' => [
+        //                         'class' => 'form-control',
+        //                     ],
+        //                 ],
+        //             ],
+        //         ],
+        //     ]);
     }
 
     /**
