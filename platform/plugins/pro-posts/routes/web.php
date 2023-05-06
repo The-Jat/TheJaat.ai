@@ -20,6 +20,10 @@ Route::group(['namespace' => 'TheSky\ProPosts\Http\Controllers', 'middleware' =>
             'middleware' => 'auth:member'
         ]);
 
+        // The route for export as pdf.
+        Route::get('/export-as-pdf{id}', 'PublicController@exportAsPdf'
+        )->name('export.pdf');
+
         Route::post('favorite-post/subscribe', [
             'as'         => 'public.favorite-post',
             'uses'       => 'PublicController@favoritePost',

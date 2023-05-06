@@ -44,6 +44,13 @@ interface PostInterface extends RepositoryInterface
     public function getByUserId($authorId, $limit = 6);
 
     /**
+     * @param int $authorId
+     * @param int $limit
+     * @return mixed
+     */
+    public function getPostById($id);
+
+    /**
      * @return mixed
      */
     public function getDataSiteMap();

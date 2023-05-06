@@ -33,4 +33,6 @@ return [
     'confirmed_at'               => 'Confirmed at',
     'avatar'                     => 'Avatar',
     'dob'                        => 'Date of birth',
+    'posts'                     => 'Posts',
+    'write_post'                => 'Write Post',
 ];

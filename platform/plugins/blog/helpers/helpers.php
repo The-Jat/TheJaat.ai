@@ -85,6 +85,19 @@ if (!function_exists('get_posts_by_user')) {
     }
 }
 
+if (!function_exists('get_posts_by_id')) {
+    /**
+     * @param int $authorId
+     * @param int $paginate
+     * @return Collection
+     */
+    function get_posts_by_id(int $id)
+    {
+        return app(PostInterface::class)->getPostById($id);
+    }
+}
+
+
 if (!function_exists('get_all_posts')) {
     /**
      * @param boolean $active

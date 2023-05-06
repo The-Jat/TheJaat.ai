@@ -122,6 +122,22 @@ class PostRepository extends RepositoriesAbstract implements PostInterface
         return $this->applyBeforeExecuteQuery($data)->paginate($paginate);
     }
 
+     /**
+     * {@inheritDoc}
+     */
+    public function getPostById($id)
+    {
+        $data = $this->model
+            ->where([
+                'status'    => BaseStatusEnum::PUBLISHED,
+                'id' => $id,
+            ]);
+            //->with('slugable')
+            //->orderBy('created_at', 'desc');
+
+        return $this->applyBeforeExecuteQuery($data)->get();
+    }
+
     /**
      * {@inheritDoc}
      */

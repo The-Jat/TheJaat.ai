@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use SeoHelper;
 use Theme;
+use PDF;
 
 class PublicController extends Controller
 {
@@ -113,6 +114,25 @@ class PublicController extends Controller
         $postsLayout = 'metro';
 
         return Theme::scope('videos', compact('posts', 'postsLayout'))->render();
+    }
+
+    // Create pdf of blog post.
+    public function exportAsPdf(Request $request)
+    {
+        $pre_url= url()->previous();
+        $post = get_posts_by_id($request->id);
+        // ddd($request);
+
+        $data = [
+            'id' => $post[0]->id,
+            'url' => $pre_url,
+            'name' => $post[0]->name,
+            'description' => $post[0]->description,
+            'content' => $post[0]->content,
+        ];
+
+        $pdf = PDF::loadView('post',$data);
+        return $pdf->download($data['name'].'.pdf');
     }
 
     /**
