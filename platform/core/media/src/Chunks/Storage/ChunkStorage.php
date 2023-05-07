@@ -52,13 +52,14 @@ class ChunkStorage
 
         $driver = $this->driver();
 
-        // Try to get the adapter
-        if (!method_exists($driver, 'getAdapter')) {
-            throw new RuntimeException('FileSystem driver must have an adapter implemented');
-        }
+        // creating problem while porting to laravel 9 from laravel 8
+        // // Try to get the adapter
+        // if (!method_exists($driver, 'getAdapter')) {
+        //     throw new RuntimeException('FileSystem driver must have an adapter implemented');
+        // }
 
-        // Get the disk adapter
-        $this->diskAdapter = $driver->getAdapter();
+        // // Get the disk adapter
+        // $this->diskAdapter = $driver->getAdapter();
 
         // Check if its local adapter
         $this->isLocalDisk = $this->diskAdapter instanceof Local;
