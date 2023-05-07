@@ -10,6 +10,7 @@ use Botble\Contact\Enums\ContactStatusEnum;
 use Botble\Contact\Repositories\Interfaces\ContactInterface;
 use Botble\Table\Abstracts\TableAbstract;
 use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\DataTables;
 
@@ -28,7 +29,8 @@ class ContactTable extends TableAbstract
     /**
      * @var string
      */
-    protected $exportClass = ContactExport::class;
+    // later on inspect...
+    // protected $exportClass = ContactExport::class;
 
     /**
      * ContactTable constructor.
@@ -51,7 +53,7 @@ class ContactTable extends TableAbstract
     /**
      * {@inheritDoc}
      */
-    public function ajax()
+    public function ajax(): JsonResponse
     {
         $data = $this->table
             ->eloquent($this->query())

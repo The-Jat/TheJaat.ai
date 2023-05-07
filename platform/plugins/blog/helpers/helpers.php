@@ -271,7 +271,7 @@ if (!function_exists('get_categories')) {
             'is_default' => 'DESC',
             'order'      => 'ASC',
         ]);
-        dd($categories);
+        // dd($categories);
 
         $categories = sort_item_with_children($categories);
 

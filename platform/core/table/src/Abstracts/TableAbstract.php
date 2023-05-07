@@ -13,10 +13,14 @@ use Html;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Relations\Relation as EloquentRelation;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -119,7 +123,8 @@ abstract class TableAbstract extends DataTable
     /**
      * @var string
      */
-    protected $exportClass = TableExportHandler::class;
+    // later on inspect...
+    // protected $exportClass = TableExportHandler::class;
 
     /**
      * TableAbstract constructor.
@@ -687,7 +692,8 @@ abstract class TableAbstract extends DataTable
      * @return mixed
      * @throws Throwable
      */
-    public function render($view, $data = [], $mergeData = [])
+    // public function render(?string $view, array $data = [], array $mergeData = [])
+    public function render(string $view = null, array $data = [], array $mergeData = [])
     {
         Assets::addScripts(['datatables', 'moment', 'datepicker'])
             ->addStyles(['datatables', 'datepicker'])
@@ -743,7 +749,9 @@ abstract class TableAbstract extends DataTable
      * @param EloquentBuilder|Builder $query
      * @return mixed
      */
-    public function applyScopes($query)
+    public function applyScopes(
+        EloquentBuilder|QueryBuilder|EloquentRelation|Collection|AnonymousResourceCollection $query
+    ): EloquentBuilder|QueryBuilder|EloquentRelation|Collection|AnonymousResourceCollection
     {
         $request = request();
 

@@ -3,6 +3,6 @@
     "description": "Member plugin",
     "type": "package",
     "require": {
-       "laravel/passport": "^9.0|^10.0"
+       "laravel/passport": "^11.8"
     }
 }

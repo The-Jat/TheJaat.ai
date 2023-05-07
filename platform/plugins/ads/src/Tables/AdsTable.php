@@ -10,6 +10,7 @@ use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Table\Abstracts\TableAbstract;
 use Html;
 use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Http\JsonResponse;
 use RvMedia;
 use Yajra\DataTables\DataTables;
 
@@ -45,7 +46,7 @@ class AdsTable extends TableAbstract
     /**
      * {@inheritDoc}
      */
-    public function ajax()
+    public function ajax(): JsonResponse
     {
         $data = $this->table
             ->eloquent($this->query())

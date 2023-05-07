@@ -13,6 +13,7 @@ use Botble\Table\Abstracts\TableAbstract;
 use Exception;
 use Html;
 use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
 use Yajra\DataTables\DataTables;
 
@@ -60,7 +61,7 @@ class UserTable extends TableAbstract
     /**
      * {@inheritDoc}
      */
-    public function ajax()
+    public function ajax(): JsonResponse
     {
         $data = $this->table
             ->eloquent($this->query())
