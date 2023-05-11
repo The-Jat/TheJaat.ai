@@ -1960,15 +1960,17 @@ ol li {
 }
 pre {
   word-wrap: break-word;
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 15px;
+  background: hsla(0, 0%, 78%, 0.3);
+  color: hsl(0, 0%, 20.8%);
+  border: 1px solid hsl(0, 0%, 77%);
+  border-radius: 2px;
+  tab-size: 4;
   font-size: 1em;
   line-height: 1.8;
   margin: 15px 0;
   max-width: 100%;
   overflow: auto;
-  padding: 1.75em;
+  padding: 1em;
   white-space: pre-wrap;
 }
 [data-loader="spinner"] {
