@@ -1,0 +1,21 @@
+{
+    "name": "botble/code",
+    "description": "Code package",
+    "type": "package",
+    "autoload": {
+        "psr-4": {
+            "Botble\\Code\\": "src"
+        }
+    },
+    "require": {
+        "botble/platform": "*@dev",
+        "botble/revision": "*@dev"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Botble\\Code\\Providers\\CodeServiceProvider"
+            ]
+        }
+    }
+}

@@ -16,6 +16,7 @@
         "botble/optimize": "*@dev",
         "botble/page": "*@dev",
         "botble/course": "*@dev",
+        "botble/code": "*@dev",
         "botble/platform": "*@dev",
         "botble/plugin-management": "*@dev",
         "botble/revision": "*@dev",
