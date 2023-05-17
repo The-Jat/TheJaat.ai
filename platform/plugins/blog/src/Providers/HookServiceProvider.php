@@ -15,6 +15,8 @@ use Botble\Page\Models\Page;
 use Botble\Page\Repositories\Interfaces\PageInterface;
 use Botble\Course\Models\Course;
 use Botble\Course\Repositories\Interfaces\CourseInterface;
+use Botble\Code\Models\Code;
+use Botble\Code\Repositories\Interfaces\CodeInterface;
 use Eloquent;
 use Html;
 use Illuminate\Routing\Events\RouteMatched;
@@ -47,6 +49,10 @@ class HookServiceProvider extends ServiceProvider
         if (defined('COURSE_MODULE_SCREEN_NAME')) {
             add_filter(COURSE_FILTER_FRONT_COURSE_CONTENT, [$this, 'renderBlogCourse'], 2, 2);
             add_filter(COURSE_FILTER_COURSE_NAME_IN_ADMIN_LIST, [$this, 'addAdditionNameToCourseName'], 147, 2);
+        }
+        if (defined('CODE_MODULE_SCREEN_NAME')) {
+            add_filter(CODE_FILTER_FRONT_CODE_CONTENT, [$this, 'renderCode'], 2, 2);
+            add_filter(CODE_FILTER_CODE_NAME_IN_ADMIN_LIST, [$this, 'addAdditionNameToCodeName'], 147, 2);
         }
 
         Event::listen(RouteMatched::class, function () {
@@ -298,6 +304,34 @@ class HookServiceProvider extends ServiceProvider
     }
 
     /**
+     * @param string|null $content
+     * @param Course $page
+     * @return array|string|null
+     */
+    public function renderCode(?string $content, Code $page)
+    {
+        // dd($page);
+        if ($page->id == theme_option('blog_page_id', setting('blog_page_id'))) {
+            $view = 'plugins/blog::themes.loop';
+
+            if (view()->exists(Theme::getThemeNamespace() . '::views.loop')) {
+                $view = Theme::getThemeNamespace() . '::views.loop';
+            }
+// dd($view);
+            return view($view, [
+                'posts' => get_all_posts(
+                    true,
+                    theme_option('number_of_posts_in_a_category', 12),
+                    ['slugable', 'categories', 'categories.slugable', 'author']
+                ),
+            ])
+                ->render();
+        }
+// dd($content);
+        return $content;
+    }
+
+    /**
      * @param string|null $name
      * @param Page $page
      * @return string|null
@@ -319,6 +353,22 @@ class HookServiceProvider extends ServiceProvider
     }
 
     public function addAdditionNameToCourseName(?string $name, Course $page)
+    {
+        if ($page->id == theme_option('blog_page_id', setting('blog_page_id'))) {
+            $subTitle = Html::tag('span', trans('plugins/blog::base.blog_page'), ['class' => 'additional-page-name'])
+                ->toHtml();
+
+            if (Str::contains($name, ' —')) {
+                return $name . ', ' . $subTitle;
+            }
+
+            return $name . ' —' . $subTitle;
+        }
+
+        return $name;
+    }
+
+    public function addAdditionNameToCodeName(?string $name, Code $page)
     {
         if ($page->id == theme_option('blog_page_id', setting('blog_page_id'))) {
             $subTitle = Html::tag('span', trans('plugins/blog::base.blog_page'), ['class' => 'additional-page-name'])

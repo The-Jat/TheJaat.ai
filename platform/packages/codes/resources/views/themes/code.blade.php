@@ -3,17 +3,19 @@
     {!! Theme::breadcrumb()->render() !!}
 </div> --}}
     @php
+    // dd(BaseHelper::isHomepage($code->id));
+    // dd($code);
       $ShowLeftBar = $code->parent_id !== 0 ? true: false;
     @endphp
 <div>
-    @if($code->parent_id !== 0 || $code->id ===13)
+    @if(BaseHelper::isHomepage($code->id))
 
-    {{-- In case of landing code page  --}}
+    {{-- In case of home code page  --}}
 
     <div class="container">
         <div @class(['row' => $ShowLeftBar])>
             <div @class(['col-lg-8' => $ShowLeftBar])>
-                {!! apply_filters(COURSE_FILTER_FRONT_COURSE_CONTENT, BaseHelper::clean($code->content), $code) !!}
+                {!! apply_filters(CODE_FILTER_FRONT_CODE_CONTENT, BaseHelper::clean($code->content), $code) !!}
             </div>
 
             {{-- testing starts --}}
