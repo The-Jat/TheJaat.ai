@@ -5,6 +5,7 @@ namespace Botble\Base\Forms;
 use Assets;
 use Botble\Base\Forms\Fields\AutocompleteField;
 use Botble\Base\Forms\Fields\ColorField;
+use Botble\Base\Forms\Fields\CodeEditorField;
 use Botble\Base\Forms\Fields\CustomRadioField;
 use Botble\Base\Forms\Fields\CustomSelectField;
 use Botble\Base\Forms\Fields\DateField;
@@ -273,6 +274,7 @@ abstract class FormAbstract extends Form
         $customFields = [
             'customSelect' => CustomSelectField::class,
             'editor'       => EditorField::class,
+            'codeEditor'   => CodeEditorField::class,
             'onOff'        => OnOffField::class,
             'customRadio'  => CustomRadioField::class,
             'mediaImage'   => MediaImageField::class,

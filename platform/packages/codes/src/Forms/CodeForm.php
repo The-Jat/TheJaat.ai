@@ -84,7 +84,7 @@ class CodeForm extends FormAbstract
                 'label_attr'    => ['class' => 'control-label'],
                 'default_value' => false,
             ])
-            ->add('content', 'editor', [
+            ->add('content', 'codeEditor', [
                 'label'      => trans('core/base::forms.content'),
                 'label_attr' => ['class' => 'control-label required'],
                 'attr'       => [

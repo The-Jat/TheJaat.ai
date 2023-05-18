@@ -8,7 +8,7 @@
       $ShowLeftBar = $code->parent_id !== 0 ? true: false;
     @endphp
 <div>
-    @if(BaseHelper::isHomepage($code->id))
+    @if(BaseHelper::isHomepage($code->id) || $code->parent_id == 0)
 
     {{-- In case of home code page  --}}
 
@@ -146,10 +146,10 @@
                                 {{-- <div class="tab-pane fade show @if($loop->index == 0) active @endif"
                                     id="nav-category-tab-{{ $item['category']->id }}" role="tabpanel"
                                     aria-labelledby="nav-{{ $item['category']->id }}-tab"> --}}
-                                    @php
-                                        $childs = get_child_from_parent($code->id)
+                                    {{-- @php --}}
+                                        {{-- $childs = get_child_from_parent($code->id) --}}
                                         // the above function will take the id of the page and return all its child.
-                                    @endphp
+                                    {{-- @endphp --}}
                                     <div class="block-tab-item post-module-2 post-module-1">
                                         <div class="row">
                                             {{-- @if(!empty($item['posts'][0]))
@@ -164,17 +164,17 @@
                                             @endif --}}
                                             <div class="col-md-6">
                                                 <div class="row">
-                                                    @foreach ($childs as $post)
+                                                    {{-- @foreach ($childs as $post) --}}
                                                         {{-- @if($loop->index == 0)
                                                             @continue
                                                         @endif --}}
                                                         <div class="col-md-6 col-sm-6 sm-grid-content mb-30">
                                                             {!! Theme::partial('components.list-view', [
-                                                            'post' => $post,
+                                                            'post' => $code,
                                                             'imageType' => 'medium'
                                                             ]) !!}
                                                         </div>
-                                                    @endforeach
+                                                    {{-- @endforeach --}}
                                                 </div>
                                             </div>
                                         </div>

@@ -19,6 +19,19 @@ return [
         ],
         'primary'  => env('PRIMARY_EDITOR', 'ckeditor'),
     ],
+    'codeEditor'                    => [
+        'ckeditorNew' => [
+            'js' => [
+                '/vendor/core/core/base/libraries/ckeditorNew/ckeditorNew.js',
+            ],
+        ],
+        'tinymce'  => [
+            'js' => [
+                '/vendor/core/core/base/libraries/tinymce/tinymce.min.js',
+            ],
+        ],
+        'primary'  => env('PRIMARY_EDITOR', 'ckeditor'),
+    ],
     'error_reporting'           => [
         'to'           => null,
         'via_slack'    => env('SLACK_REPORT_ENABLED', false),
