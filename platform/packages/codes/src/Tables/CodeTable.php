@@ -94,6 +94,7 @@ class CodeTable extends TableAbstract
         $query = $this->repository->getModel()->select([
             'id',
             'name',
+            'parent_id',
             'template',
             'created_at',
             'status',
@@ -115,6 +116,10 @@ class CodeTable extends TableAbstract
             'name'       => [
                 'title' => trans('core/base::tables.name'),
                 'class' => 'text-start',
+            ],
+            'parent_id'   => [
+                'title' => 'Parent ID',
+                'width' => '20px',
             ],
             'template'   => [
                 'title' => trans('core/base::tables.template'),

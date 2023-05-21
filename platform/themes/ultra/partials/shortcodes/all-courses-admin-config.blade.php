@@ -22,7 +22,7 @@
     <input name="include" value="{{ Arr::get($attributes, 'include') }}" class="form-control" placeholder="1,2,3">
 </div>
 <div class="form-group mb-3">
-    <label class="control-label">{{ __('Post Ids Exclude') }}</label>
+    <label class="control-label">{{ __('Course Ids Exclude') }}</label>
     <input name="exclude" value="{{ Arr::get($attributes, 'exclude') }}" class="form-control" placeholder="1,2,3">
 </div>
 

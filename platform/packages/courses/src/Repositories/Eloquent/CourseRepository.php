@@ -38,16 +38,31 @@ class CourseRepository extends RepositoriesAbstract implements CourseInterface
     /**
      * {@inheritDoc}
      */
-    public function getChildFromParent($parent_id)
+    public function getChildFromParentCourse($parent_id)
     {
+        // ddd($parent_id);
         $data = $this->model
             ->where(['status' => BaseStatusEnum::PUBLISHED, 'parent_id' => $parent_id])
             ->orderBy('created_at')
             // ->limit($limit)
             ->orderBy('created_at', 'desc');
+        // dd($this->applyBeforeExecuteQuery($data)->get());
+        return $this->applyBeforeExecuteQuery($data)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function hasChild($id)
+    {
+        $data = $this->model
+            ->where(['status' => BaseStatusEnum::PUBLISHED, 'parent_id' => $id])
+            ->orderBy('created_at')
+            // ->limit($limit)
+            ->orderBy('created_at', 'desc');
 
         // ddd($this->applyBeforeExecuteQuery($data)->get());
-        return $this->applyBeforeExecuteQuery($data)->get();
+        return $this->applyBeforeExecuteQuery($data)->count()>0? true:false;
     }
 
     public function getCourseById($id)

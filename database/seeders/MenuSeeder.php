@@ -52,7 +52,7 @@ class MenuSeeder extends BaseSeeder
                         ],
                         [
                             'title' => 'Courses',
-                            'url'   => '/landingpagecourses',
+                            'url'   => '/course-front-page',
                         ],
                         [
                             'title' => 'Code',

@@ -24,7 +24,7 @@ class CourseForm extends FormAbstract
         $parents = [];
         foreach ($list as $row) {
             // dd($list);
-            if ($this->getModel() && ($this->model->id === $row->id || $this->model->id === $row->parent_id) || $row->parent_id != 0 ) {
+            if ($this->getModel() && ($this->model->id === $row->id || $this->model->id === $row->parent_id) /* || $row->parent_id != 0*/ ) {
                 continue;
             }
             // dd($row->name);

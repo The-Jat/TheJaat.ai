@@ -15,14 +15,26 @@ if (!function_exists('get_featured_courses')) {
 }
 
 // get the child courses of the passed page course
-if (!function_exists('get_child_from_parent')) {
+if (!function_exists('get_child_from_parent_course')) {
     /**
      * @param int $limit
      * @return mixed
      */
-    function get_child_from_parent($parent_id)
+    function get_child_from_parent_course($parent_id)
     {
-        return app(CourseInterface::class)->getChildFromParent($parent_id);
+        return app(CourseInterface::class)->getChildFromParentCourse($parent_id);
+    }
+}
+
+// get the child courses of the passed page course
+if (!function_exists('has_child')) {
+    /**
+     * @param int $limit
+     * @return mixed
+     */
+    function has_child($id)
+    {
+        return app(CourseInterface::class)->hasChild($id);
     }
 }
 
