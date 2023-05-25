@@ -22,6 +22,11 @@ interface CourseInterface extends RepositoryInterface
     public function getChildFromParentCourse($parent_id);
 
     /**
+     * @param int $parent_id
+     */
+    // public function getParentFromID($parent_id);
+
+    /**
      * @param int $id
      */
     public function hasChild($id);

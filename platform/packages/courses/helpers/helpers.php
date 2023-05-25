@@ -27,6 +27,18 @@ if (!function_exists('get_child_from_parent_course')) {
 }
 
 // get the child courses of the passed page course
+// if (!function_exists('get_parent_from_id')) {
+//     /**
+//      * @param int $limit
+//      * @return mixed
+//      */
+//     function get_parent_from_id($parent_id)
+//     {
+//         return app(CourseInterface::class)->getParentFromID($parent_id);
+//     }
+// }
+
+// get the child courses of the passed page course
 if (!function_exists('has_child')) {
     /**
      * @param int $limit

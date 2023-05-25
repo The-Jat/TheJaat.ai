@@ -25,7 +25,7 @@ class CourseTable extends TableAbstract
      * @var bool
      */
     protected $hasFilter = true;
-
+// public $Item=0;
     /**
      * CourseTable constructor.
      * @param DataTables $table
@@ -53,6 +53,7 @@ class CourseTable extends TableAbstract
         $data = $this->table
             ->eloquent($this->query())
             ->editColumn('name', function ($item) {
+                // $this->Item = $item->parent_id;
                 if (!Auth::user()->hasPermission('posts.edit')) {
                     $name = $item->name;
                 } else {
@@ -180,6 +181,11 @@ class CourseTable extends TableAbstract
             'created_at' => [
                 'title' => trans('core/base::tables.created_at'),
                 'type'  => 'date',
+            ],
+            'parent_id' => [
+                'title' => trans('core/base::tables.parent'),
+                'type'  => 'number',
+                // 'choices'=> get_parent_from_id($this->Item),
             ],
         ];
     }

@@ -53,6 +53,21 @@ class CourseRepository extends RepositoriesAbstract implements CourseInterface
     /**
      * {@inheritDoc}
      */
+    // public function getParentFromID($parent_id)
+    // {
+    //     // ddd($parent_id);
+    //     $data = $this->model
+    //         ->where(['status' => BaseStatusEnum::PUBLISHED, 'id' => $parent_id])
+    //         ->orderBy('created_at')
+    //         // ->limit($limit)
+    //         ->orderBy('created_at', 'desc');
+    //     // dd($this->applyBeforeExecuteQuery($data)->get());
+    //     return $this->applyBeforeExecuteQuery($data)->get();
+    // }
+
+    /**
+     * {@inheritDoc}
+     */
     public function hasChild($id)
     {
         $data = $this->model
