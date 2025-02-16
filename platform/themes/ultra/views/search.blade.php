@@ -4,12 +4,12 @@
 @endphp
 
 <main class="position-relative">
-   
+
     <!--archive header-->
     <div class="archive-header text-center mb-50 mt-20">
         <div class="container">
             <p>{{ __('Search result') }}</p>
-            <h1><span class="color2">{{ app('request')->input('q') }}</span></h1>
+            <h1><span class="color2">{{ BaseHelper::stringify(request()->query('q')) }}</span></h1>
             <p class="font-small color-grey">{{ $description }} </p>
         </div>
     </div>
@@ -26,14 +26,14 @@
                                 {!! Theme::partial('components.post-card-1-block', ['post' => $posts->first()]) !!}
                             </article>
                         @endif
-                
+
                         @foreach($posts->slice(1) as $post)
                             <article class="row mb-50">
                                 {!! Theme::partial('components.post-card-2-block', ['post' => $post]) !!}
                             </article>
                         @endforeach
                     </div>
-                
+
                     <!--pagination-->
                     <div class="pagination-area pt-30 text-center bt-1 border-color-1">
                         <div class="container">

@@ -2,39 +2,52 @@
 
 namespace Botble\ACL\Models;
 
+use Botble\ACL\Concerns\HasPreferences;
+use Botble\ACL\Contracts\HasPermissions as HasPermissionsContract;
+use Botble\ACL\Contracts\HasPreferences as HasPreferencesContract;
 use Botble\ACL\Notifications\ResetPasswordNotification;
 use Botble\ACL\Traits\PermissionTrait;
+use Botble\Base\Casts\SafeContent;
+use Botble\Base\Models\BaseModel;
 use Botble\Base\Supports\Avatar;
+use Botble\Media\Facades\RvMedia;
 use Botble\Media\Models\MediaFile;
-use Eloquent;
-use Exception;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use RvMedia;
+use Throwable;
 
-/**
- * @mixin Eloquent
- */
-class User extends Authenticatable
+class User extends BaseModel implements
+    HasPermissionsContract,
+    AuthenticatableContract,
+    AuthorizableContract,
+    CanResetPasswordContract,
+    HasPreferencesContract
 {
+    use Authenticatable;
+    use Authorizable;
+    use CanResetPassword;
     use HasApiTokens;
     use HasFactory;
-    use PermissionTrait;
+    use PermissionTrait {
+        PermissionTrait::hasPermission as traitHasPermission;
+        PermissionTrait::hasAnyPermission as traitHasAnyPermission;
+    }
     use Notifiable;
+    use HasPreferences;
 
-    /**
-     * {@inheritDoc}
-     */
     protected $table = 'users';
 
-    /**
-     * @var array
-     */
     protected $fillable = [
         'username',
         'email',
@@ -45,119 +58,25 @@ class User extends Authenticatable
         'permissions',
     ];
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * @var array
-     */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-    ];
-
-    /**
-     * @var array
-     */
     protected $casts = [
+        'password' => 'hashed',
+        'email_verified_at' => 'datetime',
         'permissions' => 'json',
+        'username' => SafeContent::class,
+        'first_name' => SafeContent::class,
+        'last_name' => SafeContent::class,
     ];
 
-    /**
-     * Always capitalize the first name when we retrieve it
-     * @param string $value
-     * @return string
-     */
-    public function getFirstNameAttribute($value)
-    {
-        return ucfirst($value);
-    }
-
-    /**
-     * Always capitalize the last name when we retrieve it
-     * @param string $value
-     * @return string
-     */
-    public function getLastNameAttribute($value)
-    {
-        return ucfirst($value);
-    }
-
-    /**
-     * @return string
-     * @deprecated since v5.15
-     */
-    public function getFullName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getNameAttribute(): string
-    {
-        return ucfirst($this->first_name) . ' ' . ucfirst($this->last_name);
-    }
-
-    /**
-     * @return BelongsTo
-     */
     public function avatar(): BelongsTo
     {
         return $this->belongsTo(MediaFile::class)->withDefault();
     }
 
-    /**
-     * @return string
-     */
-    public function getAvatarUrlAttribute()
-    {
-        if ($this->avatar->url) {
-            return RvMedia::url($this->avatar->url);
-        }
-
-        try {
-            return (new Avatar())->create($this->name)->toBase64();
-        } catch (Exception $exception) {
-            return RvMedia::getDefaultImage();
-        }
-    }
-
-    /**
-     * @param string $value
-     * @return array
-     */
-    public function getPermissionsAttribute($value): array
-    {
-        try {
-            return json_decode($value, true) ?: [];
-        } catch (Exception $exception) {
-            return [];
-        }
-    }
-
-    /**
-     * Set mutator for the "permissions" attribute.
-     *
-     * @param array $permissions
-     * @return void
-     */
-    public function setPermissionsAttribute(array $permissions)
-    {
-        $this->attributes['permissions'] = $permissions ? json_encode($permissions) : '';
-    }
-
-    /**
-     * @return BelongsToMany
-     */
     public function roles(): BelongsToMany
     {
         return $this
@@ -165,62 +84,89 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
-    /**
-     * @return bool
-     */
+    protected function firstName(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => ucfirst((string) $value),
+            set: fn ($value) => ucfirst((string) $value),
+        );
+    }
+
+    protected function lastName(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => ucfirst((string) $value),
+            set: fn ($value) => ucfirst((string) $value),
+        );
+    }
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->first_name . ' ' . $this->last_name,
+        );
+    }
+
+    protected function url(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->getKey() ? route('users.profile.view', $this->getKey()) : null,
+        );
+    }
+
+    protected function activated(): Attribute
+    {
+        return Attribute::get(fn (): bool => $this->activations()->where('completed', true)->exists());
+    }
+
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->avatar && $this->avatar->url) {
+                return RvMedia::url($this->avatar->url);
+            }
+
+            try {
+                return Avatar::createBase64Image($this->name);
+            } catch (Throwable) {
+                return RvMedia::getDefaultImage();
+            }
+        });
+    }
+
     public function isSuperUser(): bool
     {
-        return $this->super_user || $this->hasAccess(ACL_ROLE_SUPER_USER);
+        return $this->super_user || $this->traitHasPermission(ACL_ROLE_SUPER_USER);
     }
 
-    /**
-     * @param string $permission
-     * @return bool
-     */
-    public function hasPermission(string $permission): bool
+    public function hasPermission(string|array $permissions): bool
     {
         if ($this->isSuperUser()) {
             return true;
         }
 
-        return $this->hasAccess($permission);
+        return $this->traitHasPermission($permissions);
     }
 
-    /**
-     * @param array $permissions
-     * @return bool
-     */
-    public function hasAnyPermission(array $permissions): bool
+    public function hasAnyPermission(string|array $permissions): bool
     {
         if ($this->isSuperUser()) {
             return true;
         }
 
-        return $this->hasAnyAccess($permissions);
+        return $this->traitHasAnyPermission($permissions);
     }
 
-    /**
-     * Send the password reset notification.
-     *
-     * @param string $token
-     * @return void
-     */
-    public function sendPasswordResetNotification($token)
+    public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
     }
 
-    /**
-     * @return HasMany
-     */
     public function activations(): HasMany
     {
         return $this->hasMany(Activation::class, 'user_id');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function inRole($role): bool
     {
         $roleId = null;
@@ -229,9 +175,6 @@ class User extends Authenticatable
         }
 
         foreach ($this->roles as $instance) {
-            /**
-             * @var Role $instance
-             */
             if ($role instanceof Role) {
                 if ($instance->getKey() === $roleId) {
                     return true;
@@ -244,10 +187,7 @@ class User extends Authenticatable
         return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function delete()
+    public function delete(): ?bool
     {
         if ($this->exists) {
             $this->activations()->delete();

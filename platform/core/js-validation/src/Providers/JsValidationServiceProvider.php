@@ -2,25 +2,21 @@
 
 namespace Botble\JsValidation\Providers;
 
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\JsValidation\Javascript\ValidatorHandler;
 use Botble\JsValidation\JsValidatorFactory;
 use Botble\JsValidation\RemoteValidationMiddleware;
 use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Support\ServiceProvider;
 
 class JsValidationServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    /**
-     * Bootstrap the application services.
-     *
-     * @return void
-     */
-    public function boot()
+    public function boot(): void
     {
-        $this->setNamespace('core/js-validation')
+        $this
+            ->setNamespace('core/js-validation')
             ->loadAndPublishConfigurations(['js-validation'])
             ->loadAndPublishViews()
             ->publishAssets();
@@ -32,12 +28,7 @@ class JsValidationServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Configure Laravel Validator.
-     *
-     * @return void
-     */
-    protected function bootstrapValidator()
+    protected function bootstrapValidator(): void
     {
         $callback = function () {
             return true;
@@ -46,12 +37,7 @@ class JsValidationServiceProvider extends ServiceProvider
         $this->app['validator']->extend(ValidatorHandler::JS_VALIDATION_DISABLE, $callback);
     }
 
-    /**
-     * Register the application services.
-     *
-     * @return void
-     */
-    public function register()
+    public function register(): void
     {
         $this->app->singleton('js-validator', function ($app) {
             $config = $app['config']->get('core.js-validation.js-validation');

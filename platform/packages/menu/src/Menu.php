@@ -3,171 +3,115 @@
 namespace Botble\Menu;
 
 use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Base\Events\CreatedContentEvent;
-use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Facades\Html;
+use Botble\Base\Facades\MetaBox;
+use Botble\Base\Forms\FieldOptions\CoreIconFieldOption;
+use Botble\Base\Forms\FieldOptions\InputFieldOption;
+use Botble\Base\Forms\FieldOptions\TextFieldOption;
+use Botble\Base\Forms\Fields\ColorField;
+use Botble\Base\Forms\Fields\CoreIconField;
+use Botble\Base\Forms\Fields\TextField;
+use Botble\Base\Forms\FormAbstract;
 use Botble\Base\Models\BaseModel;
+use Botble\Base\Supports\RepositoryHelper;
+use Botble\Menu\Forms\MenuNodeForm;
+use Botble\Menu\Http\Requests\MenuRequest;
+use Botble\Menu\Models\Menu as MenuModel;
 use Botble\Menu\Models\MenuNode;
-use Botble\Menu\Repositories\Eloquent\MenuRepository;
-use Botble\Menu\Repositories\Interfaces\MenuInterface;
-use Botble\Menu\Repositories\Interfaces\MenuNodeInterface;
+use Botble\Support\Http\Requests\Request as BaseRequest;
 use Botble\Support\Services\Cache\Cache;
-use Collective\Html\HtmlBuilder;
+use Botble\Theme\Facades\Theme;
 use Exception;
-use Illuminate\Cache\CacheManager;
 use Illuminate\Config\Repository;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
-use Theme;
 use Throwable;
 
 class Menu
 {
-    /**
-     * @var MenuInterface
-     */
-    protected $menuRepository;
+    protected Cache $cache;
 
-    /**
-     * @var HtmlBuilder
-     */
-    protected $html;
+    protected array $menuOptionModels = [];
 
-    /**
-     * @var MenuNodeInterface
-     */
-    protected $menuNodeRepository;
+    protected Collection $data;
 
-    /**
-     * @var Cache
-     */
-    protected $cache;
+    protected bool $loaded = false;
 
-    /**
-     * @var Repository
-     */
-    protected $config;
-
-    /**
-     * @var array
-     */
-    protected $menuOptionModels = [];
-
-    /**
-     * @var Collection
-     */
-    protected $data = [];
-
-    /**
-     * Whether the settings data are loaded.
-     *
-     * @var boolean
-     */
-    protected $loaded = false;
-
-    /**
-     * Menu constructor.
-     * @param MenuInterface $menuRepository
-     * @param HtmlBuilder $html
-     * @param MenuNodeInterface $menuNodeRepository
-     * @param CacheManager $cache
-     * @param Repository $config
-     */
-    public function __construct(
-        MenuInterface     $menuRepository,
-        HtmlBuilder       $html,
-        MenuNodeInterface $menuNodeRepository,
-        CacheManager      $cache,
-        Repository        $config
-    ) {
-        $this->config = $config;
-        $this->menuRepository = $menuRepository;
-        $this->html = $html;
-        $this->menuNodeRepository = $menuNodeRepository;
-        $this->cache = new Cache($cache, MenuRepository::class);
-        $this->data = collect([]);
-    }
-
-    /**
-     * @param string $slug
-     * @param bool $active
-     * @return bool
-     */
-    public function hasMenu(string $slug, bool $active): bool
+    public function __construct(protected Repository $config)
     {
-        return $this->menuRepository->findBySlug($slug, $active);
+        $this->cache = Cache::make(MenuModel::class);
+
+        $this->addMenuLocation('main-menu', trans('packages/menu::menu.main_navigation'));
     }
 
-    /**
-     * @param array $menuNodes
-     * @param int $menuId
-     * @param int $parentId
-     * @return array
-     */
-    public function recursiveSaveMenu(array $menuNodes, int $menuId, int $parentId): array
+    public function hasMenu(string $slug): bool
+    {
+        $this->load();
+
+        return $this->data
+            ->where('slug', $slug)
+            ->isNotEmpty();
+    }
+
+    public function recursiveSaveMenu(array $menuNodes, int|string $menuId, int|string $parentId): array
     {
         try {
             foreach ($menuNodes as &$row) {
                 $child = Arr::get($row, 'children', []);
-                $hasChild = !empty($child);
+
+                foreach ($child as $index => $item) {
+                    $child[$index]['menuItem']['position'] = $index;
+                }
+
+                $hasChild = ! empty($child);
 
                 $row['menuItem'] = $this->saveMenuNode($row['menuItem'], $menuId, $parentId, $hasChild);
 
-                if (!empty($child)) {
+                if (! empty($child) && is_array($child)) {
                     $this->recursiveSaveMenu($child, $menuId, $row['menuItem']['id']);
                 }
             }
 
             return $menuNodes;
-        } catch (Exception $ex) {
+        } catch (Exception) {
             return [];
         }
     }
 
-    /**
-     * @param array $menuItem
-     * @param int $menuId
-     * @param int $parentId
-     * @param bool $hasChild
-     * @return array
-     */
-    protected function saveMenuNode(array $menuItem, int $menuId, int $parentId, bool $hasChild = false): array
-    {
-        $item = $this->menuNodeRepository->findById(Arr::get($menuItem, 'id'));
+    protected function saveMenuNode(
+        array $menuItem,
+        int|string $menuId,
+        int|string $parentId,
+        bool $hasChild = false
+    ): array {
+        /**
+         * @var MenuNode $node
+         */
 
-        $created = false;
+        $node = MenuNode::query()->findOrNew(Arr::get($menuItem, 'id'));
 
-        if (!$item) {
-            $item = $this->menuNodeRepository->getModel();
-            $created = true;
-        }
+        MenuNodeForm::createFromModel($node)
+            ->saving(function (MenuNodeForm $form) use ($hasChild, $parentId, $menuId, $menuItem): void {
+                /**
+                 * @var MenuNode $node
+                 */
+                $node = $form->getModel();
+                $node->fill($menuItem);
+                $node->menu_id = $menuId;
+                $node->parent_id = $parentId;
+                $node->has_child = $hasChild;
 
-        $item->fill($menuItem);
-        $item->menu_id = $menuId;
-        $item->parent_id = $parentId;
-        $item->has_child = $hasChild;
+                $node = $this->getReferenceMenuNode($menuItem, $node);
+                $node->save();
+            });
 
-        $item = $this->getReferenceMenuNode($menuItem, $item);
-
-        $this->menuNodeRepository->createOrUpdate($item);
-
-        $menuItem['id'] = $item->id;
-
-        if ($created) {
-            event(new CreatedContentEvent(MENU_NODE_MODULE_SCREEN_NAME, request(), $item));
-        } else {
-            event(new UpdatedContentEvent(MENU_NODE_MODULE_SCREEN_NAME, request(), $item));
-        }
-
+        $menuItem['id'] = $node->getKey();
 
         return $menuItem;
     }
 
-    /**
-     * @param array $item
-     * @param MenuNode $menuNode
-     * @return MenuNode
-     */
     public function getReferenceMenuNode(array $item, MenuNode $menuNode): MenuNode
     {
         switch (Arr::get($item, 'reference_type')) {
@@ -176,28 +120,26 @@ class Menu
                 $menuNode->reference_id = 0;
                 $menuNode->reference_type = null;
                 $menuNode->url = str_replace('&amp;', '&', Arr::get($item, 'url'));
+
                 break;
 
             default:
-                $menuNode->reference_id = (int)Arr::get($item, 'reference_id');
+                $menuNode->reference_id = (int) Arr::get($item, 'reference_id');
                 $menuNode->reference_type = Arr::get($item, 'reference_type');
+
                 if (class_exists($menuNode->reference_type)) {
                     $reference = $menuNode->reference_type::find($menuNode->reference_id);
                     if ($reference) {
                         $menuNode->url = str_replace(url(''), '', $reference->url);
                     }
                 }
+
                 break;
         }
 
         return $menuNode;
     }
 
-    /**
-     * @param string $location
-     * @param string $description
-     * @return $this
-     */
     public function addMenuLocation(string $location, string $description): self
     {
         $locations = $this->getMenuLocations();
@@ -208,18 +150,11 @@ class Menu
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getMenuLocations(): array
     {
         return $this->config->get('packages.menu.general.locations', []);
     }
 
-    /**
-     * @param string $location
-     * @return $this
-     */
     public function removeMenuLocation(string $location): self
     {
         $locations = $this->getMenuLocations();
@@ -230,20 +165,14 @@ class Menu
         return $this;
     }
 
-    /**
-     * @param string $location
-     * @param array $attributes
-     * @return string
-     * @throws Throwable
-     */
-    public function renderMenuLocation(string $location, array $attributes = []): string
+    public function renderMenuLocation(string $location, array $attributes = []): ?string
     {
         $this->load();
 
         $html = '';
 
         foreach ($this->data as $menu) {
-            if (!in_array($location, $menu->locations->pluck('location')->all())) {
+            if (! in_array($location, $menu->locations->pluck('location')->all())) {
                 continue;
             }
 
@@ -254,11 +183,6 @@ class Menu
         return $html;
     }
 
-    /**
-     * @param string $location
-     * @return bool
-     * @throws Throwable
-     */
     public function isLocationHasMenu(string $location): bool
     {
         $this->load();
@@ -272,82 +196,91 @@ class Menu
         return false;
     }
 
-    /**
-     * Make sure data is loaded.
-     *
-     * @param boolean $force Force a reload of data. Default false.
-     */
-    public function load(bool $force = false)
+    public function load(bool $force = false): void
     {
-        if (!$this->loaded || $force) {
+        if (! $this->loaded || $force) {
             $this->data = $this->read();
             $this->loaded = true;
         }
     }
 
-    /**
-     * @return Collection
-     */
     protected function read(): Collection
     {
-        return $this->menuRepository->allBy(
-            [
-                'status' => BaseStatusEnum::PUBLISHED,
-            ],
-            [
-                'menuNodes',
-                'menuNodes.child',
-                'menuNodes.metadata',
-                'locations',
-            ]
-        );
+        $with = apply_filters('cms_menu_load_with_relations', [
+            'menuNodes',
+            'menuNodes.child',
+            'locations',
+        ]);
+
+        $items = MenuModel::query()
+            ->wherePublished()
+            ->with($with);
+
+        return RepositoryHelper::applyBeforeExecuteQuery($items, new MenuModel())->get();
     }
 
-    /**
-     * @param array $args
-     * @return string|null
-     * @throws Throwable
-     */
     public function generateMenu(array $args = []): ?string
     {
         $this->load();
 
         $view = Arr::get($args, 'view');
+
         $theme = Arr::get($args, 'theme', true);
 
-        $menu = Arr::get($args, 'menu');
+        $cacheKey = 'menu_location_' . md5(serialize(BaseHelper::getHomepageUrl()) . serialize($args));
 
-        $slug = Arr::get($args, 'slug');
-        if (!$menu && !$slug) {
-            return null;
-        }
+        $cacheEnabled = setting('cache_front_menu_enabled', true);
 
-        $parentId = Arr::get($args, 'parent_id', 0);
-
-        if (!$menu) {
-            $menu = $this->data->where('slug', $slug)->first();
-        }
-
-        if (!$menu) {
-            return null;
-        }
-
-        if (!Arr::has($args, 'menu_nodes')) {
-            $menuNodes = $menu->menuNodes->where('parent_id', $parentId);
+        if ($cacheEnabled && $this->cache->has($cacheKey) && ($cachedData = $this->cache->get($cacheKey))) {
+            $data = $cachedData;
         } else {
-            $menuNodes = Arr::get($args, 'menu_nodes', []);
-        }
+            $menu = Arr::get($args, 'menu');
 
-        if ($menuNodes instanceof Collection) {
+            $slug = Arr::get($args, 'slug');
+            if (! $menu && ! $slug) {
+                return null;
+            }
+
+            $parentId = Arr::get($args, 'parent_id', 0);
+
+            if (! $menu) {
+                $menu = $this->data->where('slug', $slug)->first();
+            }
+
+            if (! $menu) {
+                $menu = RepositoryHelper::applyBeforeExecuteQuery(
+                    MenuModel::query()->where('slug', $slug),
+                    new MenuModel(),
+                    true
+                )->first();
+            }
+
+            if (! $menu) {
+                return null;
+            }
+
+            if (! Arr::has($args, 'menu_nodes')) {
+                $menuNodes = $menu->menuNodes->where('parent_id', $parentId);
+            } else {
+                $menuNodes = Arr::get($args, 'menu_nodes', []);
+            }
+
+            if ($menuNodes instanceof Collection) {
+                try {
+                    $menuNodes->loadMissing('reference');
+                } catch (Throwable) {
+                }
+            }
+
             $menuNodes = $menuNodes->sortBy('position');
+
+            $data = [
+                'menu' => $menu,
+                'menu_nodes' => $menuNodes,
+            ];
+
+            $data['options'] = Html::attributes(Arr::get($args, 'options', []));
         }
-
-        $data = [
-            'menu'       => $menu,
-            'menu_nodes' => $menuNodes,
-        ];
-
-        $data['options'] = $this->html->attributes(Arr::get($args, 'options', []));
 
         if ($theme && $view) {
             return Theme::partial($view, $data);
@@ -360,45 +293,33 @@ class Menu
         return view('packages/menu::partials.default', $data)->render();
     }
 
-    /**
-     * @param string $model
-     * @param string $name
-     * @throws FileNotFoundException
-     * @throws Throwable
-     */
-    public function registerMenuOptions(string $model, string $name)
+    public function registerMenuOptions(string $model, string $name): void
     {
         $options = Menu::generateSelect([
-            'model'   => new $model(),
+            'model' => new $model(),
             'options' => [
-                'class' => 'list-item',
+                'class' => 'list-unstyled list-item',
             ],
         ]);
 
         echo view('packages/menu::menu-options', compact('options', 'name'));
     }
 
-    /**
-     * @param array $args
-     * @return string|null
-     * @throws FileNotFoundException
-     * @throws Throwable
-     */
     public function generateSelect(array $args = []): ?string
     {
         /**
-         * @var BaseModel $model
+         * @var BaseModel|Builder $model
          */
         $model = Arr::get($args, 'model');
 
-        $options = $this->html->attributes(Arr::get($args, 'options', []));
+        $options = Html::attributes(Arr::get($args, 'options', []));
 
-        if (!Arr::has($args, 'items')) {
+        if (! Arr::has($args, 'items')) {
             if (method_exists($model, 'children')) {
                 $items = $model
                     ->where('parent_id', Arr::get($args, 'parent_id', 0))
                     ->with(['children', 'children.children'])
-                    ->orderBy('name', 'asc');
+                    ->orderBy('name');
             } else {
                 $items = $model->orderBy('name');
             }
@@ -407,7 +328,7 @@ class Menu
                 $items = $items->where('status', BaseStatusEnum::PUBLISHED);
             }
 
-            $items = apply_filters(BASE_FILTER_BEFORE_GET_ADMIN_LIST_ITEM, $items, $model, get_class($model))->get();
+            $items = apply_filters(BASE_FILTER_BEFORE_GET_ADMIN_LIST_ITEM, $items, $model, $model::class)->get();
         } else {
             $items = Arr::get($args, 'items', []);
         }
@@ -419,10 +340,6 @@ class Menu
         return view('packages/menu::partials.select', compact('items', 'model', 'options'))->render();
     }
 
-    /**
-     * @param string $model
-     * @return $this
-     */
     public function addMenuOptionModel(string $model): self
     {
         $this->menuOptionModels[] = $model;
@@ -430,18 +347,11 @@ class Menu
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getMenuOptionModels(): array
     {
         return $this->menuOptionModels;
     }
 
-    /**
-     * @param array $models
-     * @return $this
-     */
     public function setMenuOptionModels(array $models): self
     {
         $this->menuOptionModels = $models;
@@ -449,30 +359,189 @@ class Menu
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     public function clearCacheMenuItems(): self
     {
         try {
-            $nodes = $this->menuNodeRepository->all(['reference']);
+            $nodes = MenuNode::query()->get();
 
             foreach ($nodes as $node) {
-                if (!$node->reference_type ||
-                    !class_exists($node->reference_type) ||
-                    !$node->reference_id ||
-                    !$node->reference
+                if (! $node->reference_type ||
+                    ! class_exists($node->reference_type) ||
+                    ! $node->reference_id ||
+                    ! $node->reference
                 ) {
                     continue;
                 }
 
-                $node->url = str_replace(url(''), '', $node->reference->url);
+                $node->url = rtrim(str_replace(url(''), '', $node->reference->url), '/');
+
+                if ($node->url === rtrim(url(''), '/')) {
+                    $node->url = '/';
+                }
+
                 $node->save();
             }
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
 
         return $this;
+    }
+
+    public function useMenuItemIconImage(): void
+    {
+        FormAbstract::beforeRendering(function (FormAbstract $form): FormAbstract {
+            $model = $form->getModel();
+
+            if ($model instanceof MenuNode) {
+                $form
+                    ->modify(
+                        'icon_font',
+                        CoreIconField::class,
+                        CoreIconFieldOption::make()
+                    )
+                    ->addAfter('icon_font', 'icon_image', 'mediaImage', [
+                        'label' => __('Icon image'),
+                        'attr' => [
+                            'data-update' => 'icon_image',
+                        ],
+                        'value' => $model->icon_image ?: $model->getMetaData('icon_image', true),
+                        'help_block' => [
+                            'text' => __('It will replace Icon Font if it is present.'),
+                        ],
+                        'wrapper' => [
+                            'style' => 'display: block;',
+                        ],
+                    ]);
+            }
+
+            return $form;
+        }, 124);
+
+        FormAbstract::beforeSaving(function (FormAbstract $form): void {
+            $model = $form->getModel();
+
+            if ($model instanceof MenuNode) {
+                $request = $form->getRequest();
+
+                if ($request->has('data.icon_image')) {
+                    if ($iconImage = $request->input('data.icon_image')) {
+                        MetaBox::saveMetaBoxData($model, 'icon_image', $iconImage);
+                    } else {
+                        MetaBox::deleteMetaData($model, 'icon_image');
+                    }
+
+                    return;
+                }
+
+                if ($menuNodes = $request->input('menu_nodes')) {
+                    $menuNodes = json_decode($menuNodes, true);
+
+                    if ($menuNodes) {
+                        $this->saveMenuNodeImages($menuNodes, $model);
+                    }
+                }
+            }
+        }, 170);
+
+        add_filter('menu_nodes_item_data', function (MenuNode $data): MenuNode {
+            $data->icon_image = $data->getMetaData('icon_image', true);
+
+            return $data;
+        }, 170);
+
+        add_filter('cms_menu_load_with_relations', function (array $relations): array {
+            return array_merge($relations, ['menuNodes.metadata', 'menuNodes.child.metadata']);
+        }, 170);
+    }
+
+    public function saveMenuNodeImages(array $nodes, MenuNode $model): void
+    {
+        foreach ($nodes as $node) {
+            if ($node['menuItem']['id'] == $model->getKey() && isset($node['menuItem']['icon_image'])) {
+                if ($iconImage = $node['menuItem']['icon_image']) {
+                    MetaBox::saveMetaBoxData($model, 'icon_image', $iconImage);
+                } else {
+                    MetaBox::deleteMetaData($model, 'icon_image');
+                }
+            }
+
+            if (! empty($node['children'])) {
+                $this->saveMenuNodeImages($node['children'], $model);
+            }
+        }
+    }
+
+    public function useMenuItemBadge(): void
+    {
+        MenuNodeForm::extend(function (MenuNodeForm $form) {
+            /**
+             * @var MenuNode $menuNode
+             */
+            $menuNode = $form->getModel();
+
+            $form->add(
+                'badge_text',
+                TextField::class,
+                TextFieldOption::make()
+                    ->label(trans('packages/menu::menu.badge_text'))
+                    ->value($menuNode->getMetaData('badge_text', true))
+                    ->toArray()
+            )
+                ->add(
+                    'badge_color',
+                    ColorField::class,
+                    InputFieldOption::make()
+                        ->value($menuNode->getMetaData('badge_color', true) ?: '#ffffff')
+                        ->label(trans('packages/menu::menu.badge_color'))
+                        ->toArray()
+                );
+
+            return $form;
+        });
+
+        MenuNodeForm::beforeSaving(function (FormAbstract $form) {
+            $model = $form->getModel();
+
+            if ($model instanceof MenuNode) {
+                $request = $form->getRequest();
+
+                if ($menuNodes = $request->input('menu_nodes')) {
+                    $menuNodes = json_decode($menuNodes, true);
+
+                    $this->saveMenuNodeBadges($menuNodes, $model);
+                }
+            }
+
+            return $form;
+        }, 170);
+
+        add_filter('core_request_rules', function (array $rules, BaseRequest $request) {
+            if ($request instanceof MenuRequest) {
+                $rules['badge_text'] = ['nullable', 'string'];
+                $rules['badge_color'] = ['nullable', 'string'];
+            }
+
+            return $rules;
+        }, 10, 2);
+    }
+
+    public function saveMenuNodeBadges(array $nodes, MenuNode $model): void
+    {
+        foreach ($nodes as $node) {
+            if ($node['menuItem']['id'] == $model->getKey()) {
+                if (isset($node['menuItem']['badge_text'])) {
+                    MetaBox::saveMetaBoxData($model, 'badge_text', $node['menuItem']['badge_text']);
+                }
+
+                if (isset($node['menuItem']['badge_color'])) {
+                    MetaBox::saveMetaBoxData($model, 'badge_color', $node['menuItem']['badge_color']);
+                }
+            }
+
+            if (! empty($node['children'])) {
+                $this->saveMenuNodeBadges($node['children'], $model);
+            }
+        }
     }
 }

@@ -2,24 +2,25 @@
 
 namespace Botble\Backup\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Supports\ServiceProvider;
+use Botble\Dashboard\Events\RenderingDashboardWidgets;
 
 class HookServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
-        if (app()->environment('demo')) {
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
             add_filter(DASHBOARD_FILTER_ADMIN_NOTIFICATIONS, [$this, 'registerAdminAlert'], 5);
-        }
+        });
     }
 
-    /**
-     * @param string $alert
-     * @return string
-     * @throws \Throwable
-     */
-    public function registerAdminAlert($alert): string
+    public function registerAdminAlert(?string $alert): string
     {
+        if (! BaseHelper::hasDemoModeEnabled()) {
+            return $alert;
+        }
+
         return $alert . view('plugins/backup::partials.admin-alert')->render();
     }
 }

@@ -1,3 +1,9 @@
+@php
+    $iconsReplace = [
+        'whatsapp' => Theme::asset()->url('images/whatsapp.svg'),
+        'telegram' => Theme::asset()->url('images/telegram.svg')
+    ]
+@endphp
 <div class="top-bar pt-10 pb-10 {{ $background }} {{ $color ?? '' }} d-none d-md-block">
     <div class="container">
         <div class="row">
@@ -20,18 +26,23 @@
 
             <div class="col-6 text-right">
                 @if (!empty(theme_option('social_links')))
-                <ul class="header-social-network d-inline-block list-inline {{ $color ?? '' }}">
-                    @foreach (json_decode(theme_option('social_links'), true) as $socialLink)
-                        <li class="list-inline-item">
-                            <a href="{{ $socialLink[2]['value'] }}"
-                               target="_blank"
-                               class="social-icon {{ $color ?? '' }} {{ $socialLink[1]['value'] }}-icon text-xs-center"
-                               title="{{ $socialLink[0]['value'] }}">
-                                <i class="ti-{{ $socialLink[1]['value'] }}"></i>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
+                    <ul class="header-social-network d-inline-block list-inline {{ $color ?? '' }}">
+                        @foreach (json_decode(theme_option('social_links'), true) as $socialLink)
+                            <li class="list-inline-item align-middle">
+                                <a href="{{ $socialLink[2]['value'] }}"
+                                   target="_blank"
+                                   class="d-flex social-icon {{ $color ?? '' }} {{ strtolower($socialLink[1]['value']) }}-icon text-xs-center"
+                                   title="{{ $socialLink[0]['value'] }}">
+                                    @if( isset($iconsReplace[strtolower($socialLink[1]['value'])]))
+                                        <img src="{{ $iconsReplace[strtolower($socialLink[1]['value'])] }}" width="12"
+                                             alt="icon">
+                                    @else
+                                        <i class="ti-{{ strtolower($socialLink[1]['value']) }}"></i>
+                                    @endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
                 @endif
 
                 @if (theme_option('allow_account_login', '') == 'yes')
@@ -57,9 +68,6 @@
                                 </a>
                                 <a class="dropdown-item" href="{{ route('public.member.settings') }}">
                                     <i class="ti-stats-up"></i>{{ __('Edit profile') }}
-                                </a>
-                                <a class="dropdown-item" href="{{ route('public.member.security') }}">
-                                    <i class="ti-settings"></i>{{ __('Change password') }}
                                 </a>
 
                                 @if(is_plugin_active('pro-posts'))

@@ -12,4 +12,4 @@
     <div class="container">
         {!! Theme::partial('posts', ['posts' => $posts]) !!}
     </div>
-</div>>
+</div>

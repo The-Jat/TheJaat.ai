@@ -2,21 +2,17 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class () extends Migration {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        Schema::create('pages', function (Blueprint $table) {
+        Schema::create('pages', function (Blueprint $table): void {
             $table->id();
             $table->string('name', 120);
             $table->longText('content')->nullable();
-            $table->integer('user_id')->references('id')->on('users');
-            $table->string('image', 255)->nullable();
+            $table->foreignId('user_id')->index()->nullable();
+            $table->string('image')->nullable();
             $table->string('template', 60)->nullable();
             $table->tinyInteger('is_featured')->default(0);
             $table->string('description', 400)->nullable();
@@ -25,12 +21,7 @@ return new class () extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('pages');
     }

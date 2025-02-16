@@ -2,21 +2,14 @@
 
 namespace Botble\Member\Models;
 
-use Html;
+use Botble\Base\Casts\SafeContent;
+use Botble\Base\Facades\Html;
 use Botble\Base\Models\BaseModel;
 
 class MemberActivityLog extends BaseModel
 {
-    /**
-     * @var string
-     */
     protected $table = 'member_activity_logs';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'action',
         'user_agent',
@@ -26,10 +19,13 @@ class MemberActivityLog extends BaseModel
         'member_id',
     ];
 
-    public static function boot()
+    protected $casts = [
+        'action' => SafeContent::class,
+    ];
+
+    protected static function booted(): void
     {
-        parent::boot();
-        self::creating(function ($model) {
+        self::creating(function ($model): void {
             $model->user_agent = $model->user_agent ?: request()->userAgent();
             $model->ip_address = $model->ip_address ?: request()->ip();
             $model->member_id = $model->member_id ?: auth('member')->id();
@@ -37,10 +33,7 @@ class MemberActivityLog extends BaseModel
         });
     }
 
-    /**
-     * @return array|\Illuminate\Contracts\Translation\Translator|string|null
-     */
-    public function getDescription()
+    public function getDescription(): string
     {
         $name = $this->reference_name;
         if ($this->reference_name && $this->reference_url) {

@@ -2,17 +2,12 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-class CreateMemberTable extends Migration
-{
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+return new class () extends Migration {
+    public function up(): void
     {
-        Schema::create('members', function (Blueprint $table) {
+        Schema::create('members', function (Blueprint $table): void {
             $table->id();
             $table->string('first_name', 120);
             $table->string('last_name', 120);
@@ -20,7 +15,7 @@ class CreateMemberTable extends Migration
             $table->string('gender', 20)->nullable();
             $table->string('email')->unique();
             $table->string('password');
-            $table->integer('avatar_id')->unsigned()->nullable();
+            $table->foreignId('avatar_id')->nullable();
             $table->date('dob')->nullable();
             $table->string('phone', 25)->nullable();
             $table->dateTime('confirmed_at')->nullable();
@@ -29,33 +24,28 @@ class CreateMemberTable extends Migration
             $table->timestamps();
         });
 
-        Schema::create('member_password_resets', function (Blueprint $table) {
+        Schema::create('member_password_resets', function (Blueprint $table): void {
             $table->string('email')->index();
             $table->string('token')->index();
             $table->timestamp('created_at')->nullable();
         });
 
-        Schema::create('member_activity_logs', function (Blueprint $table) {
+        Schema::create('member_activity_logs', function (Blueprint $table): void {
             $table->id();
             $table->string('action', 120);
             $table->text('user_agent')->nullable();
             $table->string('reference_url', 255)->nullable();
             $table->string('reference_name', 255)->nullable();
-            $table->string('ip_address', 39)->nullable();
-            $table->integer('member_id')->unsigned()->references('id')->on('members')->index();
+            $table->ipAddress()->nullable();
+            $table->foreignId('member_id')->index();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('member_activity_logs');
         Schema::dropIfExists('member_password_resets');
         Schema::dropIfExists('members');
     }
-}
+};

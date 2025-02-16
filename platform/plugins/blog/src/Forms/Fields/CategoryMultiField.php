@@ -2,15 +2,15 @@
 
 namespace Botble\Blog\Forms\Fields;
 
-use Kris\LaravelFormBuilder\Fields\FormField;
+use Botble\Base\Forms\FormField;
 
+/**
+ * @deprecated
+ */
 class CategoryMultiField extends FormField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
-        return 'plugins/blog::categories.categories-multi';
+        return 'core/base::forms.fields.tree-categories';
     }
 }

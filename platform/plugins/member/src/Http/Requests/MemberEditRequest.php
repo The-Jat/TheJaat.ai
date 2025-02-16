@@ -2,25 +2,21 @@
 
 namespace Botble\Member\Http\Requests;
 
+use Botble\Base\Rules\EmailRule;
 use Botble\Support\Http\Requests\Request;
 
 class MemberEditRequest extends Request
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
-    public function rules()
+    public function rules(): array
     {
         $rules = [
-            'first_name' => 'required|max:120|min:2',
-            'last_name'  => 'required|max:120|min:2',
-            'email'      => 'required|max:60|min:6|email|unique:members,email,' . $this->route('member'),
+            'first_name' => ['required', 'string', 'max:120', 'min:2'],
+            'last_name' => ['required', 'string', 'max:120', 'min:2'],
+            'email' => ['required', 'max:60', 'min:6', new EmailRule(), 'unique:members,email,' . $this->route('member.id')],
         ];
 
         if ($this->input('is_change_password') == 1) {
-            $rules['password'] = 'required|min:6|confirmed';
+            $rules['password'] = 'required|string|min:6|confirmed';
         }
 
         return $rules;

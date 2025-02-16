@@ -2,41 +2,48 @@
 
 namespace Botble\SocialLogin\Providers;
 
+use Botble\Base\Facades\PanelSectionManager;
+use Botble\Base\PanelSections\PanelSectionItem;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Botble\SocialLogin\Facades\SocialServiceFacade;
+use Botble\Setting\PanelSections\SettingOthersPanelSection;
+use Botble\SocialLogin\Facades\SocialService;
 use Illuminate\Foundation\AliasLoader;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\ServiceProvider;
 
 class SocialLoginServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function boot()
+    public function boot(): void
     {
-        $this->setNamespace('plugins/social-login')
+        $this
+            ->setNamespace('plugins/social-login')
             ->loadHelpers()
             ->loadAndPublishConfigurations(['permissions', 'general'])
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
-            ->loadRoutes(['web'])
+            ->loadRoutes()
             ->publishAssets();
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()->registerItem([
-                'id'          => 'cms-plugins-social-login',
-                'priority'    => 5,
-                'parent_id'   => 'cms-core-settings',
-                'name'        => 'plugins/social-login::social-login.menu',
-                'icon'        => null,
-                'url'         => route('social-login.settings'),
-                'permissions' => ['social-login.settings'],
-            ]);
+        AliasLoader::getInstance()->alias('SocialService', SocialService::class);
+
+        PanelSectionManager::default()->beforeRendering(function (): void {
+            PanelSectionManager::registerItem(
+                SettingOthersPanelSection::class,
+                fn () => PanelSectionItem::make('social-login')
+                    ->setTitle(trans('plugins/social-login::social-login.menu'))
+                    ->withDescription(trans('plugins/social-login::social-login.description'))
+                    ->withIcon('ti ti-social')
+                    ->withPriority(100)
+                    ->withRoute('social-login.settings')
+            );
         });
 
-        AliasLoader::getInstance()->alias('SocialService', SocialServiceFacade::class);
-
         $this->app->register(HookServiceProvider::class);
+    }
+
+    public function register(): void
+    {
+        $this->app->bind(SocialService::class);
     }
 }

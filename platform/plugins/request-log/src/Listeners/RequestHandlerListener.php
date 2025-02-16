@@ -2,70 +2,57 @@
 
 namespace Botble\RequestLog\Listeners;
 
+use Botble\Base\Facades\BaseHelper;
 use Botble\RequestLog\Events\RequestHandlerEvent;
 use Botble\RequestLog\Models\RequestLog;
-use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class RequestHandlerListener
 {
-    /**
-     * @var RequestLog
-     */
-    public $requestLog;
-
-    /**
-     * @var Request
-     */
-    protected $request;
-
-    /**
-     * RequestHandlerListener constructor.
-     * @param RequestLog $requestLog
-     * @param Request $request
-     */
-    public function __construct(RequestLog $requestLog, Request $request)
+    public function __construct(protected Request $request)
     {
-        $this->requestLog = $requestLog;
-        $this->request = $request;
     }
 
-    /**
-     * Handle the event.
-     *
-     * @param RequestHandlerEvent $event
-     * @return boolean
-     */
-    public function handle(RequestHandlerEvent $event)
+    public function handle(RequestHandlerEvent $event): bool
     {
-        $this->requestLog = RequestLog::firstOrNew([
-            'url'         => Str::limit($this->request->fullUrl(), 120),
-            'status_code' => $event->code,
-        ]);
+        try {
+            $url = $this->request->fullUrl();
 
-        if ($referrer = $this->request->header('referrer')) {
-            $referrers = (array)$this->requestLog->referrer ?: [];
-            $referrers[] = $referrer;
-            $this->requestLog->referrer = $referrers;
-        }
-
-        if (Auth::check()) {
-            if (!is_array($this->requestLog->user_id)) {
-                $this->requestLog->user_id = [Auth::user()->getKey()];
-            } else {
-                $this->requestLog->user_id = array_unique(
-                    array_merge($this->requestLog->user_id, [Auth::user()->getKey()])
-                );
+            if (Str::contains($url, '.js.map')) {
+                return false;
             }
-        }
 
-        if (!$this->requestLog->exists) {
-            $this->requestLog->count = 1;
-        } else {
-            $this->requestLog->count += 1;
-        }
+            if (! Cache::has('pruned_request_logs_table')) {
+                (new RequestLog())->pruneAll();
 
-        return $this->requestLog->save();
+                Cache::put('pruned_request_logs_table', 1, Carbon::now()->addDay());
+            }
+
+            $requestLog = RequestLog::query()->firstOrNew([
+                'url' => Str::limit($url, 120),
+                'status_code' => $event->code,
+            ]);
+
+            if ($referrer = $this->request->header('referrer')) {
+                $requestLog->referrer = array_filter(array_unique(array_merge((array) $requestLog->referrer, [$referrer])));
+            }
+
+            if (Auth::guard()->check()) {
+                $requestLog->user_id = array_filter(array_unique(array_merge((array) $requestLog->user_id, [Auth::guard()->id()])));
+            }
+
+            $requestLog->count = $requestLog->exists ? $requestLog->count + 1 : 1;
+
+            return $requestLog->save();
+        } catch (Exception $exception) {
+            BaseHelper::logError($exception);
+
+            return false;
+        }
     }
 }

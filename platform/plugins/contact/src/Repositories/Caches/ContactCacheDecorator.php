@@ -2,24 +2,11 @@
 
 namespace Botble\Contact\Repositories\Caches;
 
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
-use Botble\Contact\Repositories\Interfaces\ContactInterface;
+use Botble\Contact\Repositories\Eloquent\ContactRepository;
 
-class ContactCacheDecorator extends CacheAbstractDecorator implements ContactInterface
+/**
+ * @deprecated
+ */
+class ContactCacheDecorator extends ContactRepository
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getUnread($select = ['*'])
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function countUnread()
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
 }

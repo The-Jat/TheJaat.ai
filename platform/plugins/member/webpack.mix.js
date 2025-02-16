@@ -1,18 +1,20 @@
-let mix = require('laravel-mix');
+const mix = require('laravel-mix')
+const path = require('path')
 
-const path = require('path');
-let directory = path.basename(path.resolve(__dirname));
-
-const source = 'platform/plugins/' + directory;
-const dist = 'public/vendor/core/plugins/' + directory;
-
-mix.js(source + '/resources/assets/js/app.js', dist + '/js').vue({ version: 2 });
+const directory = path.basename(path.resolve(__dirname))
+const source = `platform/plugins/${directory}`
+const dist = `public/vendor/core/plugins/${directory}`
 
 mix
-    .js(source + '/resources/assets/js/member-admin.js', dist + '/js')
+    .sass(`${source}/resources/sass/dashboard/style.scss`, `${dist}/css/dashboard`)
+    .sass(`${source}/resources/sass/dashboard/style-rtl.scss`, `${dist}/css/dashboard`)
+    .js(`${source}/resources/js/dashboard/script.js`, `${dist}/js/dashboard`)
+    .js(`${source}/resources/js/dashboard/activity-logs.js`, `${dist}/js/dashboard`)
 
-    .sass(source + '/resources/assets/sass/member.scss', dist + '/css')
-    .sass(source + '/resources/assets/sass/app.scss', dist + '/css')
-
-    .copyDirectory(dist + '/js', source + '/public/js')
-    .copyDirectory(dist + '/css', source + '/public/css');
+if (mix.inProduction()) {
+    mix
+        .copy(`${dist}/css/dashboard/style.css`, `${source}/public/css/dashboard`)
+        .copy(`${dist}/css/dashboard/style-rtl.css`, `${source}/public/css/dashboard`)
+        .copy(`${dist}/js/dashboard/script.js`, `${source}/public/js/dashboard`)
+        .copy(`${dist}/js/dashboard/activity-logs.js`, `${source}/public/js/dashboard`)
+}

@@ -2,41 +2,30 @@
 
 namespace Botble\Theme;
 
-use BaseHelper;
-use File;
-use Theme as ThemeFacade;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Theme\Facades\Theme as ThemeFacade;
+use Botble\Theme\Services\ThemeService;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\File;
 
 class Manager
 {
-    /**
-     * @var array
-     */
-    protected $themes = [];
+    protected array $themes = [];
 
-    /**
-     * Manager constructor.
-     */
-    public function __construct()
+    public function __construct(protected ThemeService $themeService)
     {
         $this->registerTheme(self::getAllThemes());
     }
 
-    /**
-     * @param string|array $theme
-     * @return void
-     */
-    public function registerTheme($theme): void
+    public function registerTheme(string|array $theme): void
     {
-        if (!is_array($theme)) {
+        if (! is_array($theme)) {
             $theme = [$theme];
         }
 
         $this->themes = array_merge_recursive($this->themes, $theme);
     }
 
-    /**
-     * @return array
-     */
     public function getAllThemes(): array
     {
         $themes = [];
@@ -50,18 +39,23 @@ class Manager
                 $jsonFile = $publicJsonFile;
             }
 
+            if (! File::exists($jsonFile)) {
+                continue;
+            }
+
             $theme = BaseHelper::getFileData($jsonFile);
-            if (!empty($theme)) {
+
+            if (! empty($theme)) {
+                $themeConfig = $this->themeService->getThemeConfig($folder);
+
                 $themes[$folder] = $theme;
+                $themes[$folder]['inherit'] = Arr::get($themeConfig, 'inherit');
             }
         }
 
         return $themes;
     }
 
-    /**
-     * @return array
-     */
     public function getThemes(): array
     {
         return $this->themes;

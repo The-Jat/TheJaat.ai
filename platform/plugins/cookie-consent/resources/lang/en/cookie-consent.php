@@ -4,7 +4,7 @@ return [
     'theme_options' => [
         'name' => 'Cookie Consent',
         'description' => 'Cookie consent settings',
-        'enable' => 'Enable cookie consent?',
+        'enable' => 'Enable cookie consent',
         'message' => 'Message',
         'button_text' => 'Button text',
         'max_width' => 'Max width (px)',

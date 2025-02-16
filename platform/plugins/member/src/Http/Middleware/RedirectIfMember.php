@@ -8,15 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class RedirectIfMember
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param Request $request
-     * @param Closure $next
-     * @param string|null $guard
-     * @return mixed
-     */
-    public function handle($request, Closure $next, $guard = 'member')
+    public function handle(Request $request, Closure $next, string $guard = 'member')
     {
         if (Auth::guard($guard)->check()) {
             return redirect(route('public.member.dashboard'));

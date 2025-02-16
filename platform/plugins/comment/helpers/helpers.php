@@ -1,37 +1,26 @@
 <?php
 
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Support\Arr;
 
-if (!function_exists('has_member')) {
-    /**
-     * @return bool
-     */
+if (! function_exists('has_member')) {
     function has_member(): bool
     {
         if (config()->has('has_member')) {
             return config('has_member');
         }
 
-        $config = (function () {
-            try {
-                return is_plugin_active('member');
-            } catch (FileNotFoundException $exception) {
-                return false;
-            }
-        })();
+        $hasPluginMember = is_plugin_active('member');
 
-        config([
-            'has_member' => $config,
-        ]);
+        config(['has_member' => $hasPluginMember]);
 
-        return $config;
+        return $hasPluginMember;
     }
 }
 
-if (!function_exists('comment_plugin_version')) {
+if (! function_exists('comment_plugin_version')) {
     function comment_plugin_version()
     {
-        $content = get_file_data(plugin_path('comment/plugin.json'));
+        $content = BaseHelper::getFileData(plugin_path('comment/plugin.json'));
 
         return Arr::get($content, 'version');
     }

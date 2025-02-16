@@ -2,9 +2,9 @@
 
 namespace Botble\ACL\Traits;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,25 +18,12 @@ trait AuthenticatesUsers
     use RedirectsUsers;
     use ThrottlesLogins;
 
-    /**
-     * Show the application's login form.
-     *
-     * @return Factory|Application|View|\Response
-     */
-    public function showLoginForm()
+    public function showLoginForm(): ?View
     {
-        return view('auth.login');
+        return null;
     }
 
-    /**
-     * Handle a login request to the application.
-     *
-     * @param Request $request
-     * @return \Symfony\Component\HttpFoundation\Response|void
-     *
-     * @throws ValidationException
-     */
-    public function login(Request $request)
+    public function login(Request $request): Response|RedirectResponse
     {
         $this->validateLogin($request);
 
@@ -62,37 +49,20 @@ trait AuthenticatesUsers
         return $this->sendFailedLoginResponse();
     }
 
-    /**
-     * Validate the user login request.
-     *
-     * @param Request $request
-     * @return void
-     */
-    protected function validateLogin(Request $request)
+    protected function validateLogin(Request $request): void
     {
         $request->validate([
             $this->username() => 'required|string',
-            'password'        => 'required|string',
+            'password' => 'required|string',
         ]);
     }
 
-    /**
-     * Get the login username to be used by the controller.
-     *
-     * @return string
-     */
-    public function username()
+    public function username(): string
     {
         return 'email';
     }
 
-    /**
-     * Attempt to log the user into the application.
-     *
-     * @param Request $request
-     * @return bool
-     */
-    protected function attemptLogin(Request $request)
+    protected function attemptLogin(Request $request): bool
     {
         return $this->guard()->attempt(
             $this->credentials($request),
@@ -100,65 +70,34 @@ trait AuthenticatesUsers
         );
     }
 
-    /**
-     * Get the guard to be used during authentication.
-     *
-     * @return StatefulGuard
-     */
-    protected function guard()
+    protected function guard(): StatefulGuard
     {
         return Auth::guard();
     }
 
-    /**
-     * Get the needed authorization credentials from the request.
-     *
-     * @param Request $request
-     * @return array
-     */
-    protected function credentials(Request $request)
+    protected function credentials(Request $request): array
     {
         return $request->only($this->username(), 'password');
     }
 
-    /**
-     * Send the response after the user was authenticated.
-     *
-     * @param Request $request
-     * @return RedirectResponse|Response
-     */
-    protected function sendLoginResponse(Request $request)
+    protected function sendLoginResponse(Request $request): Response|RedirectResponse
     {
         $request->session()->regenerate();
 
         $this->clearLoginAttempts($request);
 
-        if ($response = $this->authenticated($request, $this->guard()->user())) {
-            return $response;
-        }
+        $this->authenticated($request, $this->guard()->user());
 
         return $request->wantsJson()
             ? new Response('', 204)
             : redirect()->intended($this->redirectPath());
     }
 
-    /**
-     * The user has been authenticated.
-     *
-     * @param Request $request
-     * @param mixed $user
-     * @return void
-     */
-    protected function authenticated(Request $request, $user)
+    protected function authenticated(Request $request, Authenticatable $user)
     {
         //
     }
 
-    /**
-     * Get the failed login response instance.
-     *
-     * @throws ValidationException
-     */
     protected function sendFailedLoginResponse()
     {
         throw ValidationException::withMessages([
@@ -166,13 +105,7 @@ trait AuthenticatesUsers
         ]);
     }
 
-    /**
-     * Log the user out of the application.
-     *
-     * @param Request $request
-     * @return RedirectResponse|Response|Redirector
-     */
-    public function logout(Request $request)
+    public function logout(Request $request): Response|Redirector|RedirectResponse|Application
     {
         $this->guard()->logout();
 
@@ -180,21 +113,13 @@ trait AuthenticatesUsers
 
         $request->session()->regenerateToken();
 
-        if ($response = $this->loggedOut($request)) {
-            return $response;
-        }
+        $this->loggedOut($request);
 
         return $request->wantsJson()
             ? new Response('', 204)
             : redirect('/');
     }
 
-    /**
-     * The user has logged out of the application.
-     *
-     * @param Request $request
-     * @return void
-     */
     protected function loggedOut(Request $request)
     {
         //

@@ -9,7 +9,7 @@
 
         <div style="margin: 20px 0;">
             <div>- Content:</div>
-            <div style="border: 1px solid rgba(0,0,0,.1); padding: 10px; margin-top: 10px;">
+            <div style="border: 1px solid rgba(0,0,0,.1); padding: 10px; margin-top: 10px;direction: ltr;">
                 <div>[posts-slider title="" filter_by="featured" limit="4" include="" style="1"][/posts-slider]</div>
                 <div>[posts-slider title="Editor's picked" filter_by="ids" limit="4" include="1,2,3,4" style="2" description="The featured articles are selected by experienced editors. It is also based on the reader's rating. These posts have a lot of interest."][/posts-slider]</div>
                 <div>[posts-grid title="Trending Topics" subtitle="" categories="" categories_exclude="" style="3" limit="6"][/posts-grid]</div>

@@ -7,40 +7,17 @@ use Locale;
 
 class LanguageNegotiator
 {
-    /**
-     * @var string
-     */
-    protected $defaultLocale;
+    protected array $supportedLanguages = [];
 
-    /**
-     * @var array
-     */
-    protected $supportedLanguages = [];
+    protected bool $useIntl = false;
 
-    /**
-     * @var Request
-     */
-    protected $request;
-
-    /**
-     * @var bool
-     */
-    protected $useIntl = false;
-
-    /**
-     * @param string $defaultLocale
-     * @param array $supportedLanguages
-     * @param Request $request
-     */
-    public function __construct($defaultLocale, $supportedLanguages, Request $request)
+    public function __construct(protected string $defaultLocale, array $supportedLanguages, protected Request $request)
     {
-        $this->defaultLocale = $defaultLocale;
-
         if (extension_loaded('intl') && class_exists('Locale')) {
             $this->useIntl = true;
 
             foreach ($supportedLanguages as $key => $supportedLanguage) {
-                if (!isset($supportedLanguage['lang'])) {
+                if (! isset($supportedLanguage['lang'])) {
                     $supportedLanguage['lang'] = Locale::canonicalize($key);
                 } else {
                     $supportedLanguage['lang'] = Locale::canonicalize($supportedLanguage['lang']);
@@ -54,8 +31,6 @@ class LanguageNegotiator
         } else {
             $this->supportedLanguages = $supportedLanguages;
         }
-
-        $this->request = $request;
     }
 
     /**
@@ -74,11 +49,11 @@ class LanguageNegotiator
      *
      * @return string The negotiated language result or app.locale.
      */
-    public function negotiateLanguage()
+    public function negotiateLanguage(): string
     {
         $matches = $this->getMatchesFromAcceptedLanguages();
         foreach ($matches as $key => $match) {
-            if (!empty($this->supportedLanguages[$key])) {
+            if (! empty($this->supportedLanguages[$key])) {
                 return $key;
             }
 
@@ -101,10 +76,10 @@ class LanguageNegotiator
             return key($this->supportedLanguages);
         }
 
-        if ($this->useIntl && !empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+        if ($this->useIntl && ! empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
             $httpAcceptLanguage = Locale::acceptFromHttp($_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
-            if (!empty($this->supportedLanguages[$httpAcceptLanguage])) {
+            if (! empty($this->supportedLanguages[$httpAcceptLanguage])) {
                 return $httpAcceptLanguage;
             }
         }
@@ -113,7 +88,7 @@ class LanguageNegotiator
             $remoteHost = explode('.', $this->request->server('REMOTE_HOST'));
             $lang = strtolower(end($remoteHost));
 
-            if (!empty($this->supportedLanguages[$lang])) {
+            if (! empty($this->supportedLanguages[$lang])) {
                 return $lang;
             }
         }
@@ -126,7 +101,7 @@ class LanguageNegotiator
      *
      * @return array Matches from the header field Accept-Languages
      */
-    protected function getMatchesFromAcceptedLanguages()
+    protected function getMatchesFromAcceptedLanguages(): array
     {
         $matches = [];
 
@@ -138,27 +113,27 @@ class LanguageNegotiator
                 $option = array_map('trim', explode(';', $option));
                 $la = $option[0];
                 if (isset($option[1])) {
-                    $qa = (float)str_replace('q=', '', $option[1]);
+                    $qa = (float) str_replace('q=', '', $option[1]);
                 } else {
                     $qa = null;
                     // Assign default low weight for generic values
                     if ($la == '*/*') {
                         $qa = 0.01;
-                    } elseif (substr($la, -1) == '*') {
+                    } elseif (str_ends_with($la, '*')) {
                         $qa = 0.02;
                     }
                 }
                 // Unweighted values, get high weight by their position in the
                 // list
-                $qa = isset($qa) ? $qa : 1000 - count($matches);
+                $qa = $qa ?? 1000 - count($matches);
                 $matches[$la] = $qa;
 
                 //If for some reason the Accept-Language header only sends language with country
                 //we should make the language without country an accepted option, with a value
-                //less than it's parent.
+                //less than its parent.
                 $lOps = explode('-', $la);
                 array_pop($lOps);
-                while (!empty($lOps)) {
+                while (! empty($lOps)) {
                     //The new generic option needs to be slightly less important than it's base
                     $qa -= 0.001;
                     $op = implode('-', $lOps);

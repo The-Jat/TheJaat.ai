@@ -2,86 +2,76 @@
 
 namespace Botble\Media\Commands;
 
-use Botble\Media\Repositories\Eloquent\MediaFileRepository;
-use Botble\Media\Repositories\Interfaces\MediaFileInterface;
+use Botble\Media\Facades\RvMedia;
+use Botble\Media\Models\MediaFile;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
-use RvMedia;
 
+use function Laravel\Prompts\{progress, table};
+
+use Symfony\Component\Console\Attribute\AsCommand;
+
+#[AsCommand('cms:media:thumbnail:delete', 'Delete thumbnails for all images')]
 class DeleteThumbnailCommand extends Command
 {
-    /**
-     * The console command signature.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:media:thumbnail:delete';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Delete thumbnails for all images';
-
-    /**
-     * @var MediaFileRepository
-     */
-    protected $fileRepository;
-
-    /**
-     * DeleteThumbnailCommand constructor.
-     * @param MediaFileInterface $fileRepository
-     */
-    public function __construct(MediaFileInterface $fileRepository)
+    public function handle(): int
     {
-        parent::__construct();
-        $this->fileRepository = $fileRepository;
-    }
+        $this->components->info('Deleting thumbnails...');
 
-    /**
-     * @return int
-     */
-    public function handle()
-    {
-        $files = $this->fileRepository->allBy([], [], ['url', 'mime_type', 'folder_id']);
+        $files = MediaFile::query()->select(['url', 'mime_type', 'folder_id'])->get();
 
-        $this->info('Processing ' . $files->count() . ' ' . Str::plural('file', $files->count()) . '...');
+        if ($files->isEmpty()) {
+            $this->components->info('No media files to generate thumbnails!');
+
+            return self::SUCCESS;
+        }
 
         $errors = [];
 
+        $filesCount = $files->count();
+
+        $progress = progress(
+            label: sprintf('Processing %s %s...', number_format($filesCount), Str::plural('file', $filesCount)),
+            steps: $filesCount,
+        );
+
         foreach ($files as $file) {
-            if (!$file->canGenerateThumbnails()) {
+            /**
+             * @var MediaFile $file
+             */
+            $progress->label(sprintf('Processing %s...', $file->url));
+
+            if (! $file->canGenerateThumbnails()) {
                 continue;
             }
-
-            $this->info('Processing ' . $file->url);
 
             try {
                 RvMedia::deleteThumbnails($file);
             } catch (Exception $exception) {
                 $errors[] = $file->url;
-                $this->error($exception->getMessage());
+                $this->components->error($exception->getMessage());
             }
+
+            $progress->advance();
         }
 
-        $this->info('Thumbnails deleted');
+        $progress->finish();
+
+        $this->components->info('Thumbnails deleted');
 
         $errors = array_unique($errors);
 
-        $errors = array_map(function ($item) {
-            return [$item];
-        }, $errors);
+        $errors = array_map(fn ($item) => [$item], $errors);
 
         if ($errors) {
-            $this->info('We are unable to regenerate thumbnail for these files:');
+            $this->components->info('We are unable to regenerate thumbnail for these files:');
 
-            $this->table(['File directory'], $errors);
+            table(['File directory'], $errors);
 
-            return 1;
+            return self::FAILURE;
         }
 
-        return 0;
+        return self::SUCCESS;
     }
 }

@@ -12,7 +12,7 @@ class ProPostsCreateFavoritePostsTable extends Migration
      */
     public function up()
     {
-        Schema::create('favorite_posts', function (Blueprint $table) {
+        Schema::create('favorite_posts', function (Blueprint $table): void {
             $table->id();
             $table->integer('post_id')->unsigned()->references('id')->on('posts')->onDelete('cascade');
             $table->integer('user_id')->unsigned()->references('id')->on('members')->onDelete('cascade');

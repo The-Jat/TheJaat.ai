@@ -2,8 +2,9 @@
 
 namespace Botble\Newsletter\Enums;
 
+use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Supports\Enum;
-use Html;
+use Illuminate\Support\HtmlString;
 
 /**
  * @method static NewsletterStatusEnum SUBSCRIBED()
@@ -12,27 +13,19 @@ use Html;
 class NewsletterStatusEnum extends Enum
 {
     public const SUBSCRIBED = 'subscribed';
+
     public const UNSUBSCRIBED = 'unsubscribed';
 
-    /**
-     * @var string
-     */
     public static $langPath = 'plugins/newsletter::newsletter.statuses';
 
-    /**
-     * @return string
-     */
-    public function toHtml()
+    public function toHtml(): HtmlString|string
     {
-        switch ($this->value) {
-            case self::SUBSCRIBED:
-                return Html::tag('span', self::SUBSCRIBED()->label(), ['class' => 'label-success status-label'])
-                    ->toHtml();
-            case self::UNSUBSCRIBED:
-                return Html::tag('span', self::UNSUBSCRIBED()->label(), ['class' => 'label-warning status-label'])
-                    ->toHtml();
-            default:
-                return parent::toHtml();
-        }
+        $color = match ($this->value) {
+            self::SUBSCRIBED => 'success',
+            self::UNSUBSCRIBED => 'warning',
+            default => 'primary',
+        };
+
+        return BaseHelper::renderBadge($this->label(), $color);
     }
 }

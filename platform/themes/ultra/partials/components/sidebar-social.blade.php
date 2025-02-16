@@ -1,3 +1,9 @@
+@php
+    $iconsReplace = [
+        'whatsapp' => Theme::asset()->url('images/whatsapp-white.svg'),
+        'telegram' => Theme::asset()->url('images/telegram-white.svg')
+    ]
+@endphp
 <!--Widget social-->
 <div class="sidebar-widget widget-social-network mb-30">
     <div class="widget-header position-relative mb-20 pb-10">
@@ -14,14 +20,27 @@
     @endphp
     <div class="social-network">
         @foreach ($socials as $socialLink)
+            @php $socialIcon = strtolower($socialLink[1]['value']) @endphp
+
             @if ($loop->index % 2 == 0)
                 <div class="follow-us d-flex align-items-center">
                     @endif
-                    <a class="follow-us-{{ $socialLink[1]['value'] }} clearfix  @if($loop->index % 2 == 0) mr-5 @else ml-5 @endif mb-10"
+                    <a class="follow-us-{{ $socialIcon }} clearfix  @if($loop->index % 2 == 0) mr-5 @else ml-5 @endif mb-10"
                        href="{{ $socialLink[2]['value'] }}" target="_blank">
                         <div class="social-icon">
-                            <i class="ti-{{ $socialLink[1]['value'] }} mr-5 v-align-space"></i>
-                            <i class="ti-{{ $socialLink[1]['value'] }} mr-5 v-align-space nth-2"></i>
+                            @if( isset($iconsReplace[$socialIcon]))
+                                <i class="ti-{{ $socialIcon }} mr-5 v-align-space">
+                                    <img src="{{ $iconsReplace[$socialIcon] }}" width="20"
+                                         alt="whatapps icon">
+                                </i>
+                                <i class="ti-{{ $socialIcon }} mr-5 v-align-space nth-2">
+                                    <img src="{{ $iconsReplace[$socialIcon] }}" width="20"
+                                         alt="whatapps icon">
+                                </i>
+                            @else
+                                <i class="ti-{{ $socialIcon }} mr-5 v-align-space"></i>
+                                <i class="ti-{{ $socialIcon }} mr-5 v-align-space nth-2"></i>
+                            @endif
                         </div>
                         <span class="social-name">{{ $socialLink[0]['value'] }}</span>
                         @if(!empty($socialLink[3]['value']))

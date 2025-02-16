@@ -8,30 +8,25 @@ use Illuminate\Database\Seeder;
 
 class SettingSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         SettingModel::whereIn('key', ['media_random_hash'])->delete();
 
         SettingModel::insertOrIgnore([
             [
-                'key'   => 'media_random_hash',
+                'key' => 'media_random_hash',
                 'value' => md5(time()),
             ],
             [
-                'key'   => 'comment_enable',
+                'key' => 'comment_enable',
                 'value' => 1,
             ],
             [
-                'key'   => 'comment_menu_enable',
+                'key' => 'comment_menu_enable',
                 'value' => json_encode([Post::class]),
             ],
             [
-                'key'   => 'plugin_comment_copyright',
+                'key' => 'plugin_comment_copyright',
                 'value' => '',
             ],
         ]);

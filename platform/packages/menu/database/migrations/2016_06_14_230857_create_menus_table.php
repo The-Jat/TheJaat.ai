@@ -2,29 +2,25 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class () extends Migration {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        Schema::create('menus', function (Blueprint $table) {
-            $table->id()->unsigned();
+        Schema::create('menus', function (Blueprint $table): void {
+            $table->id();
             $table->string('name', 120);
             $table->string('slug', 120)->unique()->nullable();
             $table->string('status', 60)->default('published');
             $table->timestamps();
         });
 
-        Schema::create('menu_nodes', function (Blueprint $table) {
-            $table->id()->unsigned();
-            $table->integer('menu_id')->unsigned()->index()->references('id')->on('menus');
-            $table->integer('parent_id')->default(0)->unsigned()->index();
-            $table->integer('reference_id')->unsigned()->nullable();
-            $table->string('reference_type', 255)->nullable();
+        Schema::create('menu_nodes', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('menu_id')->index();
+            $table->foreignId('parent_id')->default(0)->index();
+            $table->foreignId('reference_id')->nullable();
+            $table->string('reference_type')->nullable();
             $table->string('url', 120)->nullable();
             $table->string('icon_font', 50)->nullable();
             $table->tinyInteger('position')->unsigned()->default(0);
@@ -35,20 +31,15 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('menu_locations', function (Blueprint $table) {
+        Schema::create('menu_locations', function (Blueprint $table): void {
             $table->id();
-            $table->integer('menu_id')->unsigned();
+            $table->foreignId('menu_id');
             $table->string('location', 120);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('menus');
         Schema::dropIfExists('menu_nodes');

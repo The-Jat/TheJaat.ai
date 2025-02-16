@@ -2,26 +2,23 @@
 
 namespace Botble\Blog\Http\Resources;
 
-use Illuminate\Http\Request;
+use Botble\Blog\Models\Category;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin Category
+ */
 class ListCategoryResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @param Request $request
-     * @return array
-     */
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
-            'id'          => $this->id,
-            'name'        => $this->name,
-            'slug'        => $this->slug,
+            'id' => $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
             'description' => $this->description,
-            'children'    => CategoryResource::collection($this->children),
-            'parent'      => new CategoryResource($this->parent),
+            'children' => CategoryResource::collection($this->children),
+            'parent' => new CategoryResource($this->parent),
         ];
     }
 }

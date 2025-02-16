@@ -2,43 +2,74 @@
 
 namespace Botble\Shortcode\Http\Controllers;
 
+use Botble\Base\Facades\Html;
+use Botble\Base\Forms\FormAbstract;
 use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\Shortcode\Events\ShortcodeAdminConfigRendering;
+use Botble\Shortcode\Facades\Shortcode;
+use Botble\Shortcode\Http\Requests\GetShortcodeDataRequest;
+use Botble\Shortcode\Http\Requests\RenderBlockUiRequest;
 use Closure;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
 class ShortcodeController extends BaseController
 {
-    /**
-     * @param string $key
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function ajaxGetAdminConfig($key, Request $request, BaseHttpResponse $response)
+    public function ajaxGetAdminConfig(?string $key, GetShortcodeDataRequest $request)
     {
+        ShortcodeAdminConfigRendering::dispatch();
+
         $registered = shortcode()->getAll();
 
-        $data = Arr::get($registered, $key . '.admin_config');
+        $key = $key ?: $request->input('key');
 
-        $code = $request->input('code');
+        $data = Arr::get($registered, $key . '.admin_config');
 
         $attributes = [];
         $content = null;
 
-        if ($code) {
+        if ($code = $request->input('code')) {
             $compiler = shortcode()->getCompiler();
             $attributes = $compiler->getAttributes(html_entity_decode($code));
             $content = $compiler->getContent();
         }
 
-        if ($data instanceof Closure) {
+        if ($data instanceof Closure || is_callable($data)) {
             $data = call_user_func($data, $attributes, $content);
+
+            if ($modifier = Arr::get($registered, $key . '.admin_config_modifier')) {
+                $data = call_user_func($modifier, $data, $attributes, $content);
+            }
+
+            $data = $data instanceof FormAbstract ? $data->renderForm() : $data;
         }
 
         $data = apply_filters(SHORTCODE_REGISTER_CONTENT_IN_ADMIN, $data, $key, $attributes);
 
-        return $response->setData($data);
+        if (! $data) {
+            $data = Html::tag('code', Shortcode::generateShortcode($key, $attributes))->toHtml();
+        }
+
+        return $this
+            ->httpResponse()
+            ->setData($data);
+    }
+
+    public function ajaxRenderUiBlock(RenderBlockUiRequest $request)
+    {
+        $name = $request->input('name');
+
+        if (! in_array($name, array_keys(Shortcode::getAll()))) {
+            return $this
+                ->httpResponse()
+                ->setData(null);
+        }
+
+        $code = Shortcode::generateShortcode($name, $request->input('attributes', []));
+
+        $content = Shortcode::compile($code, true)->toHtml();
+
+        return $this
+            ->httpResponse()
+            ->setData($content);
     }
 }

@@ -2,9 +2,11 @@
 
 namespace Botble\RequestLog\Repositories\Caches;
 
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
-use Botble\RequestLog\Repositories\Interfaces\RequestLogInterface;
+use Botble\RequestLog\Repositories\Eloquent\RequestLogRepository;
 
-class RequestLogCacheDecorator extends CacheAbstractDecorator implements RequestLogInterface
+/**
+ * @deprecated
+ */
+class RequestLogCacheDecorator extends RequestLogRepository
 {
 }

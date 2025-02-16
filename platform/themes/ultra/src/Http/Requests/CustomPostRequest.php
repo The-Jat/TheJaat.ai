@@ -6,12 +6,7 @@ use Botble\Blog\Http\Requests\PostRequest;
 
 class CustomPostRequest extends PostRequest
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
-    public function rules()
+    public function rules(): array
     {
         return parent::rules() + ['author_id' => 'required'];
     }

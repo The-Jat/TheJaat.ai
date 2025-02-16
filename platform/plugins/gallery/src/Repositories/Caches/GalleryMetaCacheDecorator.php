@@ -2,9 +2,11 @@
 
 namespace Botble\Gallery\Repositories\Caches;
 
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
-use Botble\Gallery\Repositories\Interfaces\GalleryMetaInterface;
+use Botble\Gallery\Repositories\Eloquent\GalleryMetaRepository;
 
-class GalleryMetaCacheDecorator extends CacheAbstractDecorator implements GalleryMetaInterface
+/**
+ * @deprecated
+ */
+class GalleryMetaCacheDecorator extends GalleryMetaRepository
 {
 }

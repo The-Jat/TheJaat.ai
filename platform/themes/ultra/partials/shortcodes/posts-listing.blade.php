@@ -11,4 +11,4 @@
     <div class="container">
         {!! Theme::partial('posts', ['posts' => $posts, 'postsLayout' => $layout]) !!}
     </div>
-</div>>
+</div>

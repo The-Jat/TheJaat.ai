@@ -2,85 +2,49 @@
 
 namespace Botble\Media\Repositories\Eloquent;
 
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Models\BaseModel;
+use Botble\Media\Facades\RvMedia;
+use Botble\Media\Models\MediaFile;
+use Botble\Media\Models\MediaFolder;
 use Botble\Media\Repositories\Interfaces\MediaFileInterface;
-use Botble\Media\Repositories\Interfaces\MediaFolderInterface;
 use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
-use Eloquent;
 use Exception;
-use File;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use RvMedia;
 
 /**
  * @since 19/08/2015 07:45 AM
  */
 class MediaFileRepository extends RepositoriesAbstract implements MediaFileInterface
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function createName($name, $folder)
+    public function createName(string $name, int|string|null $folder): string
     {
-        $index = 1;
-        $baseName = $name;
-        while ($this->checkIfExistsName($name, $folder)) {
-            $name = $baseName . '-' . $index++;
-        }
-        return $name;
+        return MediaFile::createName($name, $folder);
     }
 
-    /**
-     * @param string|null $name
-     * @param int|null $folder
-     * @return bool
-     */
-    protected function checkIfExistsName(?string $name, ?int $folder): bool
+    public function createSlug(string $name, string $extension, ?string $folderPath): string
     {
-        $count = $this->model
-            ->where('name', $name)
-            ->where('folder_id', $folder)
-            ->withTrashed()
-            ->count();
-
-        return $count > 0;
+        return MediaFile::createSlug($name, $extension, $folderPath);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function createSlug($name, $extension, $folderPath): string
-    {
-        $slug = Str::slug($name, '-', !RvMedia::turnOffAutomaticUrlTranslationIntoLatin() ? 'en' : false);
-        $index = 1;
-        $baseSlug = $slug;
-        while (File::exists(RvMedia::getRealPath(rtrim($folderPath, '/') . '/' . $slug . '.' . $extension))) {
-            $slug = $baseSlug . '-' . $index++;
-        }
-
-        if (empty($slug)) {
-            $slug = $slug . '-' . time();
-        }
-
-        return $slug . '.' . $extension;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getFilesByFolderId($folderId, array $params = [], $withFolders = true, $folderParams = [])
-    {
+    public function getFilesByFolderId(
+        int|string $folderId,
+        array $params = [],
+        bool $withFolders = true,
+        array $folderParams = []
+    ) {
         $params = array_merge([
-            'order_by'         => [
+            'order_by' => [
                 'name' => 'ASC',
             ],
-            'select'           => [
+            'select' => [
                 'media_files.id as id',
                 'media_files.name as name',
+                'media_files.alt as alt',
                 'media_files.url as url',
                 'media_files.mime_type as mime_type',
                 'media_files.size as size',
@@ -88,43 +52,48 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                 'media_files.updated_at as updated_at',
                 'media_files.options as options',
                 'media_files.folder_id as folder_id',
+                'media_files.visibility as visibility',
                 DB::raw('0 as is_folder'),
                 DB::raw('NULL as slug'),
                 DB::raw('NULL as parent_id'),
+                DB::raw('NULL as color'),
             ],
-            'condition'        => [],
-            'recent_items'     => null,
-            'paginate'         => [
-                'per_page'      => null,
+            'condition' => [],
+            'recent_items' => null,
+            'paginate' => [
+                'per_page' => null,
                 'current_paged' => 1,
             ],
             'selected_file_id' => null,
-            'is_popup'         => false,
-            'filter'           => 'everything',
-            'take'             => null,
-            'with'             => [],
+            'is_popup' => false,
+            'filter' => 'everything',
+            'take' => null,
+            'with' => [],
         ], $params);
 
         if ($withFolders) {
             $folderParams = array_merge([
                 'condition' => [],
-                'select'    => [
+                'select' => [
                     'media_folders.id as id',
                     'media_folders.name as name',
                     DB::raw('NULL as url'),
                     DB::raw('NULL as mime_type'),
                     DB::raw('NULL as size'),
+                    DB::raw('NULL as alt'),
                     'media_folders.created_at as created_at',
                     'media_folders.updated_at as updated_at',
                     DB::raw('NULL as options'),
                     DB::raw('NULL as folder_id'),
+                    DB::raw('NULL as visibility'),
                     DB::raw('1 as is_folder'),
                     'media_folders.slug as slug',
                     'media_folders.parent_id as parent_id',
+                    'media_folders.color as color',
                 ],
             ], $folderParams);
 
-            $folder = app(MediaFolderInterface::class)->getModel();
+            $folder = new MediaFolder();
 
             $folder = $folder
                 ->where('parent_id', $folderId)
@@ -139,12 +108,12 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         if (empty($folderId)) {
             $this->model = $this->model
                 ->leftJoin('media_folders', 'media_folders.id', '=', 'media_files.folder_id')
-                ->where(function ($query) use ($folderId) {
+                ->where(function ($query) use ($folderId): void {
                     /**
                      * @var Builder $query
                      */
                     $query
-                        ->where(function ($sub) use ($folderId) {
+                        ->where(function ($sub) use ($folderId): void {
                             /**
                              * @var Builder $sub
                              */
@@ -152,7 +121,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                                 ->where('media_files.folder_id', $folderId)
                                 ->whereNull('media_files.deleted_at');
                         })
-                        ->orWhere(function ($sub) {
+                        ->orWhere(function ($sub): void {
                             /**
                              * @var Builder $sub
                              */
@@ -160,7 +129,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                                 ->whereNull('media_files.deleted_at')
                                 ->whereNotNull('media_folders.deleted_at');
                         })
-                        ->orWhere(function ($sub) {
+                        ->orWhere(function ($sub): void {
                             /**
                              * @var Builder $sub
                              */
@@ -185,7 +154,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         $result = $this->getFile($params);
 
         if ($params['selected_file_id']) {
-            if (!$params['paginate']['current_paged'] || $params['paginate']['current_paged'] == 1) {
+            if (! $params['paginate']['current_paged'] || $params['paginate']['current_paged'] == 1) {
                 $currentFile = $this->originalModel;
 
                 $currentFile = $currentFile
@@ -200,25 +169,21 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
             try {
                 $result->prepend($currentFile);
             } catch (Exception $exception) {
-                info($exception->getMessage());
+                BaseHelper::logError($exception);
             }
         }
 
         return $result;
     }
 
-    /**
-     * @param array $params
-     * @return Eloquent[]|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection|Model|Model[]|Builder|Builder[]|Collection|object
-     */
-    protected function getFile($params)
+    protected function getFile(array $params)
     {
         $this->applyConditions($params['condition']);
 
         if ($params['filter'] != 'everything') {
-            $this->model = $this->model->where(function ($query) use ($params) {
+            $this->model = $this->model->where(function (EloquentBuilder $query) use ($params) {
                 /**
-                 * @var Eloquent $query
+                 * @var EloquentBuilder $query
                  */
                 $allMimes = [];
                 foreach (RvMedia::getConfig('mime_types') as $key => $value) {
@@ -227,6 +192,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                     }
                     $allMimes = array_unique(array_merge($allMimes, $value));
                 }
+
                 return $query->whereNotIn('media_files.mime_type', $allMimes);
             });
         }
@@ -257,7 +223,11 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
             $result = $this->model->get();
         }
 
-        if (!empty($params['selected_file_id']) && !$params['paginate']['current_paged'] || $params['paginate']['current_paged'] == 1) {
+        if (
+            ! empty($params['selected_file_id'])
+            && ! $params['paginate']['current_paged']
+            || $params['paginate']['current_paged'] == 1
+        ) {
             $currentFile = $this->originalModel
                 ->where('id', $params['selected_file_id'])
                 ->select($params['select'])
@@ -266,9 +236,10 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
 
         if (isset($currentFile) && $params['is_popup']) {
             try {
+                /** @var BaseModel $currentFile */
                 $result->prepend($currentFile);
             } catch (Exception $exception) {
-                info($exception->getMessage());
+                BaseHelper::logError($exception);
             }
         }
 
@@ -277,16 +248,17 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         return $result;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getTrashed($folderId, array $params = [], $withFolders = true, $folderParams = [])
-    {
+    public function getTrashed(
+        int|string $folderId,
+        array $params = [],
+        bool $withFolders = true,
+        array $folderParams = []
+    ): Collection {
         $params = array_merge([
-            'order_by'  => [
+            'order_by' => [
                 'name' => 'ASC',
             ],
-            'select'    => [
+            'select' => [
                 'media_files.id as id',
                 'media_files.name as name',
                 'media_files.url as url',
@@ -296,18 +268,19 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                 'media_files.updated_at as updated_at',
                 'media_files.options as options',
                 'media_files.folder_id as folder_id',
+                'media_files.visibility as visibility',
                 DB::raw('0 as is_folder'),
                 DB::raw('NULL as slug'),
                 DB::raw('NULL as parent_id'),
             ],
             'condition' => [],
-            'paginate'  => [
-                'per_page'      => null,
+            'paginate' => [
+                'per_page' => null,
                 'current_paged' => 1,
             ],
-            'filter'    => 'everything',
-            'take'      => null,
-            'with'      => [],
+            'filter' => 'everything',
+            'take' => null,
+            'with' => [],
         ], $params);
 
         $this->model = $this->model->onlyTrashed();
@@ -315,7 +288,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         if ($withFolders) {
             $folderParams = array_merge([
                 'condition' => [],
-                'select'    => [
+                'select' => [
                     'media_folders.id as id',
                     'media_folders.name as name',
                     DB::raw('NULL as url'),
@@ -325,13 +298,14 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                     'media_folders.updated_at as updated_at',
                     DB::raw('NULL as options'),
                     DB::raw('NULL as folder_id'),
+                    DB::raw('NULL as visibility'),
                     DB::raw('1 as is_folder'),
                     'media_folders.slug as slug',
                     'media_folders.parent_id as parent_id',
                 ],
             ], $folderParams);
 
-            $folder = app(MediaFolderInterface::class)->getModel();
+            $folder = new MediaFolder();
 
             $folder = $folder
                 ->withTrashed()
@@ -340,7 +314,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
 
             if (empty($folderId)) {
                 /**
-                 * @var Eloquent $folder
+                 * @var Builder $folder
                  */
                 $folder = $folder->leftJoin(
                     'media_folders as mf_parent',
@@ -348,13 +322,13 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                     '=',
                     'media_folders.parent_id'
                 )
-                    ->where(function ($query) {
+                    ->where(function ($query): void {
                         /**
-                         * @var Eloquent $query
+                         * @var Builder $query
                          */
                         $query
                             ->orWhere('media_folders.parent_id', 0)
-                            ->orWhere('mf_parent.deleted_at', null);
+                            ->orWhereNull('mf_parent.deleted_at');
                     })
                     ->withTrashed();
             } else {
@@ -370,10 +344,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         if (empty($folderId)) {
             $this->model = $this->model
                 ->leftJoin('media_folders', 'media_folders.id', '=', 'media_files.folder_id')
-                ->where(function ($query) {
-                    /**
-                     * @var Eloquent $query
-                     */
+                ->where(function ($query): void {
                     $query
                         ->where('media_files.folder_id', 0)
                         ->orWhereNull('media_folders.deleted_at');
@@ -382,29 +353,13 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
             $this->model = $this->model->where('media_files.folder_id', $folderId);
         }
 
-        $result = $this->getFile($params);
-
-        return $result;
+        return $this->getFile($params);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function emptyTrash()
+    public function emptyTrash(): bool
     {
-        $files = $this->model->onlyTrashed();
+        $this->model->onlyTrashed()->each(fn (MediaFile $file) => $file->forceDelete());
 
-        /**
-         * @var Eloquent $files
-         */
-        $files = $files->get();
-
-        foreach ($files as $file) {
-            /**
-             * @var Eloquent $file
-             */
-            $file->forceDelete();
-        }
         return true;
     }
 }

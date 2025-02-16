@@ -2,160 +2,62 @@
 
 namespace Botble\ACL\Tables;
 
-use BaseHelper;
-use Html;
-use Illuminate\Support\Facades\Auth;
-use Botble\ACL\Repositories\Interfaces\RoleInterface;
-use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Botble\ACL\Models\Role;
+use Botble\Base\Facades\BaseHelper;
 use Botble\Table\Abstracts\TableAbstract;
-use Illuminate\Contracts\Routing\UrlGenerator;
-use Yajra\DataTables\DataTables;
+use Botble\Table\Actions\DeleteAction;
+use Botble\Table\Actions\EditAction;
+use Botble\Table\BulkActions\DeleteBulkAction;
+use Botble\Table\BulkChanges\NameBulkChange;
+use Botble\Table\Columns\CreatedAtColumn;
+use Botble\Table\Columns\FormattedColumn;
+use Botble\Table\Columns\IdColumn;
+use Botble\Table\Columns\LinkableColumn;
+use Botble\Table\Columns\NameColumn;
+use Botble\Table\HeaderActions\CreateHeaderAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class RoleTable extends TableAbstract
 {
-    /**
-     * @var bool
-     */
-    protected $hasActions = true;
-
-    /**
-     * @var bool
-     */
-    protected $hasFilter = true;
-
-    /**
-     * @var UserInterface
-     */
-    protected $userRepository;
-
-    /**
-     * RoleTable constructor.
-     * @param DataTables $table
-     * @param UrlGenerator $urlGenerator
-     * @param RoleInterface $roleRepository
-     * @param UserInterface $userRepository
-     */
-    public function __construct(
-        DataTables $table,
-        UrlGenerator $urlGenerator,
-        RoleInterface $roleRepository,
-        UserInterface $userRepository
-    ) {
-        parent::__construct($table, $urlGenerator);
-
-        $this->repository = $roleRepository;
-        $this->userRepository = $userRepository;
-
-        if (!Auth::user()->hasAnyPermission(['roles.edit', 'roles.destroy'])) {
-            $this->hasOperations = false;
-            $this->hasActions = false;
-        }
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
+    public function setup(): void
     {
-        $data = $this->table
-            ->eloquent($this->query())
-            ->editColumn('name', function ($item) {
-                if (!Auth::user()->hasPermission('roles.edit')) {
-                    return $item->name;
-                }
-
-                return Html::link(route('roles.edit', $item->id), $item->name);
-            })
-            ->editColumn('checkbox', function ($item) {
-                return $this->getCheckbox($item->id);
-            })
-            ->editColumn('created_at', function ($item) {
-                return BaseHelper::formatDate($item->created_at);
-            })
-            ->editColumn('created_by', function ($item) {
-                return $item->author->name;
-            })
-            ->addColumn('operations', function ($item) {
-                return $this->getOperations('roles.edit', 'roles.destroy', $item);
+        $this
+            ->model(Role::class)
+            ->addColumns([
+                IdColumn::make(),
+                NameColumn::make()->route('roles.edit'),
+                FormattedColumn::make('description')
+                    ->title(trans('core/base::tables.description'))
+                    ->alignStart()
+                    ->withEmptyState(),
+                CreatedAtColumn::make(),
+                LinkableColumn::make('created_by')
+                    ->urlUsing(fn (LinkableColumn $column) => $column->getItem()->author->url)
+                    ->title(trans('core/acl::permissions.created_by'))
+                    ->width(100)
+                    ->getValueUsing(function (LinkableColumn $column) {
+                        return BaseHelper::clean($column->getItem()->author->name);
+                    })
+                    ->externalLink()
+                    ->withEmptyState(),
+            ])
+            ->addHeaderAction(CreateHeaderAction::make()->route('roles.create'))
+            ->addActions([
+                EditAction::make()->route('roles.edit'),
+                DeleteAction::make()->route('roles.destroy'),
+            ])
+            ->addBulkAction(DeleteBulkAction::make()->permission('roles.destroy'))
+            ->addBulkChange(NameBulkChange::make())
+            ->queryUsing(function (Builder $query): void {
+                $query
+                    ->with('author')
+                    ->select([
+                        'id',
+                        'name',
+                        'description',
+                        'created_at',
+                        'created_by',
+                    ]);
             });
-
-        return $this->toJson($data);
-    }
-
-    /**
-     * @return mixed
-     */
-    public function query()
-    {
-        $query = $this->repository->getModel()
-            ->with('author')
-            ->select([
-                'id',
-                'name',
-                'description',
-                'created_at',
-                'created_by',
-            ]);
-
-        return $this->applyScopes($query);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
-    {
-        return [
-            'id'          => [
-                'title' => trans('core/base::tables.id'),
-                'width' => '20px',
-            ],
-            'name'        => [
-                'title' => trans('core/base::tables.name'),
-            ],
-            'description' => [
-                'title' => trans('core/base::tables.description'),
-                'class' => 'text-start',
-            ],
-            'created_at'  => [
-                'title' => trans('core/base::tables.created_at'),
-                'width' => '100px',
-            ],
-            'created_by'  => [
-                'title' => trans('core/acl::permissions.created_by'),
-                'width' => '100px',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        return $this->addCreateButton(route('roles.create'), 'roles.create');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function bulkActions(): array
-    {
-        return $this->addDeleteAction(route('roles.deletes'), 'roles.destroy', parent::bulkActions());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBulkChanges(): array
-    {
-        return [
-            'name' => [
-                'title'    => trans('core/base::tables.name'),
-                'type'     => 'text',
-                'validate' => 'required|max:120',
-            ],
-        ];
     }
 }

@@ -2,51 +2,29 @@
 
 namespace Botble\RequestLog\Commands;
 
-use Botble\RequestLog\Repositories\Interfaces\RequestLogInterface;
+use Botble\RequestLog\Models\RequestLog;
 use Illuminate\Console\Command;
-use Throwable;
+use Symfony\Component\Console\Attribute\AsCommand;
 
+#[AsCommand('cms:request-logs:clear', 'Clear all request error logs')]
 class RequestLogClearCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:request-logs:clear';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Clear all request error logs';
-
-    /**
-     * @var RequestLogInterface
-     */
-    protected $requestLogRepository;
-
-    /**
-     * RequestLogClearCommand constructor.
-     * @param RequestLogInterface $requestLogRepository
-     */
-    public function __construct(RequestLogInterface $requestLogRepository)
+    public function handle(): int
     {
-        parent::__construct();
-        $this->requestLogRepository = $requestLogRepository;
-    }
+        $this->components->info('Processing...');
 
-    /**
-     * Execute the console command.
-     *
-     * @throws Throwable
-     */
-    public function handle()
-    {
-        $this->info('Processing...');
-        $count = $this->requestLogRepository->count();
-        $this->requestLogRepository->getModel()->truncate();
-        $this->info('Done. Deleted ' . $count . ' records!');
+        $count = RequestLog::query()->count();
+
+        if ($count === 0) {
+            $this->components->info('No record found!');
+
+            return self::SUCCESS;
+        }
+
+        RequestLog::query()->truncate();
+
+        $this->components->info(sprintf('Done. Deleted %s records!', number_format($count)));
+
+        return self::SUCCESS;
     }
 }

@@ -3,130 +3,50 @@
 namespace Botble\RequestLog\Tables;
 
 use Botble\RequestLog\Models\RequestLog;
-use Illuminate\Support\Facades\Auth;
-use Botble\RequestLog\Repositories\Interfaces\RequestLogInterface;
 use Botble\Table\Abstracts\TableAbstract;
-use Html;
-use Illuminate\Contracts\Routing\UrlGenerator;
-use Yajra\DataTables\DataTables;
+use Botble\Table\Actions\DeleteAction;
+use Botble\Table\BulkActions\DeleteBulkAction;
+use Botble\Table\Columns\Column;
+use Botble\Table\Columns\IdColumn;
+use Botble\Table\Columns\LinkableColumn;
+use Botble\Table\HeaderActions\HeaderAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class RequestLogTable extends TableAbstract
 {
-    /**
-     * @var bool
-     */
-    protected $hasActions = true;
-
-    /**
-     * @var bool
-     */
-    protected $hasFilter = false;
-
-    /**
-     * RequestLogTable constructor.
-     * @param DataTables $table
-     * @param UrlGenerator $urlGenerator
-     * @param RequestLogInterface $requestLogRepository
-     */
-    public function __construct(
-        DataTables $table,
-        UrlGenerator $urlGenerator,
-        RequestLogInterface $requestLogRepository
-    ) {
-        $this->repository = $requestLogRepository;
-        $this->setOption('id', 'table-request-histories');
-        parent::__construct($table, $urlGenerator);
-
-        if (!Auth::user()->hasPermission('request-log.destroy')) {
-            $this->hasOperations = false;
-            $this->hasActions = false;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
+    public function setup(): void
     {
-        $data = $this->table
-            ->eloquent($this->query())
-            ->editColumn('checkbox', function ($item) {
-                return $this->getCheckbox($item->id);
-            })
-            ->editColumn('url', function ($item) {
-                return Html::link($item->url, $item->url, ['target' => '_blank'])->toHtml();
+        $this
+            ->model(RequestLog::class)
+            ->setView('plugins/request-log::table')
+            ->addColumns([
+                IdColumn::make(),
+                LinkableColumn::make('url')
+                    ->title(trans('core/base::tables.url'))
+                    ->alignStart()
+                    ->externalLink(),
+                Column::make('status_code')
+                    ->title(trans('plugins/request-log::request-log.status_code')),
+                Column::make('count')
+                    ->title(trans('plugins/request-log::request-log.count')),
+            ])
+            ->addHeaderActions([
+                HeaderAction::make('empty')
+                    ->label(trans('plugins/request-log::request-log.delete_all'))
+                    ->icon('ti ti-trash')
+                    ->url('javascript:void(0)')
+                    ->attributes(['class' => 'empty-request-logs-button']),
+            ])
+            ->addAction(DeleteAction::make()->route('request-log.destroy'))
+            ->addBulkAction(DeleteBulkAction::make()->permission('request-log.destroy'))
+            ->queryUsing(function (Builder $query): void {
+                $query
+                    ->select([
+                    'id',
+                    'url',
+                    'status_code',
+                    'count',
+                ]);
             });
-
-        return apply_filters(BASE_FILTER_GET_LIST_DATA, $data, $this->repository->getModel())
-            ->addColumn('operations', function ($item) {
-                return $this->getOperations(null, 'request-log.destroy', $item);
-            })
-            ->escapeColumns([])
-            ->make(true);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function query()
-    {
-        $query = $this->repository->getModel()->select([
-            'request_logs.id',
-            'request_logs.url',
-            'request_logs.status_code',
-            'request_logs.count',
-        ]);
-
-        return $this->applyScopes($query);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
-    {
-        return [
-            'id'          => [
-                'name'  => 'request_logs.id',
-                'title' => trans('core/base::tables.id'),
-                'width' => '20px',
-            ],
-            'url'         => [
-                'name'  => 'request_logs.url',
-                'title' => trans('core/base::tables.url'),
-                'class' => 'text-start',
-            ],
-            'status_code' => [
-                'name'  => 'request_logs.status_code',
-                'title' => trans('plugins/request-log::request-log.status_code'),
-            ],
-            'count'       => [
-                'name'  => 'request_logs.count',
-                'title' => trans('plugins/request-log::request-log.count'),
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        $buttons = [
-            'empty' => [
-                'link' => route('request-log.empty'),
-                'text' => Html::tag('i', '', ['class' => 'fa fa-trash'])->toHtml() . ' ' . trans('plugins/request-log::request-log.delete_all'),
-            ],
-        ];
-
-        return apply_filters(BASE_FILTER_TABLE_BUTTONS, $buttons, RequestLog::class);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function bulkActions(): array
-    {
-        return $this->addDeleteAction(route('request-log.deletes'), 'request-log.destroy', parent::bulkActions());
     }
 }

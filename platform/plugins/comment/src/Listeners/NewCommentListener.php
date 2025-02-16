@@ -9,14 +9,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 
 class NewCommentListener implements ShouldQueue
 {
-    /**
-     * Handle the event.
-     *
-     * @param NewCommentEvent $event
-     * @return void
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     * @throws \Throwable
-     */
     public function handle(NewCommentEvent $event)
     {
         $parentId = request()->input('parent_id');
@@ -24,9 +16,9 @@ class NewCommentListener implements ShouldQueue
 
         $mailer = EmailHandler::setModule(COMMENT_MODULE_SCREEN_NAME)
             ->setVariableValues([
-                'user_name'       => $event->member->name,
-                'post_name'       => $article->name,
-                'post_link'       => $article->url,
+                'user_name' => $event->user->name,
+                'post_name' => $article->name,
+                'post_link' => $article->url,
                 'comment_content' => $event->comment->comment,
             ]);
 
@@ -42,16 +34,13 @@ class NewCommentListener implements ShouldQueue
         } else {
             // on comment
             $adminEmails = $this->getAdminEmail();
-            if ($article && setting('admin_email') && !in_array($event->comment->user->email, $adminEmails)) {
+            if ($article && setting('admin_email') && ! in_array($event->comment->user->email, $adminEmails)) {
                 $mailer->sendUsingTemplate('new-comment', setting('admin_email'));
             }
         }
     }
 
-    /**
-     * @return array
-     */
-    protected function getAdminEmail()
+    protected function getAdminEmail(): array
     {
         if (function_exists('get_admin_email')) {
             return get_admin_email()->toArray();

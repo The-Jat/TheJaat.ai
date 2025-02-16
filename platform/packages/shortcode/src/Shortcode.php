@@ -3,50 +3,34 @@
 namespace Botble\Shortcode;
 
 use Botble\Shortcode\Compilers\ShortcodeCompiler;
+use Illuminate\Support\Arr;
+use Illuminate\Support\HtmlString;
 
 class Shortcode
 {
-    /**
-     * Shortcode compiler
-     *
-     * @var ShortcodeCompiler
-     */
-    protected $compiler;
-
-    /**
-     * Constructor
-     *
-     * @param ShortcodeCompiler $compiler
-     * @since 2.1
-     */
-    public function __construct(ShortcodeCompiler $compiler)
+    public function __construct(protected ShortcodeCompiler $compiler)
     {
-        $this->compiler = $compiler;
     }
 
-    /**
-     * Register a new shortcode
-     *
-     * @param string $key
-     * @param string|null $name
-     * @param string|null $description
-     * @param null $callback
-     * @return Shortcode
-     * @since 2.1
-     */
-    public function register(string $key, ?string $name, ?string $description = null, $callback = null): Shortcode
+    public function register(string $key, ?string $name, ?string $description = null, $callback = null, string $previewImage = ''): Shortcode
     {
-        $this->compiler->add($key, $name, $description, $callback);
+        $this->compiler->add($key, $name, $description, $callback, $previewImage);
 
         return $this;
     }
 
-    /**
-     * Enable the shortcode
-     *
-     * @return Shortcode
-     * @since 2.1
-     */
+    public function remove(string $key): void
+    {
+        $this->compiler->remove($key);
+    }
+
+    public function setPreviewImage(string $key, string $previewImage): Shortcode
+    {
+        $this->compiler->setPreviewImage($key, $previewImage);
+
+        return $this;
+    }
+
     public function enable(): Shortcode
     {
         $this->compiler->enable();
@@ -54,12 +38,6 @@ class Shortcode
         return $this;
     }
 
-    /**
-     * Disable the shortcode
-     *
-     * @return Shortcode
-     * @since 2.1
-     */
     public function disable(): Shortcode
     {
         $this->compiler->disable();
@@ -67,73 +45,55 @@ class Shortcode
         return $this;
     }
 
-    /**
-     * Compile the given string
-     *
-     * @param string $value
-     * @return string
-     * @since 2.1
-     */
-    public function compile(string $value): string
+    public function compile(string $value, bool $force = false): HtmlString
     {
-        // Always enable when we call the compile method directly
-        $this->enable();
+        $html = $this->compiler->compile($value, $force);
 
-        // return compiled contents
-        $html = $this->compiler->compile($value);
-
-        $this->disable();
-
-        return $html;
+        return new HtmlString($html);
     }
 
-    /**
-     * @param string|null $value
-     * @return string|null
-     * @since 2.1
-     */
     public function strip(?string $value): ?string
     {
         return $this->compiler->strip($value);
     }
 
-    /**
-     * @return array
-     */
     public function getAll(): array
     {
-        return $this->compiler->getRegistered();
+        return Arr::sort($this->compiler->getRegistered());
     }
 
-    /**
-     * @param string $key
-     * @param string|callable $html
-     */
-    public function setAdminConfig(string $key, $html)
+    public function setAdminConfig(string $key, string|null|callable|array $html): void
     {
         $this->compiler->setAdminConfig($key, $html);
     }
 
-    /**
-     * @param string $name
-     * @param array $attributes
-     * @return string
-     */
-    public function generateShortcode(string $name, array $attributes = []): string
+    public function modifyAdminConfig(string $key, callable $callback): void
+    {
+        $this->compiler->modifyAdminConfig($key, $callback);
+    }
+
+    public function generateShortcode(string $name, array $attributes = [], ?string $content = null, bool $lazy = false): string
     {
         $parsedAttributes = '';
+
+        if ($lazy) {
+            $attributes = [...$attributes, 'enable_lazy_loading' => 'yes'];
+        }
+
         foreach ($attributes as $key => $attribute) {
             $parsedAttributes .= ' ' . $key . '="' . $attribute . '"';
         }
 
-        return '[' . $name . $parsedAttributes . '][/' . $name . ']';
+        return '[' . $name . $parsedAttributes . ']' . $content . '[/' . $name . ']';
     }
 
-    /**
-     * @return ShortcodeCompiler
-     */
     public function getCompiler(): ShortcodeCompiler
     {
         return $this->compiler;
+    }
+
+    public function fields(): ShortcodeField
+    {
+        return new ShortcodeField();
     }
 }

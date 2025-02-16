@@ -163,4 +163,34 @@ $(document).ready(function () {
         }
         $(event.currentTarget).closest('tr').remove();
     });
+
+    $(document).on('click', '.box-search-advance .page-link', event => {
+        event.preventDefault();
+        let _self = $(event.currentTarget);
+        if (!_self.closest('.page-item').hasClass('disabled') && _self.prop('href')) {
+            let $formBody = _self.closest('.box-search-advance').find('.panel');
+            Botble.blockUI({
+                target: $formBody,
+                iconOnly: true,
+                overlayColor: 'none'
+            });
+
+            $.ajax({
+                url: _self.prop('href') + '&keyword=' + _self.val(),
+                type: 'GET',
+                success: res => {
+                    if (res.error) {
+                        Botble.showError(res.message);
+                    } else {
+                        $formBody.html(res.data);
+                        Botble.unblockUI($formBody);
+                    }
+                },
+                error: data => {
+                    Botble.handleError(data);
+                    Botble.unblockUI($formBody);
+                },
+            });
+        }
+    });
 });

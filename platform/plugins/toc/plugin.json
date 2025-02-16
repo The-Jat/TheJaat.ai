@@ -1,4 +1,5 @@
 {
+    "id": "botble\toc",
     "name": "Table of Content",
     "namespace": "Botble\\ToC\\",
     "provider": "Botble\\ToC\\Providers\\ToCServiceProvider",

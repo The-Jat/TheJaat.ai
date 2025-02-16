@@ -4,33 +4,19 @@ namespace Botble\AuditLog\Models;
 
 use Botble\ACL\Models\User;
 use Botble\Base\Models\BaseModel;
+use Botble\Base\Models\BaseQueryBuilder;
+use Botble\Setting\Enums\DataRetentionPeriod;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Query\Builder;
 
 class AuditHistory extends BaseModel
 {
     use MassPrunable;
 
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'audit_histories';
 
-    /**
-     * The date fields for the model.clear
-     *
-     * @var array
-     */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-    ];
-
-    /**
-     * @var array
-     */
     protected $fillable = [
         'user_agent',
         'ip_address',
@@ -44,19 +30,19 @@ class AuditHistory extends BaseModel
         'request',
     ];
 
-    /**
-     * @return BelongsTo
-     */
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class)->withDefault();
     }
 
-    /**
-     * @return \Illuminate\Database\Query\Builder
-     */
-    public function prunable()
+    public function prunable(): Builder|BaseQueryBuilder
     {
-        return $this->whereDate('created_at', '>', now()->subDays(30)->toDateString());
+        $days = setting('audit_log_data_retention_period', DataRetentionPeriod::ONE_MONTH);
+
+        if ($days === DataRetentionPeriod::NEVER) {
+            return $this->query()->where('id', '<', 0);
+        }
+
+        return $this->query()->where('created_at', '<', Carbon::now()->subDays($days));
     }
 }

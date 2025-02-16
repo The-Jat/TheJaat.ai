@@ -3,25 +3,20 @@
 namespace Botble\Language\Listeners;
 
 use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Language\Facades\Language;
 use Exception;
-use Language;
 
 class UpdatedContentListener
 {
-    /**
-     * Handle the event.
-     *
-     * @param UpdatedContentEvent $event
-     * @return void
-     */
-    public function handle(UpdatedContentEvent $event)
+    public function handle(UpdatedContentEvent $event): void
     {
         try {
             if ($event->request->input('language')) {
                 Language::saveLanguage($event->screen, $event->request, $event->data);
             }
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

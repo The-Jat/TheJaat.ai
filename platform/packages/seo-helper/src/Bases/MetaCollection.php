@@ -5,6 +5,7 @@ namespace Botble\SeoHelper\Bases;
 use Botble\SeoHelper\Contracts\Entities\MetaCollectionContract;
 use Botble\SeoHelper\Contracts\Helpers\MetaContract;
 use Botble\SeoHelper\Contracts\RenderableContract;
+use Botble\SeoHelper\Exceptions\InvalidArgumentException;
 use Botble\SeoHelper\Helpers\Meta;
 use Illuminate\Support\Collection;
 
@@ -71,8 +72,7 @@ abstract class MetaCollection extends Collection implements MetaCollectionContra
     /**
      * Add a meta to collection.
      *
-     * @param string $name
-     * @param string $content
+     * @param Meta|array $item
      *
      * @return MetaCollection
      */
@@ -88,10 +88,9 @@ abstract class MetaCollection extends Collection implements MetaCollectionContra
     /**
      * Make a meta and add it to collection.
      *
-     * @param string $name
-     * @param string $content
-     *
+     * @param array $meta
      * @return MetaCollection
+     * @throws InvalidArgumentException
      */
     protected function addMeta(array $meta)
     {
@@ -161,7 +160,7 @@ abstract class MetaCollection extends Collection implements MetaCollectionContra
      */
     public function forget($keys)
     {
-        foreach ((array)$keys as $key) {
+        foreach ((array) $keys as $key) {
             $this->offsetUnset($key);
         }
 
@@ -191,6 +190,6 @@ abstract class MetaCollection extends Collection implements MetaCollectionContra
     {
         return array_map(function ($name) {
             return strtolower(trim($name));
-        }, (array)$names);
+        }, (array) $names);
     }
 }

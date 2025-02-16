@@ -2,121 +2,113 @@
 
 namespace Botble\ACL\Commands;
 
-use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Botble\ACL\Models\User;
 use Botble\ACL\Services\ActivateUserService;
+use Botble\Base\Commands\Traits\ValidateCommandInput;
+use Botble\Base\Supports\Helper;
 use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Contracts\Auth\Authenticatable;
 
+use Illuminate\Validation\Rule;
+
+use function Laravel\Prompts\{password, text};
+
+use Symfony\Component\Console\Attribute\AsCommand;
+
+#[AsCommand('cms:user:create', 'Create a super user')]
 class UserCreateCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:user:create';
+    use ValidateCommandInput;
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a super user';
-
-    /**
-     * @var UserInterface
-     */
-    protected $userRepository;
-
-    /**
-     * @var ActivateUserService
-     */
-    protected $activateUserService;
-
-    /**
-     * UserCreateCommand constructor.
-     * @param UserInterface $userRepository
-     * @param ActivateUserService $activateUserService
-     */
-    public function __construct(UserInterface $userRepository, ActivateUserService $activateUserService)
+    public function handle(ActivateUserService $activateUserService): int
     {
-        parent::__construct();
-
-        $this->userRepository = $userRepository;
-        $this->activateUserService = $activateUserService;
-    }
-
-    /**
-     * @return int
-     */
-    public function handle()
-    {
-        $this->info('Creating a super user...');
-
         try {
-            $user = $this->userRepository->getModel();
-            $user->first_name = $this->askWithValidate('Enter first name', 'required|min:2|max:60');
-            $user->last_name = $this->askWithValidate('Enter last name', 'required|min:2|max:60');
-            $user->email = $this->askWithValidate('Enter email address', 'required|email|unique:users,email');
-            $user->username = $this->askWithValidate('Enter username', 'required|min:4|max:60|unique:users,username');
-            $user->password = bcrypt($this->askWithValidate('Enter password', 'required|min:6|max:60', true));
-            $user->super_user = 1;
-            $user->manage_supers = 1;
+            $user = $this->createUser();
 
-            $this->userRepository->createOrUpdate($user);
-            if ($this->activateUserService->activate($user)) {
-                $this->info('Super user is created.');
+            if ($activateUserService->activate($user)) {
+                $this->sendSuccessMessage($user);
             }
 
-            return 0;
+            Helper::clearCache();
+
+            return self::SUCCESS;
         } catch (Exception $exception) {
-            $this->error('User could not be created.');
-            $this->error($exception->getMessage());
-            return 1;
+            $this->components->error('User could not be created.');
+            $this->components->error($exception->getMessage());
+
+            return self::FAILURE;
         }
     }
 
-    /**
-     * @param string $message
-     * @param string $rules
-     * @param bool $secret
-     * @return string
-     */
-    protected function askWithValidate(string $message, string $rules, $secret = false): string
+    protected function getUserData(): array
     {
-        do {
-            if ($secret) {
-                $input = $this->secret($message);
-            } else {
-                $input = $this->ask($message);
-            }
-            $validate = $this->validate(compact('input'), ['input' => $rules]);
-            if ($validate['error']) {
-                $this->error($validate['message']);
-            }
-        } while ($validate['error']);
-
-        return $input;
-    }
-
-    /**
-     * @param array $data
-     * @param array $rules
-     * @return array
-     */
-    protected function validate(array $data, array $rules): array
-    {
-        $validator = Validator::make($data, $rules);
-        if ($validator->fails()) {
-            return [
-                'error'   => true,
-                'message' => $validator->messages()->first(),
-            ];
-        }
-
         return [
-            'error' => false,
+            'first_name' => text(
+                label: 'First name',
+                required: true,
+                validate: $this->validate([
+                    'required',
+                    'min:2',
+                    'max:60',
+                ]),
+            ),
+            'last_name' => text(
+                label: 'Last name',
+                required: true,
+                validate: $this->validate([
+                    'required',
+                    'min:2',
+                    'max:60',
+                ]),
+            ),
+            'email' => text(
+                label: 'Email address',
+                required: true,
+                validate: $this->validate([
+                    'email',
+                    'max:60',
+                    Rule::unique((new User())->getTable(), 'email'),
+                ])
+            ),
+            'username' => text(
+                label: 'Username',
+                required: true,
+                validate: $this->validate([
+                    'min:4',
+                    'max:60',
+                    Rule::unique((new User())->getTable(), 'username'),
+                ])
+            ),
+            'password' => password(
+                label: 'Password',
+                required: true,
+                validate: $this->validate([
+                    'min:6',
+                    'max:60',
+                ])
+            ),
         ];
+    }
+
+    protected function createUser(): User
+    {
+        /** @var User $user */
+        $user = User::query()->forceCreate([
+            ...$this->getUserData(),
+            'super_user' => true,
+            'manage_supers' => true,
+        ]);
+
+        return $user;
+    }
+
+    protected function sendSuccessMessage(Authenticatable $user): void
+    {
+        $this->components->info(sprintf(
+            'Super user %s has been created. You can login at %s',
+            $user->getAttribute('email') ?? $user->getAttribute('username'),
+            route('access.login')
+        ));
     }
 }

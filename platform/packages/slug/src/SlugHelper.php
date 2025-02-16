@@ -2,76 +2,76 @@
 
 namespace Botble\Slug;
 
-use Botble\Base\Models\BaseModel;
+use Botble\Base\Contracts\BaseModel;
 use Botble\Page\Models\Page;
-use Botble\Slug\Repositories\Interfaces\SlugInterface;
+use Botble\Slug\Models\Slug;
+use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class SlugHelper
 {
-    /**
-     * @var array
-     */
-    protected $canEmptyPrefixes = [Page::class];
+    protected array $canEmptyPrefixes = [Page::class];
 
-    /**
-     * @param string|array $model
-     * @param string|null $name
-     * @return $this
-     */
-    public function registerModule($model, ?string $name = null): self
+    protected array $registering = [];
+
+    protected array $supportedModels = [];
+
+    protected array $prefixes = [];
+
+    public function __construct(protected SlugCompiler $translator)
     {
-        $supported = $this->supportedModels();
+        $this->supportedModels[Page::class] = fn () => trans('packages/page::pages.pages');
+    }
 
-        if (!is_array($model)) {
-            $supported[$model] = $name ?: $model;
-        } else {
-            foreach ($model as $item) {
-                $supported[$item] = $name ?: $item;
-            }
+    public function registerModule(string|array $model, string|null|Closure $name = null): self
+    {
+        foreach ((array) $model as $item) {
+            $this->supportedModels[$item] = $name ?: $item;
         }
 
-        config(['packages.slug.general.supported' => $supported]);
-
         return $this;
     }
 
-    /**
-     * @param string|array $model
-     * @return $this
-     */
-    public function removeModule($model): self
+    public function registering(Closure $callback): static
     {
-        $supported = $this->supportedModels();
-
-        Arr::forget($supported, $model);
-
-        config(['packages.slug.general.supported' => $supported]);
+        $this->registering[] = $callback;
 
         return $this;
     }
 
-    /**
-     * @return array
-     */
+    protected function dispatchRegistering(): void
+    {
+        if (empty($this->registering)) {
+            return;
+        }
+
+        foreach ($this->registering as $callback) {
+            call_user_func($callback, $this);
+        }
+    }
+
+    public function removeModule(string|array $model): self
+    {
+        foreach ((array) $model as $item) {
+            unset($this->supportedModels[$item]);
+        }
+
+        return $this;
+    }
+
     public function supportedModels(): array
     {
-        return config('packages.slug.general.supported', []);
+        $this->dispatchRegistering();
+
+        return array_map(function ($name) {
+            return is_callable($name) ? $name() : $name;
+        }, $this->supportedModels);
     }
 
-    /**
-     * @param string $model
-     * @param string|null $prefix
-     * @param bool $canEmptyPrefix
-     * @return $this
-     */
     public function setPrefix(string $model, ?string $prefix, bool $canEmptyPrefix = false): self
     {
-        $prefixes = config('packages.slug.general.prefixes', []);
-        $prefixes[$model] = $prefix;
-
-        config(['packages.slug.general.prefixes' => $prefixes]);
+        $this->prefixes[$model] = $prefix;
 
         if ($canEmptyPrefix) {
             $this->canEmptyPrefixes[] = $model;
@@ -80,11 +80,6 @@ class SlugHelper
         return $this;
     }
 
-    /**
-     * @param string $model
-     * @param string $column
-     * @return $this
-     */
     public function setColumnUsedForSlugGenerator(string $model, string $column): self
     {
         $columns = config('packages.slug.general.slug_generated_columns', []);
@@ -95,22 +90,14 @@ class SlugHelper
         return $this;
     }
 
-    /**
-     * @param string $model
-     * @return bool
-     */
     public function isSupportedModel(string $model): bool
     {
         return in_array($model, array_keys($this->supportedModels()));
     }
 
-    /**
-     * @param BaseModel|array $model
-     * @return $this
-     */
-    public function disablePreview($model): self
+    public function disablePreview(array|string $model): self
     {
-        if (!is_array($model)) {
+        if (! is_array($model)) {
             $model = [$model];
         }
 
@@ -124,22 +111,35 @@ class SlugHelper
         return $this;
     }
 
-    /**
-     * @param string $model
-     * @return bool
-     */
     public function canPreview(string $model): bool
     {
-        return !in_array($model, config('packages.slug.general.disable_preview', []));
+        return ! in_array($model, config('packages.slug.general.disable_preview', []));
     }
 
-    /**
-     * @param string|null $key
-     * @param string|null $prefix
-     * @param string|null $model
-     * @param null $referenceId
-     * @return mixed
-     */
+    public function createSlug(BaseModel $model, string $name = null): BaseModel|Slug
+    {
+        /**
+         * @var Slug $slug
+         */
+        $slug = Slug::query()->firstOrNew([
+            'reference_type' => $model::class,
+            'reference_id' => $model->getKey(),
+            'prefix' => $this->getPrefix($model::class),
+        ]);
+
+        if ($this->turnOffAutomaticUrlTranslationIntoLatin()) {
+            $slug->key = $name ?: $model->{$this->getColumnNameToGenerateSlug($model::class)};
+        } else {
+            $slug->key = Str::slug($name ?: $model->{$this->getColumnNameToGenerateSlug($model::class)});
+        }
+
+        $slug->ensureIdCanBeCreated();
+
+        $slug->saveQuietly();
+
+        return $slug;
+    }
+
     public function getSlug(
         ?string $key,
         ?string $prefix = null,
@@ -148,8 +148,14 @@ class SlugHelper
     ) {
         $condition = [];
 
+        $extension = $this->getPublicSingleEndingURL();
+
         if ($key !== null) {
             $condition = ['key' => $key];
+
+            if (! empty($extension)) {
+                $condition = ['key' => Str::replaceLast($extension, '', $key)];
+            }
         }
 
         if ($model !== null) {
@@ -164,37 +170,64 @@ class SlugHelper
             $condition['prefix'] = $prefix;
         }
 
-        return app(SlugInterface::class)->getFirstBy($condition);
+        $query = apply_filters(
+            'slug_helper_get_slug_query',
+            Slug::query()->where($condition),
+            $condition,
+            (string) $key,
+            (string) $prefix,
+            $model
+        );
+
+        return $query->first();
     }
 
-    /**
-     * @param string $model
-     * @param string $default
-     * @return string|null
-     */
-    public function getPrefix(string $model, string $default = ''): ?string
+    public function getPrefix(string $model, string $default = '', bool $translate = true): ?string
     {
-        $permalink = setting($this->getPermalinkSettingKey($model));
+        $prefix = setting($this->getPermalinkSettingKey($model));
 
-        if ($permalink !== null) {
-            return $permalink;
+        if ($prefix === null) {
+            $this->dispatchRegistering();
+
+            $prefix = Arr::get($this->prefixes, $model);
         }
 
-        $config = Arr::get(config('packages.slug.general.prefixes', []), $model);
+        if ($prefix !== null) {
+            if ($translate) {
+                $prefix = $this->translator->compile($prefix, $model);
+            }
 
-        if ($config !== null) {
-            return (string)$config;
+            $default = $prefix;
         }
 
         return $default;
     }
 
-    /**
-     * @param string|object $model
-     * @return string|null
-     */
-    public function getColumnNameToGenerateSlug($model): ?string
+    public function getHelperTextForPrefix(string $model, string $default = '/', bool $translate = true): string
     {
+        return $this->getHelperText(
+            $this->getPrefix($model, $default, $translate) ?: '',
+            Str::slug('Your URL Here'),
+            '/'
+        );
+    }
+
+    public function getHelperText(string $prefix, ?string $postfix = '', ?string $separation = ''): string
+    {
+        $url = ($prefix ? $prefix . $separation : '') . $postfix;
+        $url = ltrim(str_replace('//', '/', $url), '/');
+
+        return trans('packages/slug::slug.settings.helper_text', [
+            'url' => sprintf('<a href="javascript:void(0)">%s</a>', url($url)),
+        ]);
+    }
+
+    public function getColumnNameToGenerateSlug(array|string|object|null $model): ?string
+    {
+        if (! $model) {
+            return null;
+        }
+
         if (is_object($model)) {
             $model = get_class($model);
         }
@@ -202,34 +235,81 @@ class SlugHelper
         $config = Arr::get(config('packages.slug.general.slug_generated_columns', []), $model);
 
         if ($config !== null) {
-            return (string)$config;
+            return (string) $config;
         }
 
         return 'name';
     }
 
-    /**
-     * @param string $model
-     * @return string
-     */
     public function getPermalinkSettingKey(string $model): string
     {
-        return 'permalink-' . Str::slug(str_replace('\\', '_', $model));
+        return $this->getSettingKey('permalink-' . Str::slug(str_replace('\\', '_', $model)));
     }
 
-    /**
-     * @return bool
-     */
     public function turnOffAutomaticUrlTranslationIntoLatin(): bool
     {
-        return setting('slug_turn_off_automatic_url_translation_into_latin', 0) == 1;
+        return setting($this->getSettingKey('slug_turn_off_automatic_url_translation_into_latin'), 0) == 1;
     }
 
-    /**
-     * @return array|string[]
-     */
+    public function getPublicSingleEndingURL(): ?string
+    {
+        $endingURL = setting($this->getSettingKey('public_single_ending_url'), config('packages.theme.general.public_single_ending_url'));
+
+        return ! empty($endingURL) ? '.' . $endingURL : null;
+    }
+
+    public function getSettingKey(string $key): string
+    {
+        return apply_filters('slug_helper_get_permalink_setting_key', $key);
+    }
+
     public function getCanEmptyPrefixes(): array
     {
         return $this->canEmptyPrefixes;
+    }
+
+    public function getTranslator(): SlugCompiler
+    {
+        return $this->translator;
+    }
+
+    public function getSlugPrefixes(): array
+    {
+        $prefixes = [];
+
+        foreach ($this->supportedModels() as $class => $model) {
+            $prefixes[] = addslashes($this->getPrefix($class, translate: false));
+        }
+
+        return array_values(array_filter($prefixes));
+    }
+
+    public function getAllPrefixes(): array
+    {
+        $allSettingPrefixes = collect(setting()->all())
+            ->filter(function ($value, $key) {
+                return $value && Str::startsWith($key, 'permalink-');
+            })
+            ->all();
+
+        $prefixes = [];
+
+        foreach ($this->supportedModels() as $class => $model) {
+            $normalizeModel = Str::slug(str_replace('\\', '_', $class));
+
+            foreach ($allSettingPrefixes as $key => $value) {
+                if (! Str::startsWith($key, 'permalink-' . $normalizeModel)) {
+                    continue;
+                }
+
+                $prefixes[] = $value;
+
+                unset($allSettingPrefixes[$key]);
+            }
+
+            $prefixes[] =  Arr::get($this->prefixes, $class);
+        }
+
+        return array_unique(array_filter($prefixes ?: []));
     }
 }

@@ -2,38 +2,37 @@
 
 namespace Botble\Gallery\Listeners;
 
-use SiteMapManager;
-use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
+use Botble\Gallery\Facades\Gallery;
+use Botble\Gallery\Models\Gallery as GalleryModel;
+use Botble\Theme\Events\RenderingSiteMapEvent;
+use Botble\Theme\Facades\SiteMapManager;
 
 class RenderingSiteMapListener
 {
-    /**
-     * @var GalleryInterface
-     */
-    protected $galleryRepository;
-
-    /**
-     * RenderingSiteMapListener constructor.
-     * @param GalleryInterface $galleryRepository
-     */
-    public function __construct(GalleryInterface $galleryRepository)
+    public function handle(RenderingSiteMapEvent $event): void
     {
-        $this->galleryRepository = $galleryRepository;
-    }
+        $lastUpdated = GalleryModel::query()
+            ->wherePublished()
+            ->latest('updated_at')
+            ->value('updated_at');
 
-    /**
-     * Handle the event.
-     *
-     * @return void
-     */
-    public function handle()
-    {
-        SiteMapManager::add(route('public.galleries'), '2020-11-15 00:00', '0.8', 'weekly');
+        if ($event->key == 'galleries') {
+            SiteMapManager::add(Gallery::getGalleriesPageUrl(), $lastUpdated, '0.8', 'weekly');
 
-        $galleries = $this->galleryRepository->getDataSiteMap();
+            $galleries = GalleryModel::query()
+                ->with('slugable')
+                ->wherePublished()
+                ->orderBy('order')
+                ->select(['id', 'name', 'updated_at'])->latest()
+                ->get();
 
-        foreach ($galleries as $gallery) {
-            SiteMapManager::add($gallery->url, $gallery->updated_at, '0.8', 'daily');
+            foreach ($galleries as $gallery) {
+                SiteMapManager::add($gallery->url, $gallery->updated_at, '0.8');
+            }
+
+            return;
         }
+
+        SiteMapManager::addSitemap(SiteMapManager::route('galleries'), $lastUpdated);
     }
 }

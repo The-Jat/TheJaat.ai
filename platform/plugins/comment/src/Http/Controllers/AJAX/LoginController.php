@@ -6,33 +6,14 @@ use App\Http\Controllers\Controller;
 use Botble\ACL\Traits\AuthenticatesUsers;
 use Botble\ACL\Traits\LogoutGuardTrait;
 use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Base\Models\BaseModel;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
-
     use AuthenticatesUsers, LogoutGuardTrait {
         AuthenticatesUsers::attemptLogin as baseAttemptLogin;
     }
 
-    /**
-     * @param \Illuminate\Http\Request $request
-     * @return \Symfony\Component\HttpFoundation\Response
-     * @throws \Illuminate\Validation\ValidationException
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function login(Request $request)
     {
         $this->validateLogin($request);
@@ -51,20 +32,13 @@ class LoginController extends Controller
         }
 
         // If the login attempt was unsuccessful we will increment the number of attempts
-        // to login and redirect the user back to the login form. Of course, when this
+        // to log in and redirect the user back to the login form. Of course, when this
         // user surpasses their maximum number of attempts they will get locked out.
         $this->incrementLoginAttempts($request);
 
-        $this->sendFailedLoginResponse($request);
+        $this->sendFailedLoginResponse();
     }
 
-    /**
-     * Attempt to log the user into the application.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return bool
-     * @throws ValidationException
-     */
     protected function attemptLogin(Request $request)
     {
         if ($this->guard()->validate($this->credentials($request))) {
@@ -74,22 +48,11 @@ class LoginController extends Controller
         return false;
     }
 
-    /**
-     * Get the guard to be used during authentication.
-     *
-     * @return \Illuminate\Contracts\Auth\StatefulGuard
-     */
     protected function guard()
     {
         return auth(COMMENT_GUARD);
     }
 
-    /**
-     * Log the user out of the application.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function logout(Request $request)
     {
         $activeGuards = 0;
@@ -104,22 +67,20 @@ class LoginController extends Controller
             }
         }
 
-        if (!$activeGuards) {
+        if (! $activeGuards) {
             $request->session()->flush();
             $request->session()->regenerate();
         }
 
-        return $this->loggedOut($request) ?: redirect('/');
+        $this->loggedOut($request);
+
+        return redirect(route('public.index'));
     }
 
-    /**
-     * @param Request $request
-     * @param BaseModel $user
-     * @return mixed
-     */
     protected function authenticated(Request $request, $user)
     {
         $token = $user->id;
+
         return app(BaseHttpResponse::class)->setData(compact('user', 'token'));
     }
 }

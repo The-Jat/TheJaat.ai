@@ -6,15 +6,13 @@ use Botble\ACL\Models\User;
 use Botble\Base\Models\MetaBox as MetaBoxModel;
 use Botble\Base\Supports\BaseSeeder;
 use Botble\Blog\Models\Category;
-use Botble\Blog\Models\CategoryTranslation;
 use Botble\Blog\Models\Post;
-use Botble\Blog\Models\PostTranslation;
 use Botble\Blog\Models\Tag;
-use Botble\Blog\Models\TagTranslation;
 use Botble\Language\Models\LanguageMeta;
 use Botble\Slug\Models\Slug;
 use Faker\Factory;
 use Html;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use MetaBox;
 use RvMedia;
@@ -22,12 +20,7 @@ use SlugHelper;
 
 class BlogSeeder extends BaseSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         $this->uploadFiles('news');
         $this->uploadFiles('videos');
@@ -35,9 +28,9 @@ class BlogSeeder extends BaseSeeder
         Post::truncate();
         Category::truncate();
         Tag::truncate();
-        PostTranslation::truncate();
-        CategoryTranslation::truncate();
-        TagTranslation::truncate();
+        DB::table('posts_translations')->truncate();
+        DB::table('categories_translations')->truncate();
+        DB::table('tags_translations')->truncate();
         Slug::where('reference_type', Post::class)->delete();
         Slug::where('reference_type', Tag::class)->delete();
         Slug::where('reference_type', Category::class)->delete();
@@ -51,76 +44,76 @@ class BlogSeeder extends BaseSeeder
         $faker = Factory::create();
         $categories = [
             [
-                'name'       => 'Design',
+                'name' => 'Design',
                 'is_default' => true,
             ],
             [
                 'name' => 'Lifestyle',
             ],
             [
-                'name'      => 'Travel Tips',
+                'name' => 'Travel Tips',
                 'parent_id' => 2,
             ],
             [
                 'name' => 'Healthy',
             ],
             [
-                'name'      => 'Fashion',
+                'name' => 'Fashion',
                 'parent_id' => 4,
             ],
             [
                 'name' => 'Hotel',
             ],
             [
-                'name'      => 'Nature',
+                'name' => 'Nature',
                 'parent_id' => 6,
             ],
         ];
 
         $translationsCategory = [
             [
-                'name'       => 'Phong cách sống',
+                'name' => 'Phong cách sống',
             ],
             [
                 'name' => 'Sức khỏe',
             ],
             [
-                'name'      => 'Món ngon',
+                'name' => 'Món ngon',
             ],
             [
                 'name' => 'Sách',
             ],
             [
-                'name'      => 'Mẹo du lịch',
+                'name' => 'Mẹo du lịch',
             ],
             [
                 'name' => 'Khách sạn',
             ],
             [
-                'name'      => 'Thiên nhiên',
+                'name' => 'Thiên nhiên',
             ],
         ];
 
         foreach ($categories as $index => $item) {
             $categoryDetail = Category::create([
-                'name'      => $item['name'],
+                'name' => $item['name'],
                 'author_id' => 1,
+                'author_type' => User::class,
             ]);
 
             Slug::create([
                 'reference_type' => Category::class,
-                'reference_id'   => $categoryDetail->id,
-                'key'            => Str::slug($categoryDetail->name),
-                'prefix'         => SlugHelper::getPrefix(Category::class),
+                'reference_id' => $categoryDetail->id,
+                'key' => Str::slug($categoryDetail->name),
+                'prefix' => SlugHelper::getPrefix(Category::class),
             ]);
         }
 
         foreach ($translationsCategory as $index => $item) {
             $item['lang_code'] = 'vi';
             $item['categories_id'] = $index + 1;
-            CategoryTranslation::insert($item);
+            DB::table('categories_translations')->insert($item);
         }
-
 
         $tags = [
             [
@@ -177,39 +170,39 @@ class BlogSeeder extends BaseSeeder
 
             Slug::create([
                 'reference_type' => Tag::class,
-                'reference_id'   => $tag->id,
-                'key'            => Str::slug($tag->name),
-                'prefix'         => SlugHelper::getPrefix(Tag::class),
+                'reference_id' => $tag->id,
+                'key' => Str::slug($tag->name),
+                'prefix' => SlugHelper::getPrefix(Tag::class),
             ]);
         }
 
         foreach ($translationsTag as $index => $item) {
             $item['lang_code'] = 'vi';
             $item['tags_id'] = $index + 1;
-            TagTranslation::insert($item);
+            DB::table('tags_translations')->insert($item);
         }
 
         $posts = [
                 [
-                    'name'   => 'This Year Enjoy the Color of Festival with Amazing Holi Gifts Ideas',
+                    'name' => 'This Year Enjoy the Color of Festival with Amazing Holi Gifts Ideas',
                     'layout' => 'default',
                 ],
                 [
-                    'name'   => 'The World Caters to Average People and Mediocre Lifestyles',
+                    'name' => 'The World Caters to Average People and Mediocre Lifestyles',
                     'layout' => 'top-full',
                 ],
                 [
-                    'name'   => 'Not a bit of hesitation, you better think twice',
+                    'name' => 'Not a bit of hesitation, you better think twice',
                     'layout' => 'inline',
                 ],
                 [
-                    'name'        => 'We got a right to pick a little fight, Bonanza',
+                    'name' => 'We got a right to pick a little fight, Bonanza',
                     'format_type' => 'video',
-                    'video_link'  => 'https://player.vimeo.com/video/289366685?h=b6b9d1e67b&title=0&byline=0&portrait=0',
+                    'video_link' => 'https://player.vimeo.com/video/289366685?h=b6b9d1e67b&title=0&byline=0&portrait=0',
                 ],
                 [
-                    'name'            => 'My entrance exam was on a book of matches',
-                    'format_type'     => 'video',
+                    'name' => 'My entrance exam was on a book of matches',
+                    'format_type' => 'video',
                     'video_upload_id' => 'videos/video1.mp4',
                 ],
                 [
@@ -219,9 +212,9 @@ class BlogSeeder extends BaseSeeder
                     'name' => 'Why Teamwork Really Makes The Dream Work',
                 ],
                 [
-                    'name'        => '9 Things I Love About Shaving My Head During Quarantine',
+                    'name' => '9 Things I Love About Shaving My Head During Quarantine',
                     'format_type' => 'video',
-                    'video_link'  => 'https://player.vimeo.com/video/559851845?h=afc6d413c9',
+                    'video_link' => 'https://player.vimeo.com/video/559851845?h=afc6d413c9',
                 ],
                 [
                     'name' => 'The litigants on the screen are not actors',
@@ -239,9 +232,9 @@ class BlogSeeder extends BaseSeeder
                     'name' => '10 Reasons To Start Your Own, Profitable Website!',
                 ],
                 [
-                    'name'        => 'Level up your live streams with automated captions and more',
+                    'name' => 'Level up your live streams with automated captions and more',
                     'format_type' => 'video',
-                    'video_link'  => 'https://player.vimeo.com/video/580799106?h=a8eb717af9',
+                    'video_link' => 'https://player.vimeo.com/video/580799106?h=a8eb717af9',
                 ],
                 [
                     'name' => 'Simple Ways To Reduce Your Unwanted Wrinkles!',
@@ -265,13 +258,13 @@ class BlogSeeder extends BaseSeeder
         ;
         $translationsPost = [
             [
-                'name'   => 'Xu hướng túi xách hàng đầu năm 2020 cần biết',
+                'name' => 'Xu hướng túi xách hàng đầu năm 2020 cần biết',
             ],
             [
-                'name'   => 'Các Chiến lược Tối ưu hóa Công cụ Tìm kiếm Hàng đầu!',
+                'name' => 'Các Chiến lược Tối ưu hóa Công cụ Tìm kiếm Hàng đầu!',
             ],
             [
-                'name'   => 'Bạn sẽ chọn công ty nào?',
+                'name' => 'Bạn sẽ chọn công ty nào?',
             ],
             [
                 'name' => 'Lộ ra các thủ đoạn bán hàng của đại lý ô tô đã qua sử dụng',
@@ -316,12 +309,12 @@ class BlogSeeder extends BaseSeeder
 
         foreach ($posts as $index => $itemData) {
             $item = [
-                'name'        => $itemData['name'],
-                'author_id'   => 1,
+                'name' => $itemData['name'],
+                'author_id' => 1,
                 'author_type' => User::class,
-                'views'       => $faker->numberBetween(100, 2500),
+                'views' => $faker->numberBetween(100, 2500),
                 'is_featured' => rand(0, 1),
-                'image'       => 'news/news-' . ($index + 1) . '.jpg',
+                'image' => 'news/news-' . ($index + 1) . '.jpg',
                 'description' => $faker->text(),
                 'format_type' => isset($itemData['format_type']) ? $itemData['format_type'] : ($index % 3 == 0 ? 'video' : 'default'),
             ];
@@ -377,19 +370,19 @@ class BlogSeeder extends BaseSeeder
             }
 
             $post = Post::create($item);
-            if (!empty($itemData['layout'])) {
+            if (! empty($itemData['layout'])) {
                 MetaBox::saveMetaBoxData($post, 'layout', $itemData['layout']);
             }
 
-            if (!empty($itemData['video_link'])) {
+            if (! empty($itemData['video_link'])) {
                 MetaBox::saveMetaBoxData($post, 'video_link', $itemData['video_link']);
             }
 
-            if (!empty($itemData['video_embed_code'])) {
+            if (! empty($itemData['video_embed_code'])) {
                 MetaBox::saveMetaBoxData($post, 'video_embed_code', $itemData['video_embed_code']);
             }
 
-            if (!empty($itemData['video_upload_id'])) {
+            if (! empty($itemData['video_upload_id'])) {
                 MetaBox::saveMetaBoxData($post, 'video_upload_id', $itemData['video_upload_id']);
             }
 
@@ -404,9 +397,9 @@ class BlogSeeder extends BaseSeeder
             $inserted[] = $post;
             Slug::create([
                 'reference_type' => Post::class,
-                'reference_id'   => $post->id,
-                'key'            => Str::slug($post->name),
-                'prefix'         => SlugHelper::getPrefix(Post::class),
+                'reference_id' => $post->id,
+                'key' => Str::slug($post->name),
+                'prefix' => SlugHelper::getPrefix(Post::class),
             ]);
         }
         foreach ($translationsPost as $index => $item) {
@@ -414,7 +407,7 @@ class BlogSeeder extends BaseSeeder
             $item['posts_id'] = $index + 1;
             $item['description'] = $inserted[$index]->description;
             $item['content'] = $inserted[$index]->content;
-            PostTranslation::insert($item);
+            DB::table('posts_translations')->insert($item);
         }
     }
 }

@@ -2,13 +2,13 @@
 
 namespace Botble\Member\Notifications;
 
-use EmailHandler;
+use Botble\Base\Facades\EmailHandler;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
-use URL;
 
 class ConfirmEmailNotification extends Notification implements ShouldQueue
 {
@@ -18,9 +18,8 @@ class ConfirmEmailNotification extends Notification implements ShouldQueue
      * Get the notification's delivery channels.
      *
      * @param  mixed $notifiable
-     * @return array
      */
-    public function via($notifiable)
+    public function via($notifiable): array
     {
         return ['mail'];
     }
@@ -29,18 +28,17 @@ class ConfirmEmailNotification extends Notification implements ShouldQueue
      * Get the mail representation of the notification.
      *
      * @param  mixed $notifiable
-     * @return \Illuminate\Notifications\Messages\MailMessage
+     * @return MailMessage
      */
     public function toMail($notifiable)
     {
-        EmailHandler::setModule(MEMBER_MODULE_SCREEN_NAME)
+        $emailHandler = EmailHandler::setModule(MEMBER_MODULE_SCREEN_NAME)
+            ->setType('plugins')
+            ->setTemplate('confirm-email')
             ->setVariableValue('verify_link', URL::signedRoute('public.member.confirm', ['user' => $notifiable->id]));
 
-        $template = 'confirm-email';
-        $content = EmailHandler::prepareData(EmailHandler::getTemplateContent($template));
-
         return (new MailMessage())
-            ->view(['html' => new HtmlString($content)])
-            ->subject(EmailHandler::getTemplateSubject($template));
+            ->view(['html' => new HtmlString($emailHandler->getContent())])
+            ->subject($emailHandler->getSubject());
     }
 }

@@ -3,25 +3,13 @@
 namespace Botble\Gallery\Repositories\Interfaces;
 
 use Botble\Support\Repositories\Interfaces\RepositoryInterface;
+use Illuminate\Support\Collection;
 
 interface GalleryInterface extends RepositoryInterface
 {
-    /**
-     * Get all galleries.
-     *
-     * @param array $with
-     * @return mixed
-     */
-    public function getAll(array $with = ['slugable', 'user']);
+    public function getAll(array $with = ['slugable', 'user'], int $limit = 0): Collection;
 
-    /**
-     * @return mixed
-     */
-    public function getDataSiteMap();
+    public function getDataSiteMap(): Collection;
 
-    /**
-     * @param int $limit
-     * @param array $with
-     */
-    public function getFeaturedGalleries($limit, array $with = ['slugable', 'user']);
+    public function getFeaturedGalleries(int $limit, array $with = ['slugable', 'user']): Collection;
 }

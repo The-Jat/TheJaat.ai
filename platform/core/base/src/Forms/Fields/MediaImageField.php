@@ -2,14 +2,13 @@
 
 namespace Botble\Base\Forms\Fields;
 
-use Kris\LaravelFormBuilder\Fields\FormField;
+use Botble\Base\Forms\FieldTypes\FormField;
 
 class MediaImageField extends FormField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected bool $useDefaultFieldClass = false;
+
+    protected function getTemplate(): string
     {
         return 'core/base::forms.fields.media-image';
     }

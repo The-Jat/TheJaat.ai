@@ -1,24 +1,16 @@
-@php
-/**
- * @var array $values
- */
-$values = (array)$values;
-@endphp
-@if (sizeof($values) > 1) <div class="mt-checkbox-list"> @endif
-    @foreach ($values as $value)
-    @php
-        $name = isset($value[0]) ? $value[0] : '';
-        $currentValue = isset($value[1]) ? $value[1] : '';
-        $label = isset($value[2]) ? $value[2] : '';
-        $selected = isset($value[3]) ? (bool)$value[3] : false;
-        $disabled = isset($value[4]) ? (bool)$value[4] : false;
-    @endphp
-    <label class="mb-2">
-        <input type="checkbox"
-               value="{{ $currentValue }}"
-               {{ $selected ? 'checked' : '' }}
-               name="{{ $name }}" {{ $disabled ? 'disabled' : '' }}>
-        {{ $label }}
-    </label>
+@if (sizeof($values = (array) $values) > 1)
+    <div class="mt-checkbox-list">
+@endif
+@foreach ($values as $value)
+    <x-core::form.checkbox
+        :name="$value[0] ?? ''"
+        :value="$value[1] ?? ''"
+        :label="BaseHelper::clean($value[2] ?? '')"
+        :checked="$value[3] ?? false"
+        :disabled="$value[4] ?? false"
+        :$inline
+    />
 @endforeach
-@if (sizeof($values) > 1) </div> @endif
+@if (sizeof($values) > 1)
+    </div>
+@endif

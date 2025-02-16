@@ -2,47 +2,39 @@
 
 namespace Botble\Blog\Repositories\Eloquent;
 
-use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Blog\Repositories\Interfaces\TagInterface;
 use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
+use Illuminate\Support\Collection;
 
 class TagRepository extends RepositoriesAbstract implements TagInterface
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getDataSiteMap()
+    public function getDataSiteMap(): Collection
     {
         $data = $this->model
             ->with('slugable')
-            ->where('status', BaseStatusEnum::PUBLISHED)
-            ->orderBy('created_at', 'desc');
+            ->wherePublished()
+            ->orderByDesc('created_at')
+            ->select(['id', 'name', 'updated_at']);
 
         return $this->applyBeforeExecuteQuery($data)->get();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getPopularTags($limit, array $with = ['slugable'], array $withCount = ['posts'])
+    public function getPopularTags(int $limit, array $with = ['slugable'], array $withCount = ['posts']): Collection
     {
         $data = $this->model
             ->with($with)
             ->withCount($withCount)
-            ->orderBy('posts_count', 'DESC')
+            ->orderByDesc('posts_count')
             ->limit($limit);
 
         return $this->applyBeforeExecuteQuery($data)->get();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getAllTags($active = true)
+    public function getAllTags($active = true): Collection
     {
         $data = $this->model;
         if ($active) {
-            $data = $data->where('status', BaseStatusEnum::PUBLISHED);
+            $data = $data->wherePublished();
         }
 
         return $this->applyBeforeExecuteQuery($data)->get();

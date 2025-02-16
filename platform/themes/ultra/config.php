@@ -1,5 +1,6 @@
 <?php
 
+use Botble\Shortcode\View\View;
 use Botble\Theme\Theme;
 
 return [
@@ -35,14 +36,14 @@ return [
         // Before event inherit from package config and the theme that call before,
         // you can use this event to set meta, breadcrumb template or anything
         // you want inheriting.
-        'before' => function ($theme) {
+        'before' => function ($theme): void {
             // You can remove this line anytime.
         },
 
         // Listen on event before render a theme,
         // this event should call to assign some assets,
         // breadcrumb template.
-        'beforeRenderTheme' => function (Theme $theme) {
+        'beforeRenderTheme' => function (Theme $theme): void {
             $themeInfo = json_decode(file_get_contents(dirname(__FILE__) . '/theme.json'), true);
             $version = $themeInfo['version'];
 
@@ -87,7 +88,7 @@ return [
             $theme->asset()->container('footer')->usePath()->add('script', 'js/script.js', ['jquery'], [], $version);
 
             if (function_exists('shortcode')) {
-                $theme->composer(['page', 'post'], function (\Botble\Shortcode\View\View $view) {
+                $theme->composer(['page', 'post'], function (View $view): void {
                     $view->withShortcodes();
                 });
             }
@@ -97,7 +98,7 @@ return [
         // this should call to assign style, script for a layout.
         'beforeRenderLayout' => [
 
-            'default' => function ($theme) {
+            'default' => function ($theme): void {
                 // $theme->asset()->usePath()->add('ipad', 'css/layouts/ipad.css');
             },
         ],

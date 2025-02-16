@@ -3,36 +3,15 @@
 namespace Botble\Gallery\Models;
 
 use Botble\ACL\Models\User;
+use Botble\Base\Casts\SafeContent;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
-use Botble\Base\Traits\EnumCastable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Gallery extends BaseModel
 {
-    use EnumCastable;
-
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'galleries';
 
-    /**
-     * The date fields for the model.clear
-     *
-     * @var array
-     */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-    ];
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'name',
         'description',
@@ -42,17 +21,13 @@ class Gallery extends BaseModel
         'status',
     ];
 
-    /**
-     * @var array
-     */
     protected $casts = [
         'status' => BaseStatusEnum::class,
+        'name' => SafeContent::class,
+        'description' => SafeContent::class,
     ];
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class)->withDefault();
     }

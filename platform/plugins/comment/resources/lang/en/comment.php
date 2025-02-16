@@ -1,10 +1,10 @@
 <?php
 
 return [
-    'name'    => 'Comments',
-    'create'  => 'New comment',
-    'edit'    => 'Edit comment',
+    'name' => 'Comments',
+    'create' => 'New comment',
+    'edit' => 'Edit comment',
     'article' => 'Article',
-    'user'    => 'User',
+    'user' => 'User',
     'approve' => 'Approve',
 ];

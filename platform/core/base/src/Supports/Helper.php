@@ -2,46 +2,41 @@
 
 namespace Botble\Base\Supports;
 
-use Artisan;
-use Cache;
-use Eloquent;
-use Exception;
-use File;
-use Illuminate\Database\Eloquent\Model;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Models\BaseModel;
+use Botble\Base\Services\ClearCacheService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Schema;
-use Request;
+use Throwable;
 
 class Helper
 {
-    /**
-     * Load helpers from a directory
-     * @param string $directory
-     * @since 2.0
-     */
     public static function autoload(string $directory): void
     {
         $helpers = File::glob($directory . '/*.php');
+
+        if (empty($helpers) || ! is_array($helpers)) {
+            return;
+        }
+
         foreach ($helpers as $helper) {
             File::requireOnce($helper);
         }
     }
 
-    /**
-     * @param Eloquent | Model $object
-     * @param string $sessionName
-     * @return bool
-     */
-    public static function handleViewCount(Eloquent $object, string $sessionName): bool
+    public static function handleViewCount(BaseModel $object, string $sessionName): bool
     {
-        if (!array_key_exists($object->id, session()->get($sessionName, []))) {
+        if (! array_key_exists($object->getKey(), session($sessionName, []))) {
             try {
-                $object->increment('views');
-                session()->put($sessionName . '.' . $object->id, time());
+                $object::withoutEvents(fn () => $object::withoutTimestamps(fn () => $object->increment('views')));
+                session()->put($sessionName . '.' . $object->getKey(), time());
+
                 return true;
-            } catch (Exception $exception) {
+            } catch (Throwable) {
                 return false;
             }
         }
@@ -49,40 +44,25 @@ class Helper
         return false;
     }
 
-    /**
-     * Format Log data
-     *
-     * @param array $input
-     * @param string $line
-     * @param string $function
-     * @param string $class
-     * @return array
-     */
     public static function formatLog(array $input, string $line = '', string $function = '', string $class = ''): array
     {
         return array_merge($input, [
-            'user_id'   => Auth::check() ? Auth::id() : 'System',
-            'ip'        => Request::ip(),
-            'line'      => $line,
-            'function'  => $function,
-            'class'     => $class,
+            'user_id' => Auth::guard()->check() ? Auth::guard()->id() : 'System',
+            'ip' => Request::ip(),
+            'line' => $line,
+            'function' => $function,
+            'class' => $class,
             'userAgent' => Request::header('User-Agent'),
         ]);
     }
 
-    /**
-     * @param string $module
-     * @param string $type
-     * @return boolean
-     */
     public static function removeModuleFiles(string $module, string $type = 'packages'): bool
     {
         $folders = [
-            public_path('vendor/core/' . $type . '/' . $module),
-            resource_path('assets/' . $type . '/' . $module),
-            resource_path('views/vendor/' . $type . '/' . $module),
-            lang_path('vendor/' . $type . '/' . $module),
-            config_path($type . '/' . $module),
+            public_path('vendor' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . $type . DIRECTORY_SEPARATOR . $module),
+            resource_path('assets' . DIRECTORY_SEPARATOR . $type . DIRECTORY_SEPARATOR . $module),
+            resource_path('views' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . $type . DIRECTORY_SEPARATOR . $module),
+            config_path($type . DIRECTORY_SEPARATOR . $module),
         ];
 
         foreach ($folders as $folder) {
@@ -91,97 +71,41 @@ class Helper
             }
         }
 
+        $langPath = lang_path('vendor' . DIRECTORY_SEPARATOR . $type . DIRECTORY_SEPARATOR . $module);
+
+        if (File::isDirectory($langPath)) {
+            try {
+                File::deleteDirectory($langPath);
+            } catch (Throwable $throwable) {
+                BaseHelper::logError($throwable);
+            }
+        }
+
         return true;
     }
 
-    /**
-     * @param string $command
-     * @param array $parameters
-     * @param null $outputBuffer
-     * @return bool|int
-     * @throws Exception
-     * @deprecated since v5.5, will be removed in v5.7
-     */
-    public static function executeCommand(string $command, array $parameters = [], $outputBuffer = null): bool
-    {
-        if (!function_exists('proc_open')) {
-            if (config('app.debug') && config('core.base.general.can_execute_command')) {
-                throw new Exception(trans('core/base::base.proc_close_disabled_error'));
-            }
-
-            return false;
-        }
-
-        if (config('core.base.general.can_execute_command')) {
-            return Artisan::call($command, $parameters, $outputBuffer);
-        }
-
-        return false;
-    }
-
-    /**
-     * @return bool
-     */
     public static function isConnectedDatabase(): bool
     {
         try {
             return Schema::hasTable('settings');
-        } catch (Exception $exception) {
+        } catch (Throwable) {
             return false;
         }
     }
 
-    /**
-     * @return bool
-     */
     public static function clearCache(): bool
     {
-        Event::dispatch('cache:clearing');
+        $clearCacheService = ClearCacheService::make();
 
-        try {
-            Cache::flush();
-            if (!File::exists($storagePath = storage_path('framework/cache'))) {
-                return true;
-            }
-
-            foreach (File::files($storagePath) as $file) {
-                if (preg_match('/facade-.*\.php$/', $file)) {
-                    File::delete($file);
-                }
-            }
-        } catch (Exception $exception) {
-            info($exception->getMessage());
-        }
-
-        Event::dispatch('cache:cleared');
+        $clearCacheService->clearFrameworkCache();
+        $clearCacheService->clearBootstrapCache();
+        $clearCacheService->clearRoutesCache();
+        $clearCacheService->clearPurifier();
+        $clearCacheService->clearDebugbar();
 
         return true;
     }
 
-    /**
-     * @return bool
-     */
-    public static function isActivatedLicense(): bool
-    {
-        if (!File::exists(storage_path('.license'))) {
-            return false;
-        }
-
-        $coreApi = new Core();
-
-        $result = $coreApi->verifyLicense(true);
-
-        if (!$result['status']) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * @param string|null $countryCode
-     * @return string
-     */
     public static function getCountryNameByCode(?string $countryCode): ?string
     {
         if (empty($countryCode)) {
@@ -191,10 +115,6 @@ class Helper
         return Arr::get(self::countries(), $countryCode, $countryCode);
     }
 
-    /**
-     * @param string|null $countryName
-     * @return string
-     */
     public static function getCountryCodeByName(?string $countryName): ?string
     {
         if (empty($countryName)) {
@@ -205,54 +125,40 @@ class Helper
             return $item == $countryName;
         });
 
-        if (!$found) {
+        if (! $found) {
             return null;
         }
 
         return Arr::first(array_keys($found));
     }
 
-    /**
-     * @return string[]
-     */
     public static function countries(): array
     {
-        return config('core.base.general.countries', []);
+        $countries = config('core.base.general.countries', []);
+
+        $translatedCountries = array_change_key_case(trans('core/base::countries', []), CASE_UPPER);
+
+        return array_map('html_entity_decode', [...$countries, ...$translatedCountries]);
     }
 
-    /**
-     * @return bool|string
-     */
-    public static function getIpFromThirdParty()
+    public static function getIpFromThirdParty(): bool|string|null
     {
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, 'https://ipecho.net/plain');
-        curl_setopt($curl, CURLOPT_HEADER, 0);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 10);
-        $response = curl_exec($curl);
+        $defaultIpAddress = Request::ip() ?: '127.0.0.1';
 
-        $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        try {
+            $ip = trim(Http::withoutVerifying()->get('https://ipecho.net/plain')->body());
 
-        curl_close($curl);
-
-        if ($httpStatus == 200) {
-            return $response ?: Request::ip();
+            return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : $defaultIpAddress;
+        } catch (Throwable) {
+            return $defaultIpAddress;
         }
-
-        return Request::ip();
     }
 
-    /**
-     * @param string $setting
-     * @return bool
-     */
     public static function isIniValueChangeable(string $setting): bool
     {
         static $iniAll;
 
-        if (!isset($iniAll)) {
+        if (! isset($iniAll)) {
             $iniAll = false;
             // Sometimes `ini_get_all()` is disabled via the `disable_functions` option for "security purposes".
             if (function_exists('ini_get_all')) {
@@ -266,27 +172,23 @@ class Helper
         }
 
         // If we were unable to retrieve the details, fail gracefully to assume it's changeable.
-        if (!is_array($iniAll)) {
+        if (! is_array($iniAll)) {
             return true;
         }
 
         return false;
     }
 
-    /**
-     * @param int|float $value
-     * @return int|float
-     */
-    public static function convertHrToBytes($value)
+    public static function convertHrToBytes(string|float|int|null $value): float|int
     {
         $value = strtolower(trim($value));
-        $bytes = (int)$value;
+        $bytes = (int) $value;
 
-        if (false !== strpos($value, 'g')) {
+        if (str_contains($value, 'g')) {
             $bytes *= 1024 * 1024 * 1024;
-        } elseif (false !== strpos($value, 'm')) {
+        } elseif (str_contains($value, 'm')) {
             $bytes *= 1024 * 1024;
-        } elseif (false !== strpos($value, 'k')) {
+        } elseif (str_contains($value, 'k')) {
             $bytes *= 1024;
         }
 

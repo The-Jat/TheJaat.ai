@@ -41,9 +41,6 @@
                         <a class="dropdown-item" href="{{ route('public.member.settings') }}">
                             <i class="ti-stats-up"></i>{{ __('Edit profile') }}
                         </a>
-                        <a class="dropdown-item" href="{{ route('public.member.security') }}">
-                            <i class="ti-settings"></i>{{ __('Change password') }}
-                        </a>
 
                         @if(is_plugin_active('favorite-posts'))
                             <a class="dropdown-item" href="{{ route('public.favorite-post-listing') }}">

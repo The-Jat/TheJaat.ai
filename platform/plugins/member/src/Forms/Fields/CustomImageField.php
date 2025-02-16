@@ -2,23 +2,17 @@
 
 namespace Botble\Member\Forms\Fields;
 
+use Botble\Base\Forms\FormField;
 use Illuminate\Support\Arr;
-use Kris\LaravelFormBuilder\Fields\FormField;
 
 class CustomImageField extends FormField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
         return 'plugins/member::forms.fields.custom-image';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function render(array $options = [], $showLabel = true, $showField = true, $showError = true)
+    public function render(array $options = [], $showLabel = true, $showField = true, $showError = true): string
     {
         $options['attr'] = Arr::set($options['attr'], 'class', Arr::get($options['attr'], 'class') . 'form-control');
 

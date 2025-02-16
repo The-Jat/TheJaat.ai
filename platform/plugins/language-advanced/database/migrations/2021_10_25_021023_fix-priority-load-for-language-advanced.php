@@ -4,23 +4,8 @@ use Botble\LanguageAdvanced\Plugin;
 use Illuminate\Database\Migrations\Migration;
 
 return new class () extends Migration {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        Plugin::activated();
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        //
+        rescue(fn () => Plugin::activated(), report: false);
     }
 };

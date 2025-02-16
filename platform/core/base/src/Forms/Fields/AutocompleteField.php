@@ -2,14 +2,9 @@
 
 namespace Botble\Base\Forms\Fields;
 
-use Kris\LaravelFormBuilder\Fields\SelectType;
-
-class AutocompleteField extends SelectType
+class AutocompleteField extends SelectField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
         return 'core/base::forms.fields.autocomplete';
     }

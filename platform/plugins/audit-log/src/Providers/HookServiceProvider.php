@@ -2,21 +2,28 @@
 
 namespace Botble\AuditLog\Providers;
 
-use Assets;
-use AuditLog;
-use Botble\ACL\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Botble\Dashboard\Supports\DashboardWidgetInstance;
-use Illuminate\Support\Collection;
-use Illuminate\Support\ServiceProvider;
+use Botble\AuditLog\AuditLog;
 use Botble\AuditLog\Events\AuditHandlerEvent;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Forms\FieldOptions\AlertFieldOption;
+use Botble\Base\Forms\FieldOptions\SelectFieldOption;
+use Botble\Base\Forms\Fields\AlertField;
+use Botble\Base\Forms\Fields\SelectField;
+use Botble\Base\Supports\ServiceProvider;
+use Botble\Dashboard\Events\RenderingDashboardWidgets;
+use Botble\Dashboard\Supports\DashboardWidgetInstance;
+use Botble\Setting\Enums\DataRetentionPeriod;
+use Botble\Setting\Forms\GeneralSettingForm;
+use Botble\Setting\Http\Requests\GeneralSettingRequest;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use stdClass;
-use Throwable;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class HookServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
         add_action(AUTH_ACTION_AFTER_LOGOUT_SYSTEM, [$this, 'handleLogout'], 45, 2);
 
@@ -28,97 +35,92 @@ class HookServiceProvider extends ServiceProvider
             add_action(BACKUP_ACTION_AFTER_RESTORE, [$this, 'handleRestore'], 45);
         }
 
-        add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'registerDashboardWidgets'], 28, 2);
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
+            add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'registerDashboardWidgets'], 28, 2);
+        });
+
+        GeneralSettingForm::extend(callback: function (GeneralSettingForm $form): void {
+            $form
+                ->add(
+                    'audit_log_data_retention_period',
+                    SelectField::class,
+                    SelectFieldOption::make()
+                        ->label(trans('plugins/audit-log::history.clear_old_data'))
+                        ->helperText(trans('plugins/audit-log::history.clear_old_data_helper'))
+                        ->choices(DataRetentionPeriod::labels())
+                        ->selected(setting('audit_log_data_retention_period', DataRetentionPeriod::ONE_MONTH))
+                )
+                ->when(! setting('cronjob_last_run_at') && ! $form->has('cronjob_warning'), function (GeneralSettingForm $form): void {
+                    $form->add(
+                        'cronjob_warning',
+                        AlertField::class,
+                        AlertFieldOption::make()
+                            ->type('warning')
+                            ->content(trans('plugins/audit-log::history.cronjob_warning', [
+                                'link' => route('system.cronjob'),
+                            ])),
+                    );
+                });
+        });
+
+        add_filter('core_request_rules', function (array $rules, $request) {
+            if (! $request instanceof GeneralSettingRequest) {
+                return $rules;
+            }
+
+            return [
+                ...$rules,
+                'audit_log_data_retention_period' => ['required', 'string', Rule::in(DataRetentionPeriod::values())],
+            ];
+        }, 999, 2);
     }
 
-    /**
-     * @param Request $request
-     * @param User $data
-     */
-    public function handleLogin(Request $request, $data)
-    {
-        event(new AuditHandlerEvent(
-            'to the system',
-            'logged in',
-            $data->id,
-            $data->name,
-            'info'
-        ));
-    }
-
-    /**
-     * @param string $screen
-     * @param Request $request
-     * @param User $data
-     */
-    public function handleLogout(Request $request, $data)
+    public function handleLogout(Request $request, Model $data): void
     {
         event(new AuditHandlerEvent(
             'of the system',
             'logged out',
-            $data->id,
+            $data->getKey(),
             $data->name,
             'info'
         ));
     }
 
-    /**
-     * @param string $screen
-     * @param Request $request
-     * @param stdClass $data
-     */
-    public function handleUpdateProfile($screen, Request $request, $data)
+    public function handleUpdateProfile(string $screen, Request $request, Model $data): void
     {
         event(new AuditHandlerEvent(
             $screen,
             'updated profile',
-            $data->id,
+            $data->getKey(),
             AuditLog::getReferenceName($screen, $data),
             'info'
         ));
     }
 
-    /**
-     * @param string $screen
-     * @param Request $request
-     * @param stdClass $data
-     */
-    public function handleUpdatePassword($screen, Request $request, $data)
+    public function handleUpdatePassword(string $screen, Request $request, Model $data): void
     {
         event(new AuditHandlerEvent(
             $screen,
             'changed password',
-            $data->id,
+            $data->getKey(),
             AuditLog::getReferenceName($screen, $data),
             'danger'
         ));
     }
 
-    /**
-     * @param string $screen
-     */
-    public function handleBackup($screen)
+    public function handleBackup(string $screen): void
     {
         event(new AuditHandlerEvent($screen, 'created', 0, '', 'info'));
     }
 
-    /**
-     * @param string $screen
-     */
-    public function handleRestore($screen)
+    public function handleRestore(string $screen): void
     {
         event(new AuditHandlerEvent($screen, 'restored', 0, '', 'info'));
     }
 
-    /**
-     * @param array $widgets
-     * @param Collection $widgetSettings
-     * @return array
-     * @throws Throwable
-     */
-    public function registerDashboardWidgets($widgets, $widgetSettings)
+    public function registerDashboardWidgets(array $widgets, Collection $widgetSettings): array
     {
-        if (!Auth::user()->hasPermission('audit-log.index')) {
+        if (! Auth::guard()->user()->hasPermission('audit-log.index')) {
             return $widgets;
         }
 
@@ -129,9 +131,9 @@ class HookServiceProvider extends ServiceProvider
             ->setKey('widget_audit_logs')
             ->setTitle(trans('plugins/audit-log::history.widget_audit_logs'))
             ->setIcon('fas fa-history')
-            ->setColor('#44b6ae')
+            ->setColor('cyan')
             ->setRoute(route('audit-log.widget.activities'))
-            ->setBodyClass('scroll-table')
+            ->setBodyClass('')
             ->setColumn('col-md-6 col-sm-6')
             ->init($widgets, $widgetSettings);
     }

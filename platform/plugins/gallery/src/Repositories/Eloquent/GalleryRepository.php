@@ -2,51 +2,45 @@
 
 namespace Botble\Gallery\Repositories\Eloquent;
 
-use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
 use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
+use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
+use Illuminate\Support\Collection;
 
 class GalleryRepository extends RepositoriesAbstract implements GalleryInterface
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getAll(array $with = ['slugable', 'user'])
+    public function getAll(array $with = ['slugable', 'user'], int $limit = 0): Collection
     {
         $data = $this->model
             ->with($with)
-            ->where('status', BaseStatusEnum::PUBLISHED)
+            ->wherePublished()
             ->orderBy('order')
-            ->orderBy('created_at', 'desc');
+            ->orderByDesc('created_at');
+
+        if ($limit) {
+            $data->limit($limit);
+        }
 
         return $this->applyBeforeExecuteQuery($data)->get();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getDataSiteMap()
+    public function getDataSiteMap(): Collection
     {
         $data = $this->model
             ->with('slugable')
-            ->where('status', BaseStatusEnum::PUBLISHED)
+            ->wherePublished()
             ->orderBy('order')
-            ->orderBy('created_at', 'desc');
+            ->select(['id', 'name', 'updated_at'])
+            ->orderByDesc('created_at');
 
         return $this->applyBeforeExecuteQuery($data)->get();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getFeaturedGalleries($limit, array $with = ['slugable', 'user'])
+    public function getFeaturedGalleries(int $limit, array $with = ['slugable', 'user']): Collection
     {
         $data = $this->model
             ->with($with)
-            ->where([
-                'status'   => BaseStatusEnum::PUBLISHED,
-                'is_featured' => 1,
-            ])
+            ->wherePublished()
+            ->where('is_featured', true)
             ->select([
                 'id',
                 'name',
@@ -55,7 +49,7 @@ class GalleryRepository extends RepositoriesAbstract implements GalleryInterface
                 'created_at',
             ])
             ->orderBy('order')
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('created_at')
             ->limit($limit);
 
         return $this->applyBeforeExecuteQuery($data)->get();

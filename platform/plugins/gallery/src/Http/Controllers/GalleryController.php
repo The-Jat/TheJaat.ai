@@ -2,148 +2,74 @@
 
 namespace Botble\Gallery\Http\Controllers;
 
-use Botble\Base\Events\BeforeEditContentEvent;
-use Botble\Base\Forms\FormBuilder;
+use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Base\Traits\HasDeleteManyItemsTrait;
+use Botble\Base\Supports\Breadcrumb;
 use Botble\Gallery\Forms\GalleryForm;
-use Botble\Gallery\Tables\GalleryTable;
 use Botble\Gallery\Http\Requests\GalleryRequest;
-use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
-use Exception;
-use Illuminate\Http\Request;
+use Botble\Gallery\Models\Gallery;
+use Botble\Gallery\Tables\GalleryTable;
 use Illuminate\Support\Facades\Auth;
-use Botble\Base\Events\CreatedContentEvent;
-use Botble\Base\Events\DeletedContentEvent;
-use Botble\Base\Events\UpdatedContentEvent;
 
 class GalleryController extends BaseController
 {
-    use HasDeleteManyItemsTrait;
-
-    /**
-     * @var GalleryInterface
-     */
-    protected $galleryRepository;
-
-    /**
-     * @param GalleryInterface $galleryRepository
-     */
-    public function __construct(GalleryInterface $galleryRepository)
+    protected function breadcrumb(): Breadcrumb
     {
-        $this->galleryRepository = $galleryRepository;
+        return parent::breadcrumb()
+            ->add(trans('plugins/gallery::gallery.galleries'), route('galleries.index'));
     }
 
-    /**
-     * @param GalleryTable $dataTable
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     * @throws \Throwable
-     */
     public function index(GalleryTable $dataTable)
     {
-        page_title()->setTitle(trans('plugins/gallery::gallery.galleries'));
+        $this->pageTitle(trans('plugins/gallery::gallery.galleries'));
 
         return $dataTable->renderTable();
     }
 
-    /**
-     * @return string
-     */
-    public function create(FormBuilder $formBuilder)
+    public function create()
     {
-        page_title()->setTitle(trans('plugins/gallery::gallery.create'));
+        $this->pageTitle(trans('plugins/gallery::gallery.create'));
 
-        return $formBuilder->create(GalleryForm::class)->renderForm();
+        return GalleryForm::create()->renderForm();
     }
 
-    /**
-     * @param GalleryRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function store(GalleryRequest $request, BaseHttpResponse $response)
+    public function store(GalleryRequest $request)
     {
-        $gallery = $this->galleryRepository->getModel();
-        $gallery->fill($request->input());
-        $gallery->user_id = Auth::id();
+        $form = GalleryForm::create();
 
-        $gallery = $this->galleryRepository->createOrUpdate($gallery);
+        $form->saving(function (GalleryForm $form) use ($request): void {
+            $form
+                ->getModel()
+                ->fill([...$request->validated(), 'user_id' => Auth::guard()->id()])
+                ->save();
+        });
 
-        event(new CreatedContentEvent(GALLERY_MODULE_SCREEN_NAME, $request, $gallery));
-
-        return $response
-            ->setPreviousUrl(route('galleries.index'))
-            ->setNextUrl(route('galleries.edit', $gallery->id))
-            ->setMessage(trans('core/base::notices.create_success_message'));
+        return $this
+            ->httpResponse()
+            ->setPreviousRoute('galleries.index')
+            ->setNextRoute('galleries.edit', $form->getModel()->getKey())
+            ->withCreatedSuccessMessage();
     }
 
-    /**
-     * @param int $id
-     * @param Request $request
-     * @param FormBuilder $formBuilder
-     * @return string
-     */
-    public function edit($id, FormBuilder $formBuilder, Request $request)
+    public function edit(Gallery $gallery)
     {
-        $gallery = $this->galleryRepository->findOrFail($id);
+        $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $gallery->name]));
 
-        event(new BeforeEditContentEvent($request, $gallery));
-
-        page_title()->setTitle(trans('plugins/gallery::gallery.edit') . ' "' . $gallery->name . '"');
-
-        return $formBuilder->create(GalleryForm::class, ['model' => $gallery])->renderForm();
+        return GalleryForm::createFromModel($gallery)->renderForm();
     }
 
-    /**
-     * @param int $id
-     * @param GalleryRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function update($id, GalleryRequest $request, BaseHttpResponse $response)
+    public function update(Gallery $gallery, GalleryRequest $request)
     {
-        $gallery = $this->galleryRepository->findOrFail($id);
-        $gallery->fill($request->input());
+        GalleryForm::createFromModel($gallery)->setRequest($request)->save();
 
-        $this->galleryRepository->createOrUpdate($gallery);
-
-        event(new UpdatedContentEvent(GALLERY_MODULE_SCREEN_NAME, $request, $gallery));
-
-        return $response
-            ->setPreviousUrl(route('galleries.index'))
-            ->setMessage(trans('core/base::notices.update_success_message'));
+        return $this
+            ->httpResponse()
+            ->setPreviousRoute('galleries.index')
+            ->withUpdatedSuccessMessage();
     }
 
-    /**
-     * @param Request $request
-     * @param int $id
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function destroy(Request $request, $id, BaseHttpResponse $response)
+    public function destroy(Gallery $gallery)
     {
-        try {
-            $gallery = $this->galleryRepository->findOrFail($id);
-            $this->galleryRepository->delete($gallery);
-            event(new DeletedContentEvent(GALLERY_MODULE_SCREEN_NAME, $request, $gallery));
-
-            return $response->setMessage(trans('core/base::notices.delete_success_message'));
-        } catch (Exception $exception) {
-            return $response
-                ->setError()
-                ->setMessage($exception->getMessage());
-        }
-    }
-
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Exception
-     */
-    public function deletes(Request $request, BaseHttpResponse $response)
-    {
-        return $this->executeDeleteItems($request, $response, $this->galleryRepository, GALLERY_MODULE_SCREEN_NAME);
+        return DeleteResourceAction::make($gallery);
     }
 }

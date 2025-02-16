@@ -4,103 +4,37 @@ namespace Botble\Base\Tables;
 
 use Botble\Base\Supports\SystemManagement;
 use Botble\Table\Abstracts\TableAbstract;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use Illuminate\Support\Collection;
+use Botble\Table\Columns\FormattedColumn;
 
 class InfoTable extends TableAbstract
 {
-    /**
-     * @var string
-     */
-    protected $view = 'core/table::simple-table';
-
-    /**
-     * @var bool
-     */
-    protected $hasCheckbox = false;
-
-    /**
-     * @var bool
-     */
-    protected $hasOperations = false;
-
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
+    public function setup(): void
     {
-        return $this->toJson($this->table
-            ->of($this->query())
-            ->editColumn('name', function ($item) {
-                return view('core/base::system.partials.info-package-line', compact('item'))->render();
-            })
-            ->editColumn('dependencies', function ($item) {
-                return view('core/base::system.partials.info-dependencies-line', compact('item'))->render();
-            }));
-    }
+        $this
+            ->setView($this->simpleTableView())
+            ->addColumns([
+                FormattedColumn::make('name')
+                    ->title(trans('core/base::system.package_name') . ' : ' . trans('core/base::system.version'))
+                    ->alignStart()
+                    ->getValueUsing(function (FormattedColumn $column) {
+                        $item = $column->getItem();
 
-    /**
-     * @return Collection
-     * @throws FileNotFoundException
-     */
-    public function query()
-    {
-        $composerArray = SystemManagement::getComposerArray();
-        $packages = SystemManagement::getPackagesAndDependencies($composerArray['require']);
+                        return view('core/base::system.partials.info-package-line', compact('item'))->render();
+                    }),
+                FormattedColumn::make('dependencies')
+                    ->title(trans('core/base::system.dependency_name') . ' : ' . trans('core/base::system.version'))
+                    ->alignStart()
+                    ->getValueUsing(function (FormattedColumn $column) {
+                        $item = $column->getItem();
 
-        return collect($packages);
-    }
+                        return view('core/base::system.partials.info-dependencies-line', compact('item'))->render();
+                    }),
+            ])
+            ->onAjax(function () {
+                $composerArray = SystemManagement::getComposerArray();
+                $packages = SystemManagement::getPackagesAndDependencies($composerArray['require']);
 
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
-    {
-        return [
-            'name'         => [
-                'name'  => 'name',
-                'title' => trans('core/base::system.package_name') . ' : ' . trans('core/base::system.version'),
-                'class' => 'text-start',
-            ],
-            'dependencies' => [
-                'name'  => 'dependencies',
-                'title' => trans('core/base::system.dependency_name') . ' : ' . trans('core/base::system.version'),
-                'class' => 'text-start',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        return [];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBuilderParameters(): array
-    {
-        return [
-            'stateSave' => true,
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function actions()
-    {
-        return [];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function getDom(): ?string
-    {
-        return "rt<'datatables__info_wrap'pli<'clearfix'>>";
+                return $this->toJson($this->table->of(collect($packages)));
+            });
     }
 }

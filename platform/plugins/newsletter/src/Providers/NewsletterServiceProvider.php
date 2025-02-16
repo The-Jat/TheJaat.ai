@@ -2,117 +2,87 @@
 
 namespace Botble\Newsletter\Providers;
 
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Facades\EmailHandler;
+use Botble\Base\Facades\PanelSectionManager;
+use Botble\Base\PanelSections\PanelSectionItem;
+use Botble\Base\Supports\DashboardMenuItem;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
+use Botble\Newsletter\Contracts\Factory;
+use Botble\Newsletter\Forms\Fronts\NewsletterForm;
+use Botble\Newsletter\Http\Requests\NewsletterRequest;
 use Botble\Newsletter\Models\Newsletter;
-use Botble\Newsletter\Repositories\Caches\NewsletterCacheDecorator;
+use Botble\Newsletter\NewsletterManager;
 use Botble\Newsletter\Repositories\Eloquent\NewsletterRepository;
 use Botble\Newsletter\Repositories\Interfaces\NewsletterInterface;
-use EmailHandler;
-use Exception;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Event;
+use Botble\Setting\PanelSections\SettingOthersPanelSection;
+use Botble\Theme\FormFrontManager;
+use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\ServiceProvider;
-use Newsletter as MailchimpNewsletter;
-use SendGrid;
 
-class NewsletterServiceProvider extends ServiceProvider
+class NewsletterServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function register()
+    public function register(): void
     {
         $this->app->singleton(NewsletterInterface::class, function () {
-            return new NewsletterCacheDecorator(
-                new NewsletterRepository(new Newsletter())
-            );
+            return new NewsletterRepository(new Newsletter());
+        });
+
+        $this->app->singleton(Factory::class, function ($app) {
+            return new NewsletterManager($app);
         });
     }
 
-    public function boot()
+    public function boot(): void
     {
         $this
             ->setNamespace('plugins/newsletter')
             ->loadHelpers()
             ->loadAndPublishConfigurations(['permissions', 'email'])
             ->loadAndPublishTranslations()
-            ->loadRoutes(['web'])
+            ->loadRoutes()
+            ->publishAssets()
             ->loadAndPublishViews()
             ->loadMigrations();
 
         $this->app->register(EventServiceProvider::class);
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()->registerItem([
-                'id'          => 'cms-plugins-newsletter',
-                'priority'    => 6,
-                'parent_id'   => null,
-                'name'        => 'plugins/newsletter::newsletter.name',
-                'icon'        => 'far fa-newspaper',
-                'url'         => route('newsletter.index'),
-                'permissions' => ['newsletter.index'],
-            ]);
+        DashboardMenu::default()->beforeRetrieving(function (): void {
+            DashboardMenu::make()
+                ->registerItem(
+                    DashboardMenuItem::make()
+                        ->id('cms-plugins-newsletter')
+                        ->priority(430)
+                        ->name('plugins/newsletter::newsletter.name')
+                        ->icon('ti ti-mail')
+                        ->route('newsletter.index')
+                );
+        });
 
+        PanelSectionManager::default()->beforeRendering(function (): void {
+            PanelSectionManager::registerItem(
+                SettingOthersPanelSection::class,
+                fn () => PanelSectionItem::make('newsletter')
+                    ->setTitle(trans('plugins/newsletter::newsletter.settings.title'))
+                    ->withIcon('ti ti-mail-cog')
+                    ->withDescription(trans('plugins/newsletter::newsletter.settings.panel_description'))
+                    ->withPriority(140)
+                    ->withRoute('newsletter.settings')
+            );
+        });
+
+        $this->app['events']->listen(RouteMatched::class, function (): void {
             EmailHandler::addTemplateSettings(NEWSLETTER_MODULE_SCREEN_NAME, config('plugins.newsletter.email', []));
         });
 
-        add_filter(BASE_FILTER_AFTER_SETTING_CONTENT, [$this, 'addSettings'], 249);
-
-        $this->app->booted(function () {
-            $mailchimpApiKey = setting('newsletter_mailchimp_api_key');
-            $mailchimpListId = setting('newsletter_mailchimp_list_id');
-
-            config([
-                'newsletter.apiKey'               => $mailchimpApiKey,
-                'newsletter.lists.subscribers.id' => $mailchimpListId,
-            ]);
-        });
+        FormFrontManager::register(NewsletterForm::class, NewsletterRequest::class);
     }
 
-    /**
-     * @param null $data
-     * @return string
-     * @throws \Throwable
-     */
-    public function addSettings($data = null)
+    public function provides(): array
     {
-        $mailchimpContactList = [];
-        $mailchimpApiKey = setting('newsletter_mailchimp_api_key');
-
-        if ($mailchimpApiKey) {
-            try {
-                $list = MailchimpNewsletter::getApi()->get('lists');
-
-                $results = Arr::get($list, 'lists');
-
-                foreach ($results as $result) {
-                    $mailchimpContactList[$result['id']] = $result['name'];
-                }
-            } catch (Exception $exception) {
-                info('Caught exception: ' . $exception->getMessage());
-            }
-        }
-
-        $sendGridContactList = [];
-
-        $sendgridApiKey = setting('newsletter_sendgrid_api_key');
-        if ($sendgridApiKey) {
-            $sg = new SendGrid($sendgridApiKey);
-
-            try {
-                $list = $sg->client->marketing()->lists()->get();
-
-                $results = Arr::get(json_decode($list->body(), true), 'result');
-
-                foreach ($results as $result) {
-                    $sendGridContactList[$result['id']] = $result['name'];
-                }
-            } catch (Exception $exception) {
-                info('Caught exception: ' . $exception->getMessage());
-            }
-        }
-
-        return $data . view('plugins/newsletter::setting', compact('mailchimpContactList', 'sendGridContactList'))
-                ->render();
+        return [Factory::class];
     }
 }

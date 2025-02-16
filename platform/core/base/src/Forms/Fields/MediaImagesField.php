@@ -2,15 +2,12 @@
 
 namespace Botble\Base\Forms\Fields;
 
-use Assets;
-use Kris\LaravelFormBuilder\Fields\FormField;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Forms\FormField;
 
 class MediaImagesField extends FormField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
         Assets::addScripts(['jquery-ui']);
 

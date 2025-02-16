@@ -2,73 +2,29 @@
 
 namespace Botble\Base\Models;
 
-use Eloquent;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Query\Builder;
+use Botble\Base\Contracts\BaseModel as BaseModelContract;
+use Botble\Base\Facades\MacroableModels;
+use Botble\Base\Models\Concerns\HasBaseEloquentBuilder;
+use Botble\Base\Models\Concerns\HasMetadata;
+use Botble\Base\Models\Concerns\HasUuidsOrIntegerIds;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use MacroableModels;
-use MetaBox as MetaBoxSupport;
 
-class BaseModel extends Eloquent
+/**
+ * @method static \Botble\Base\Models\BaseQueryBuilder query()
+ */
+class BaseModel extends Model implements BaseModelContract
 {
-    /**
-     * @param string $key
-     * @return mixed
-     */
+    use HasBaseEloquentBuilder;
+    use HasMetadata;
+    use HasUuidsOrIntegerIds;
+
     public function __get($key)
     {
-        if (class_exists('MacroableModels')) {
-            $method = 'get' . Str::studly($key) . 'Attribute';
-            if (MacroableModels::modelHasMacro(get_class($this), $method)) {
-                return call_user_func([$this, $method]);
-            }
+        if (MacroableModels::modelHasMacro(static::class, $method = 'get' . Str::studly($key) . 'Attribute')) {
+            return $this->{$method}();
         }
 
         return parent::__get($key);
-    }
-
-    /**
-     * @return MorphMany
-     */
-    public function metadata(): MorphMany
-    {
-        return $this->morphMany(MetaBox::class, 'reference')
-            ->select([
-                'reference_id',
-                'reference_type',
-                'meta_key',
-                'meta_value',
-            ]);
-    }
-
-    /**
-     * @param string $key
-     * @param bool $single
-     * @return string|array
-     */
-    public function getMetaData(string $key, bool $single = false)
-    {
-        $field = $this->metadata
-            ->where('meta_key', apply_filters('stored_meta_box_key', $key, $this))
-            ->first();
-
-        if (!$field) {
-            $field = $this->metadata->where('meta_key', $key)->first();
-        }
-
-        if (!$field) {
-            return $single ? '' : [];
-        }
-
-        return MetaBoxSupport::getMetaData($field, $key, $single);
-    }
-
-    /**
-     * @param Builder $query
-     * @return BaseQueryBuilder
-     */
-    public function newEloquentBuilder($query): BaseQueryBuilder
-    {
-        return new BaseQueryBuilder($query);
     }
 }

@@ -2,62 +2,126 @@
 
 namespace Botble\Theme\Supports;
 
-use AdminBar;
-use BaseHelper;
-use Illuminate\Contracts\Container\BindingResolutionException;
+use Botble\Base\Facades\BaseHelper;
 use Botble\Sitemap\Sitemap;
+use Botble\Slug\Facades\SlugHelper;
+use Carbon\Carbon;
 use Illuminate\Http\Response;
 
 class SiteMapManager
 {
-    /**
-     * @var Sitemap
-     */
-    protected $siteMap;
+    protected array $keys = ['sitemap', 'pages'];
 
-    /**
-     * SiteMapManager constructor.
-     * @throws BindingResolutionException
-     */
-    public function __construct()
+    protected array $removedKeys = [];
+
+    protected string $extension = 'xml';
+
+    protected string $defaultDate = '2024-11-01 00:00';
+
+    public function __construct(protected Sitemap $siteMap)
     {
-        // create new site map object
-        $this->siteMap = app()->make('sitemap');
-
-        // set cache (key (string), duration in minutes (Carbon|Datetime|int), turn on/off (boolean))
-        // by default cache is disabled
-        $this->siteMap->setCache('cache_site_map_key', setting('cache_time_site_map', 60), setting('enable_cache_site_map', true));
-
-        if (!BaseHelper::getHomepageId()) {
-            $this->siteMap->add(route('public.index'), '2022-07-25 10:00', '1.0', 'daily');
-        }
-
-        AdminBar::setIsDisplay(false);
     }
 
-    /**
-     * @param string $url
-     * @param string|null $date
-     * @param string $priority
-     * @param string $sequence
-     * @return $this
-     */
-    public function add(string $url, ?string $date, string $priority = '1.0', string $sequence = 'daily'): self
+    public function init(?string $prefix = null, string $extension = 'xml'): self
     {
-        if (!$this->siteMap->isCached()) {
-            $this->siteMap->add($url, $date, $priority, $sequence);
+        // create new site map object
+        $this->siteMap = app('sitemap');
+        // set cache (key (string), duration in minutes (Carbon|Datetime|int), turn on/off (boolean))
+        // by default cache is disabled
+        $this->siteMap->setCache('cache_site_map_key' . $prefix . $extension, setting('cache_time_site_map', 60), setting('enable_cache_site_map', true));
+
+        if ($prefix == 'pages' && ! BaseHelper::getHomepageId()) {
+            $this->add(BaseHelper::getHomepageUrl(), Carbon::now()->toDateTimeString());
+        }
+
+        $this->extension = $extension;
+
+        if (! $prefix) {
+            $this->addSitemap($this->route('pages'));
         }
 
         return $this;
     }
 
-    /**
-     * @param string $type
-     * @return Response
-     */
+    public function addSitemap(string $loc, ?string $lastModified = null): self
+    {
+        $removedLoc = array_map(fn ($item) => $this->route($item), $this->removedKeys);
+
+        if (! $this->isCached() && ! in_array($loc, $removedLoc)) {
+            $this->siteMap->addSitemap($loc, $lastModified ?: $this->defaultDate);
+        }
+
+        return $this;
+    }
+
+    public function route(?string $key = null): string
+    {
+        return route('public.sitemap.index', [$key, $this->extension]);
+    }
+
+    public function add(string $url, ?string $date = null, string $priority = '1.0', string $sequence = 'daily'): self
+    {
+        if (! $this->isCached()) {
+            $this->siteMap->add($url, $date ?: $this->defaultDate, $priority, $sequence);
+        }
+
+        return $this;
+    }
+
+    public function isCached(): bool
+    {
+        return $this->siteMap->isCached();
+    }
+
+    public function getSiteMap(): Sitemap
+    {
+        return $this->siteMap;
+    }
+
     public function render(string $type = 'xml'): Response
     {
         // show your site map (options: 'xml' (default), 'html', 'txt', 'ror-rss', 'ror-rdf')
         return $this->siteMap->render($type);
+    }
+
+    public function getKeys(): array
+    {
+        return array_filter($this->keys, fn ($item) => ! in_array($item, $this->removedKeys));
+    }
+
+    public function registerKey(string|array $key, ?string $value = null): self
+    {
+        if (is_array($key)) {
+            $this->keys = array_merge($this->keys, $key);
+        } else {
+            $this->keys[$key] = $value ?: $key;
+        }
+
+        return $this;
+    }
+
+    public function removeKey(array|string $key): self
+    {
+        $this->removedKeys = [
+            ...$this->removedKeys,
+            ...(array) $key,
+        ];
+
+        return $this;
+    }
+
+    public function allowedExtensions(): array
+    {
+        $extensions = ['xml', 'html', 'txt', 'ror-rss', 'ror-rdf'];
+
+        $slugPostfix = SlugHelper::getPublicSingleEndingURL();
+
+        if (! $slugPostfix) {
+            return $extensions;
+        }
+
+        $slugPostfix = trim($slugPostfix, '.');
+
+        return array_filter($extensions, fn ($item) => $item != $slugPostfix);
     }
 }

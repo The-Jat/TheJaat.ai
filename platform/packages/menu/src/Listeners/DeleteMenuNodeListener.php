@@ -2,44 +2,27 @@
 
 namespace Botble\Menu\Listeners;
 
+use Botble\Base\Contracts\BaseModel;
 use Botble\Base\Events\DeletedContentEvent;
-use Botble\Menu\Repositories\Interfaces\MenuNodeInterface;
-use Exception;
-use Menu;
+use Botble\Menu\Facades\Menu;
+use Botble\Menu\Models\MenuNode;
 
 class DeleteMenuNodeListener
 {
-    /**
-     * @var MenuNodeInterface
-     */
-    protected $menuNodeRepository;
-
-    /**
-     * DeletedContentListener constructor.
-     * @param MenuNodeInterface $menuNodeRepository
-     */
-    public function __construct(MenuNodeInterface $menuNodeRepository)
+    public function handle(DeletedContentEvent $event): void
     {
-        $this->menuNodeRepository = $menuNodeRepository;
-    }
-
-    /**
-     * Handle the event.
-     *
-     * @param DeletedContentEvent $event
-     * @return void
-     */
-    public function handle(DeletedContentEvent $event)
-    {
-        if (in_array(get_class($event->data), Menu::getMenuOptionModels())) {
-            try {
-                $this->menuNodeRepository->deleteBy([
-                    'reference_id'   => $event->data->id,
-                    'reference_type' => get_class($event->data),
-                ]);
-            } catch (Exception $exception) {
-                info($exception->getMessage());
-            }
+        if (
+            ! $event->data instanceof BaseModel ||
+            ! in_array($event->data::class, Menu::getMenuOptionModels())
+        ) {
+            return;
         }
+
+        MenuNode::query()
+            ->where([
+                'reference_id' => $event->data->getKey(),
+                'reference_type' => $event->data::class,
+            ])
+            ->delete();
     }
 }

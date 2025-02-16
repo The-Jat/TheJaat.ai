@@ -2,40 +2,16 @@
 
 namespace Botble\ACL\Providers;
 
-use Botble\ACL\Repositories\Interfaces\UserInterface;
-use Botble\Dashboard\Supports\DashboardWidgetInstance;
-use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Support\Collection;
-use Illuminate\Support\ServiceProvider;
-use Throwable;
+use Botble\ACL\Hooks\UserWidgetHook;
+use Botble\Base\Supports\ServiceProvider;
+use Botble\Dashboard\Events\RenderingDashboardWidgets;
 
 class HookServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
-        add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addUserStatsWidget'], 12, 2);
-    }
-
-    /**
-     * @param array $widgets
-     * @param Collection $widgetSettings
-     * @return array
-     * @throws Throwable
-     * @throws BindingResolutionException
-     */
-    public function addUserStatsWidget(array $widgets, Collection $widgetSettings): array
-    {
-        $users = $this->app->make(UserInterface::class)->count();
-
-        return (new DashboardWidgetInstance())
-            ->setType('stats')
-            ->setPermission('users.index')
-            ->setTitle(trans('core/acl::users.users'))
-            ->setKey('widget_total_users')
-            ->setIcon('fas fa-users')
-            ->setColor('#3598dc')
-            ->setStatsTotal($users)
-            ->setRoute(route('users.index'))
-            ->init($widgets, $widgetSettings);
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
+            add_filter(DASHBOARD_FILTER_ADMIN_LIST, [UserWidgetHook::class, 'addUserStatsWidget'], 12, 2);
+        });
     }
 }

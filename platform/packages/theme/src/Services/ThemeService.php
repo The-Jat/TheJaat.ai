@@ -2,71 +2,30 @@
 
 namespace Botble\Theme\Services;
 
-use BaseHelper;
+use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Supports\Helper;
 use Botble\PluginManagement\Services\PluginService;
-use Botble\Setting\Repositories\Interfaces\SettingInterface;
+use Botble\Setting\Models\Setting;
 use Botble\Setting\Supports\SettingStore;
 use Botble\Theme\Events\ThemeRemoveEvent;
-use Botble\Widget\Repositories\Interfaces\WidgetInterface;
+use Botble\Theme\Facades\Theme;
+use Botble\Theme\Facades\ThemeOption;
+use Botble\Widget\Models\Widget;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
-use Theme;
+use Illuminate\Support\Str;
 
 class ThemeService
 {
-    /**
-     * @var Filesystem
-     */
-    public $files;
-
-    /**
-     * @var SettingStore
-     */
-    public $settingStore;
-
-    /**
-     * @var PluginService
-     */
-    public $pluginService;
-
-    /**
-     * @var WidgetInterface
-     */
-    public $widgetRepository;
-
-    /**
-     * @var SettingInterface
-     */
-    public $settingRepository;
-
-    /**
-     * ThemeService constructor.
-     * @param Filesystem $files
-     * @param SettingStore $settingStore
-     * @param PluginService $pluginService
-     * @param WidgetInterface $widgetRepository
-     * @param SettingInterface $settingRepository
-     */
     public function __construct(
-        Filesystem $files,
-        SettingStore $settingStore,
-        PluginService $pluginService,
-        WidgetInterface $widgetRepository,
-        SettingInterface $settingRepository
+        protected Filesystem $files,
+        protected SettingStore $settingStore,
+        protected PluginService $pluginService
     ) {
-        $this->files = $files;
-        $this->settingStore = $settingStore;
-        $this->pluginService = $pluginService;
-        $this->widgetRepository = $widgetRepository;
-        $this->settingRepository = $settingRepository;
     }
 
-    /**
-     * @param string $theme
-     * @return array
-     */
     public function activate(string $theme): array
     {
         $validate = $this->validate($theme);
@@ -77,17 +36,27 @@ class ThemeService
 
         if (setting('theme') && $theme == Theme::getThemeName()) {
             return [
-                'error'   => true,
+                'error' => true,
                 'message' => trans('packages/theme::theme.theme_activated_already', ['name' => $theme]),
             ];
         }
 
+        $config = $this->getThemeConfig($theme);
+        $inheritTheme = Arr::get($config, 'inherit');
+
         try {
             $content = BaseHelper::getFileData($this->getPath($theme, 'theme.json'));
 
-            if (!empty($content)) {
+            if ($inheritTheme && ! Theme::exists($inheritTheme)) {
+                return [
+                    'error' => true,
+                    'message' => trans('packages/theme::theme.theme_inherit_not_found', ['name' => $inheritTheme]),
+                ];
+            }
+
+            if (! empty($content)) {
                 $requiredPlugins = Arr::get($content, 'required_plugins', []);
-                if (!empty($requiredPlugins)) {
+                if (! empty($requiredPlugins)) {
                     foreach ($requiredPlugins as $plugin) {
                         $this->pluginService->activate($plugin);
                     }
@@ -95,9 +64,14 @@ class ThemeService
             }
         } catch (Exception $exception) {
             return [
-                'error'   => true,
+                'error' => true,
                 'message' => $exception->getMessage(),
             ];
+        }
+
+        if (! empty($inheritTheme)) {
+            $this->copyThemeOptions($theme);
+            $this->copyThemeWidgets($theme);
         }
 
         Theme::setThemeName($theme);
@@ -109,62 +83,107 @@ class ThemeService
         }
 
         $this->settingStore
-            ->set('theme', $theme)
+            ->forceSet('theme', $theme)
             ->save();
 
         Helper::clearCache();
 
         return [
-            'error'   => false,
+            'error' => false,
             'message' => trans('packages/theme::theme.active_success', ['name' => $theme]),
         ];
     }
 
-    /**
-     * @param string $theme
-     * @return array
-     */
+    public function copyThemeOptions(string $theme): void
+    {
+        $fromTheme = setting('theme');
+
+        if ($fromTheme === $theme) {
+            return;
+        }
+
+        $themeOptions = ThemeOption::getOptions();
+
+        $themeOptions = collect($themeOptions)
+            ->filter(
+                fn (mixed $value, string $key) => Str::startsWith($key, 'theme-' . $fromTheme . '-')
+            )
+            ->toArray();
+
+        $copiedThemeOptions = [];
+
+        $now = Carbon::now();
+
+        foreach ($themeOptions as $key => $option) {
+            $key = str_replace('theme-' . $fromTheme . '-', 'theme-' . $theme . '-', $key);
+
+            $copiedThemeOptions[] = [
+                'key' => $key,
+                'value' => $option,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if (! empty($copiedThemeOptions)) {
+            Setting::query()
+                ->insertOrIgnore($copiedThemeOptions);
+        }
+    }
+
+    public function copyThemeWidgets(string $theme): void
+    {
+        $fromTheme = setting('theme');
+
+        if ($fromTheme === $theme) {
+            return;
+        }
+
+        $copiedWidgets = Widget::query()
+            ->where('theme', $fromTheme)
+            ->get()
+            ->toArray();
+
+        foreach ($copiedWidgets as $key => $widget) {
+            $copiedWidgets[$key]['theme'] = $theme;
+            $copiedWidgets[$key]['data'] = json_encode($widget['data']);
+            unset($copiedWidgets[$key]['id']);
+        }
+
+        Widget::query()
+            ->insertOrIgnore($copiedWidgets);
+    }
+
     protected function validate(string $theme): array
     {
         $location = theme_path($theme);
 
-        if (!$this->files->isDirectory($location)) {
+        if (! $this->files->isDirectory($location)) {
             return [
-                'error'   => true,
+                'error' => true,
                 'message' => trans('packages/theme::theme.theme_is_not_existed'),
             ];
         }
 
-        if (!$this->files->exists($location . '/theme.json')) {
+        if (! $this->files->exists($location . '/theme.json')) {
             return [
-                'error'   => true,
+                'error' => true,
                 'message' => trans('packages/theme::theme.missing_json_file'),
             ];
         }
 
         return [
-            'error'   => false,
+            'error' => false,
             'message' => trans('packages/theme::theme.theme_invalid'),
         ];
     }
 
-    /**
-     * Get root writable path.
-     *
-     * @param string $theme
-     * @param string|null $path
-     * @return string
-     */
     protected function getPath(string $theme, ?string $path = null): string
     {
         return rtrim(theme_path(), '/') . '/' . rtrim(ltrim(strtolower($theme), '/'), '/') . '/' . $path;
     }
 
-    /**
-     * @param string|null $theme
-     * @return array
-     */
-    public function publishAssets(string $theme = null): array
+    public function publishAssets(?string $theme = null): array
     {
         if ($theme) {
             $themes = [$theme];
@@ -172,40 +191,53 @@ class ThemeService
             $themes = BaseHelper::scanFolder(theme_path());
         }
 
-        foreach ($themes as $theme) {
+        foreach ($themes as $key => $theme) {
+            if (! $this->files->isDirectory(theme_path($theme))) {
+                unset($themes[$key]);
+
+                continue;
+            }
+
             $resourcePath = $this->getPath($theme, 'public');
 
             $themePath = public_path('themes');
-            if (!$this->files->isDirectory($themePath)) {
+            if (! $this->files->isDirectory($themePath)) {
                 $this->files->makeDirectory($themePath, 0755, true);
-            } elseif (!$this->files->isWritable($themePath)) {
+            } elseif (! $this->files->isWritable($themePath)) {
                 return [
-                    'error'   => true,
+                    'error' => true,
                     'message' => trans('packages/theme::theme.folder_is_not_writeable', ['name' => $themePath]),
                 ];
             }
 
             $publishPath = $themePath . '/' . ($theme == Theme::getThemeName() ? Theme::getPublicThemeName() : $theme);
 
-            if (!$this->files->isDirectory($publishPath)) {
+            if (! $this->files->isDirectory($publishPath)) {
                 $this->files->makeDirectory($publishPath, 0755, true);
             }
 
             $this->files->copyDirectory($resourcePath, $publishPath);
-            $this->files->copy($this->getPath($theme, 'screenshot.png'), $publishPath . '/screenshot.png');
+
+            $screenshot = $this->getPath($theme, 'screenshot.png');
+
+            if ($this->files->exists($screenshot)) {
+                $this->files->copy($screenshot, $publishPath . '/screenshot.png');
+            }
+        }
+
+        if (! count($themes)) {
+            return [
+                'error' => true,
+                'message' => 'No themes to publish assets.',
+            ];
         }
 
         return [
-            'error'   => false,
+            'error' => false,
             'message' => trans('packages/theme::theme.published_assets_success', ['themes' => implode(', ', $themes)]),
         ];
     }
 
-    /**
-     * @param string $theme
-     * @return array
-     * @throws Exception
-     */
     public function remove(string $theme): array
     {
         $validate = $this->validate($theme);
@@ -214,33 +246,39 @@ class ThemeService
             return $validate;
         }
 
-        if (Theme::getThemeName() == $theme) {
+        if (Theme::getThemeName() === $theme) {
             return [
-                'error'   => true,
+                'error' => true,
                 'message' => trans('packages/theme::theme.cannot_remove_theme', ['name' => $theme]),
+            ];
+        }
+
+        if (Theme::getInheritTheme() === $theme) {
+            return [
+                'error' => true,
+                'message' => trans('packages/theme::theme.cannot_remove_inherit_theme', ['name' => $theme]),
             ];
         }
 
         $this->removeAssets($theme);
 
         $this->files->deleteDirectory($this->getPath($theme));
-        $this->widgetRepository->deleteBy(['theme' => $theme]);
-        $this->settingRepository->getModel()
-            ->where('key', 'like', 'theme-' . $theme . '-%')
+        Widget::query()
+            ->where('theme', $theme)
+            ->orWhere('theme', 'LIKE', $theme . '-%')
+            ->delete();
+        Setting::query()
+            ->where('key', 'LIKE', ThemeOption::getOptionKey('%', theme: $theme))
             ->delete();
 
         event(new ThemeRemoveEvent($theme));
 
         return [
-            'error'   => false,
+            'error' => false,
             'message' => trans('packages/theme::theme.theme_deleted', ['name' => $theme]),
         ];
     }
 
-    /**
-     * @param string $theme
-     * @return array
-     */
     public function removeAssets(string $theme): array
     {
         $validate = $this->validate($theme);
@@ -252,8 +290,15 @@ class ThemeService
         $this->files->deleteDirectory(public_path('themes/' . $theme));
 
         return [
-            'error'   => false,
+            'error' => false,
             'message' => trans('packages/theme::theme.removed_assets', ['name' => $theme]),
         ];
+    }
+
+    public function getThemeConfig(string $theme): array
+    {
+        $configFile = $this->getPath($theme, 'config.php');
+
+        return $this->files->exists($configFile) ? $this->files->getRequire($configFile) : [];
     }
 }

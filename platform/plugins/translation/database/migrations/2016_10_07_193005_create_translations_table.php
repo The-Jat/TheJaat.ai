@@ -5,17 +5,12 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class () extends Migration {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        Schema::create('translations', function (Blueprint $table) {
+        Schema::create('translations', function (Blueprint $table): void {
             $table->id();
             $table->integer('status')->default(0);
-            $table->string('locale');
+            $table->string('locale', 20);
             $table->string('group');
             $table->string('key');
             $table->text('value')->nullable();
@@ -23,12 +18,7 @@ return new class () extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('translations');
     }

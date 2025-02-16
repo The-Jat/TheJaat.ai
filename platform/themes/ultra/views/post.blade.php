@@ -25,12 +25,12 @@
     <div data-post-id="{{ $post->id }}"></div>
     @switch($singleLayout)
         @case('top-full')
-        {!! Theme::partial('components.single.headers.top-full', compact('post', 'totalComment')) !!}
-        @break;
+            {!! Theme::partial('components.single.headers.top-full', compact('post', 'totalComment')) !!}
+            @break;
 
         @case('inline')
-        {!! Theme::partial('components.single.headers.inline', compact('post', 'totalComment')) !!}
-        @break;
+            {!! Theme::partial('components.single.headers.inline', compact('post', 'totalComment')) !!}
+            @break;
     @endswitch
 
     <div class="container">
@@ -49,12 +49,14 @@
                         $post->categories()->first()->name
                         : __('Uncategorized'))) !!}
                     @endif
-                    {!! clean($post->content) !!}
+                    <div class="ck-content">{!! BaseHelper::clean($post->content) !!}</div>
                 </div>
 
                 @if(is_plugin_active('external-source') && !empty($post->source_link))
                     <div class="entry-bottom mt-50 mb-30">
-                        <p>{{ __('Source link') }}: <a href="{{ $post->source_link }}" class="blue" target="_blank">{{ $post->source_link }}</a></p>
+                        <p>{{ __('Source link') }}:
+                            <a href="{{ $post->source_link }}" class="blue" target="_blank">{{ $post->source_link }}</a>
+                        </p>
                     </div>
                 @endif
 
@@ -82,14 +84,14 @@
                                 <img class="avatar"
                                      src="{{ RvMedia::getImageUrl($post->author->avatar->url, 'thumb', false, RvMedia::getDefaultImage()) }}"
                                      loading="lazy"
-                                     alt="{{ $post->author->getFullName() }}">
+                                     alt="{{ $post->author->name }}">
                             </a>
                         </div>
                         <div class="author-info">
                             <a href="{{ $post->author->url }}">
                                 <h4 class="font-weight-bold mb-20">
                                     <span class="vcard author">
-                                        <span class="fn">{{ $post->author->getFullName() }}</span>
+                                        <span class="fn">{{ $post->author->name }}</span>
                                     </span>
                                 </h4>
                             </a>
@@ -100,14 +102,14 @@
 
                 @switch(theme_option('comment_type_in_post', ''))
                     @case('facebook')
-                    {!! apply_filters(BASE_FILTER_PUBLIC_COMMENT_AREA, Theme::partial('comments')) !!}
-                    @break
+                        {!! apply_filters(BASE_FILTER_PUBLIC_COMMENT_AREA, Theme::partial('comments')) !!}
+                        @break
 
                     @case('member')
-                    @if (is_plugin_active('comment') && comment_object_enable($post))
-                        [comment type="{{ addslashes(get_class($post)) }}" type_id="{{ $post->id }}"][/comment]
-                    @endif
-                    @break
+                        @if (is_plugin_active('comment') && comment_object_enable($post))
+                            [comment type="{{ addslashes(get_class($post)) }}" type_id="{{ $post->id }}"][/comment]
+                        @endif
+                        @break
                 @endswitch
 
                 @php $relatedPosts = get_related_posts($post->id, 3); @endphp
@@ -126,11 +128,12 @@
         </div>
 
         @if(theme_option('recently_viewed_posts_enable', 'yes') == 'yes')
-        <div class="row recently-viewed-posts">
-            <div class="col-md-12">
-                [recently-viewed-posts title="{{ __('Recently Viewed Posts') }}" subtitle="{{ __('Your currently viewed posts.') }}"][/recently-viewed-posts]
+            <div class="row recently-viewed-posts">
+                <div class="col-md-12">
+                    [recently-viewed-posts title="{{ __('Recently Viewed Posts') }}"
+                    subtitle="{{ __('Your currently viewed posts.') }}"][/recently-viewed-posts]
+                </div>
             </div>
-        </div>
         @endif
     </div>
 </div>

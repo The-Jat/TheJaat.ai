@@ -1,15 +1,17 @@
-@if (count($breadcrumbs))
-
+<nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         @foreach ($breadcrumbs as $breadcrumb)
-
-            @if ($breadcrumb->url && !$loop->last)
-                <li class="breadcrumb-item"><a href="{{ $breadcrumb->url }}">{{ $breadcrumb->title }}</a></li>
-            @else
-                <li class="breadcrumb-item active">{{ $breadcrumb->title }}</li>
-            @endif
-
+            <li
+                @class(['breadcrumb-item', 'active' => $loop->last])
+                @if ($loop->last)
+                aria-current="page"
+        @endif>
+        @if ($breadcrumb->url && !$loop->last)
+            <a href="{{ $breadcrumb->url }}">{{ $breadcrumb->title }}</a>
+        @else
+            <h1 class="mb-0 d-inline-block fs-6 lh-1">{{ Str::limit($breadcrumb->title, 60) }}</h1>
+        @endif
+        </li>
         @endforeach
     </ol>
-
-@endif
+</nav>

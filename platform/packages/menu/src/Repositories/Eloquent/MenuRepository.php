@@ -2,29 +2,26 @@
 
 namespace Botble\Menu\Repositories\Eloquent;
 
-use Botble\Base\Enums\BaseStatusEnum;
+use Botble\Base\Models\BaseModel;
+use Botble\Menu\Models\Menu;
 use Botble\Menu\Repositories\Interfaces\MenuInterface;
 use Botble\Support\Repositories\Eloquent\RepositoriesAbstract;
-use Illuminate\Support\Str;
 
 class MenuRepository extends RepositoriesAbstract implements MenuInterface
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function findBySlug($slug, $active, array $select = [], array $with = [])
+    public function findBySlug(string $slug, bool $active, array $select = [], array $with = []): ?BaseModel
     {
         $data = $this->model->where('slug', $slug);
 
         if ($active) {
-            $data = $data->where('status', BaseStatusEnum::PUBLISHED);
+            $data = $data->wherePublished();
         }
 
-        if (!empty($select)) {
+        if (! empty($select)) {
             $data = $data->select($select);
         }
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $data = $data->with($with);
         }
 
@@ -35,24 +32,8 @@ class MenuRepository extends RepositoriesAbstract implements MenuInterface
         return $data;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function createSlug($name)
+    public function createSlug(string $name): string
     {
-        $slug = Str::slug($name);
-        $index = 1;
-        $baseSlug = $slug;
-        while ($this->model->where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $index++;
-        }
-
-        if (empty($slug)) {
-            $slug = time();
-        }
-
-        $this->resetModel();
-
-        return $slug;
+        return Menu::createSlug($name, null);
     }
 }

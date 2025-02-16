@@ -6,37 +6,28 @@ use Botble\Base\Models\BaseModel;
 
 class CommentLike extends BaseModel
 {
-    /**
-     * @var string
-     */
     protected $table = 'bb_comment_likes';
 
-    /**
-     * @var string[]
-     */
     protected $fillable = [
         'user_id',
+        'user_type',
         'comment_id',
     ];
 
-    protected static function boot()
+    protected static function boot(): void
     {
         parent::boot();
 
-        static::created(function (CommentLike $like) {
+        static::created(function (CommentLike $like): void {
             static::updateCountLike($like);
         });
 
-        static::deleted(function (CommentLike $like) {
+        static::deleted(function (CommentLike $like): void {
             static::updateCountLike($like);
         });
     }
 
-    /**
-     * @param CommentLike $like
-     * @return void
-     */
-    protected static function updateCountLike(CommentLike $like)
+    protected static function updateCountLike(CommentLike $like): void
     {
         $comment = Comment::where(['id' => $like->comment_id])->first();
 

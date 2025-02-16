@@ -3,23 +3,18 @@
 namespace Botble\Gallery\Listeners;
 
 use Botble\Base\Events\CreatedContentEvent;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Gallery\Facades\Gallery;
 use Exception;
-use Gallery;
 
 class CreatedContentListener
 {
-    /**
-     * Handle the event.
-     *
-     * @param CreatedContentEvent $event
-     * @return void
-     */
-    public function handle(CreatedContentEvent $event)
+    public function handle(CreatedContentEvent $event): void
     {
         try {
             Gallery::saveGallery($event->request, $event->data);
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

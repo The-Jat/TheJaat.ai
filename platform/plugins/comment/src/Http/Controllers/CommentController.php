@@ -11,10 +11,10 @@ use Botble\Base\Events\UpdatedContentEvent;
 use Botble\Base\Forms\FormBuilder;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\Comment\Facades\BbComment;
 use Botble\Comment\Forms\CommentForm;
 use Botble\Comment\Http\Requests\CommentRequest;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
-use Botble\Comment\Supports\CloneUserToMember;
 use Botble\Comment\Tables\CommentTable;
 use Botble\Setting\Supports\SettingStore;
 use Exception;
@@ -22,24 +22,10 @@ use Illuminate\Http\Request;
 
 class CommentController extends BaseController
 {
-    /**
-     * @var CommentInterface
-     */
-    protected $commentRepository;
-
-    /**
-     * @param CommentInterface $commentRepository
-     */
-    public function __construct(CommentInterface $commentRepository)
+    public function __construct(protected CommentInterface $commentRepository)
     {
-        $this->commentRepository = $commentRepository;
     }
 
-    /**
-     * @param CommentTable $table
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     * @throws \Throwable
-     */
     public function index(CommentTable $table)
     {
         page_title()->setTitle(trans('plugins/comment::comment.name'));
@@ -47,10 +33,6 @@ class CommentController extends BaseController
         return $table->renderTable();
     }
 
-    /**
-     * @param FormBuilder $formBuilder
-     * @return string
-     */
     public function create(FormBuilder $formBuilder)
     {
         page_title()->setTitle(trans('plugins/comment::comment.create'));
@@ -58,11 +40,6 @@ class CommentController extends BaseController
         return $formBuilder->create(CommentForm::class)->renderForm();
     }
 
-    /**
-     * @param CommentRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
     public function store(CommentRequest $request, BaseHttpResponse $response)
     {
         $comment = $this->commentRepository->createOrUpdate($request->input());
@@ -75,13 +52,7 @@ class CommentController extends BaseController
             ->setMessage(trans('core/base::notices.create_success_message'));
     }
 
-    /**
-     * @param int $id
-     * @param Request $request
-     * @param FormBuilder $formBuilder
-     * @return string
-     */
-    public function edit($id, FormBuilder $formBuilder, Request $request)
+    public function edit(int|string $id, FormBuilder $formBuilder, Request $request)
     {
         $comment = $this->commentRepository->findOrFail($id);
 
@@ -92,13 +63,7 @@ class CommentController extends BaseController
         return $formBuilder->create(CommentForm::class, ['model' => $comment])->renderForm();
     }
 
-    /**
-     * @param int $id
-     * @param CommentRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function update($id, CommentRequest $request, BaseHttpResponse $response)
+    public function update(int|string $id, CommentRequest $request, BaseHttpResponse $response)
     {
         $comment = $this->commentRepository->findOrFail($id);
 
@@ -113,12 +78,7 @@ class CommentController extends BaseController
             ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    /**
-     * @param int $id
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function approve($id, BaseHttpResponse $response)
+    public function approve(int|string $id, BaseHttpResponse $response)
     {
         $comment = $this->commentRepository->findOrFail($id);
 
@@ -131,13 +91,7 @@ class CommentController extends BaseController
             ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    /**
-     * @param int $id
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function destroy(Request $request, $id, BaseHttpResponse $response)
+    public function destroy(int|string $id, Request $request, BaseHttpResponse $response)
     {
         try {
             $comment = $this->commentRepository->findOrFail($id);
@@ -154,12 +108,6 @@ class CommentController extends BaseController
         }
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Exception
-     */
     public function deletes(Request $request, BaseHttpResponse $response)
     {
         $ids = $request->input('ids');
@@ -178,11 +126,6 @@ class CommentController extends BaseController
         return $response->setMessage(trans('core/base::notices.delete_success_message'));
     }
 
-    // Settings
-
-    /**
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
-     */
     public function getSettings()
     {
         page_title()->setTitle(trans('plugins/comment::comment.name'));
@@ -192,12 +135,6 @@ class CommentController extends BaseController
         return view('plugins/comment::settings');
     }
 
-    /**
-     * @param Request $request
-     * @param SettingStore $settingStore
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
     public function storeSettings(Request $request, SettingStore $settingStore, BaseHttpResponse $response)
     {
         foreach ($request->except(['_token']) as $key => $setting) {
@@ -215,23 +152,16 @@ class CommentController extends BaseController
             ->setMessage(trans('core/base::notices.update_success_message'));
     }
 
-    /**
-     * @param CloneUserToMember $cloneUserToMember
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function cloneUser(CloneUserToMember $cloneUserToMember, Request $request, BaseHttpResponse $response)
+    public function checkCurrenUser(BaseHttpResponse $response)
     {
-        $clonedUser = $cloneUserToMember->handle($request);
-
-        if (!$clonedUser) {
+        if (! BbComment::checkCurrentUser()) {
             return $response->setError();
         }
 
-        auth()->guard(COMMENT_GUARD)->loginUsingId($clonedUser->id);
+        $currentUserId = BbComment::getCurrentUser()->getAuthIdentifier();
 
-        return $response->setData(['token' => $clonedUser->id]);
+        auth()->guard(COMMENT_GUARD)->loginUsingId($currentUserId);
+
+        return $response->setData(['token' => $currentUserId]);
     }
 }

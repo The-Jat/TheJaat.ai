@@ -3,38 +3,26 @@
 namespace Botble\Newsletter\Http\Requests;
 
 use Botble\Newsletter\Enums\NewsletterStatusEnum;
+use Botble\Newsletter\Models\Newsletter;
 use Botble\Support\Http\Requests\Request;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Validation\Rule;
 
 class NewsletterRequest extends Request
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
-    public function rules()
-    {
-        $rules = [
-            'email'  => 'required|email|unique:newsletters',
-            'status' => Rule::in(NewsletterStatusEnum::values()),
-        ];
+    protected $errorBag = 'newsletter';
 
-        if (is_plugin_active('captcha') && setting('enable_captcha')) {
-            $rules += ['g-recaptcha-response' => 'required|captcha'];
-        }
-
-        return $rules;
-    }
-
-    /**
-     * @return array
-     */
-    public function messages()
+    public function rules(): array
     {
         return [
-            'g-recaptcha-response.required' => __('Captcha Verification Failed!'),
-            'g-recaptcha-response.captcha'  => __('Captcha Verification Failed!'),
+            'email' => [
+                'required',
+                'email',
+                Rule::unique((new Newsletter())->getTable())->where(function (Builder $query): void {
+                    $query->where('status', NewsletterStatusEnum::SUBSCRIBED);
+                }),
+            ],
+            'status' => Rule::in(NewsletterStatusEnum::values()),
         ];
     }
 }

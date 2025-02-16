@@ -3,23 +3,21 @@
 namespace Botble\Media\Chunks\Storage;
 
 use Botble\Media\Chunks\ChunkFile;
+use Botble\Media\Facades\RvMedia;
+use Carbon\Carbon;
 use Closure;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Collection;
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\FilesystemInterface;
+use Illuminate\Support\Facades\Storage;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use RuntimeException;
-use RvMedia;
-use Storage;
+use Throwable;
 
 class ChunkStorage
 {
     public const CHUNK_EXTENSION = 'part';
 
-    /**
-     * @var array
-     */
-    protected $config;
+    protected array $config;
 
     /**
      * The disk that holds the chunk files.
@@ -29,16 +27,14 @@ class ChunkStorage
     protected $disk;
 
     /**
-     * @var Local
+     * @var LocalFilesystemAdapter|FilesystemAdapter
      */
     protected $diskAdapter;
 
     /**
      * Is provided disk a local drive.
-     *
-     * @var bool
      */
-    protected $isLocalDisk;
+    protected bool $isLocalDisk;
 
     /**
      * ChunkStorage constructor.
@@ -50,28 +46,19 @@ class ChunkStorage
         // Cache the storage path
         $this->disk = Storage::disk($this->config['storage']['disk']);
 
-        $driver = $this->driver();
+        $driver = $this->disk;
 
         // Try to get the adapter
-        if (!method_exists($driver, 'getAdapter')) {
+        if (! method_exists($driver, 'getAdapter')) {
             throw new RuntimeException('FileSystem driver must have an adapter implemented');
         }
 
         // Get the disk adapter
+        // @phpstan-ignore-next-line
         $this->diskAdapter = $driver->getAdapter();
 
         // Check if its local adapter
-        $this->isLocalDisk = $this->diskAdapter instanceof Local;
-    }
-
-    /**
-     * Returns the driver.
-     *
-     * @return FilesystemInterface
-     */
-    public function driver()
-    {
-        return $this->disk()->getDriver();
+        $this->isLocalDisk = $this->diskAdapter instanceof LocalFilesystemAdapter;
     }
 
     /**
@@ -84,10 +71,8 @@ class ChunkStorage
 
     /**
      * Returns the application instance of the chunk storage.
-     *
-     * @return ChunkStorage
      */
-    public static function storage(): ChunkStorage
+    public static function storage(): self
     {
         return app(self::class);
     }
@@ -123,13 +108,17 @@ class ChunkStorage
 
         // Build the timestamp
         $timeToCheck = strtotime($this->config['clear']['timestamp']);
-        $collection = new Collection();
+        $collection = collect();
 
         // Filter the collection with files that are not correct chunk file
         // Loop all current files and filter them by the time
-        $files->each(function ($file) use ($timeToCheck, $collection) {
+        $files->each(function ($file) use ($timeToCheck, $collection): void {
             // get the last modified time to check if the chunk is not new
-            $modified = $this->disk()->lastModified($file);
+            try {
+                $modified = $this->disk()->lastModified($file);
+            } catch (Throwable) {
+                $modified = Carbon::now()->getTimestamp();
+            }
 
             // Delete only old chunk
             if ($modified < $timeToCheck) {
@@ -141,7 +130,7 @@ class ChunkStorage
     }
 
     /**
-     * Returns an array of files in the chunks directory.
+     * Returns an array of files in the chunk's directory.
      *
      * @param Closure|null $rejectClosure
      * @return Collection
@@ -154,7 +143,7 @@ class ChunkStorage
 
         return $filesCollection->reject(function ($file) use ($rejectClosure) {
             // Ensure the file ends with allowed extension
-            $shouldReject = !preg_match('/.' . self::CHUNK_EXTENSION . '$/', $file);
+            $shouldReject = ! preg_match('/.' . self::CHUNK_EXTENSION . '$/', $file);
             if ($shouldReject) {
                 return true;
             }
@@ -168,9 +157,7 @@ class ChunkStorage
     }
 
     /**
-     * The current chunks directory.
-     *
-     * @return string
+     * The current chunk's directory.
      */
     public function directory(): string
     {

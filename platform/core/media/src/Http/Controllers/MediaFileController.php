@@ -2,52 +2,32 @@
 
 namespace Botble\Media\Http\Controllers;
 
+use Botble\Base\Http\Controllers\BaseController;
 use Botble\Media\Chunks\Exceptions\UploadMissingFileException;
 use Botble\Media\Chunks\Handler\DropZoneUploadHandler;
 use Botble\Media\Chunks\Receiver\FileReceiver;
-use Botble\Media\Repositories\Interfaces\MediaFileInterface;
-use Exception;
-use Illuminate\Contracts\Routing\ResponseFactory;
+use Botble\Media\Facades\RvMedia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Arr;
-use RvMedia;
-use Storage;
-use Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 /**
  * @since 19/08/2015 07:50 AM
  */
-class MediaFileController extends Controller
+class MediaFileController extends BaseController
 {
-    /**
-     * @var MediaFileInterface
-     */
-    protected $fileRepository;
-
-    /**
-     * @param MediaFileInterface $fileRepository
-     */
-    public function __construct(MediaFileInterface $fileRepository)
-    {
-        $this->fileRepository = $fileRepository;
-    }
-
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function postUpload(Request $request)
     {
-        if (!RvMedia::isChunkUploadEnabled()) {
-            $result = RvMedia::handleUpload(Arr::first($request->file('file')), $request->input('folder_id', 0));
-
-            return $this->handleUploadResponse($result);
-        }
-
         try {
+            if (! RvMedia::isChunkUploadEnabled()) {
+                $result = RvMedia::handleUpload(Arr::first($request->file('file')), $request->input('folder_id', 0));
+
+                return $this->handleUploadResponse($result);
+            }
+
             // Create the file receiver
             $receiver = new FileReceiver('file', $request, DropZoneUploadHandler::class);
             // Check if the upload is success, throw exception or return response you need
@@ -66,23 +46,19 @@ class MediaFileController extends Controller
             $handler = $save->handler();
 
             return response()->json([
-                'done'   => $handler->getPercentageDone(),
+                'done' => $handler->getPercentageDone(),
                 'status' => true,
             ]);
-        } catch (Exception $exception) {
+        } catch (Throwable $exception) {
             return RvMedia::responseError($exception->getMessage());
         }
     }
 
-    /**
-     * @param array $result
-     * @return JsonResponse
-     */
     protected function handleUploadResponse(array $result): JsonResponse
     {
-        if (!$result['error']) {
+        if (! $result['error']) {
             return RvMedia::responseSuccess([
-                'id'  => $result['data']->id,
+                'id' => $result['data']->id,
                 'src' => RvMedia::url($result['data']->url),
             ]);
         }
@@ -90,37 +66,30 @@ class MediaFileController extends Controller
         return RvMedia::responseError($result['message']);
     }
 
-    /**
-     * @param Request $request
-     * @return ResponseFactory|JsonResponse|Response
-     */
     public function postUploadFromEditor(Request $request)
     {
         return RvMedia::uploadFromEditor($request);
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function postDownloadUrl(Request $request)
     {
         $validator = Validator::make($request->input(), [
-            'url' => 'required',
+            'url' => ['required', 'url'],
+            'folderId' => ['nullable', 'integer'],
         ]);
 
         if ($validator->fails()) {
             return RvMedia::responseError($validator->messages()->first());
         }
 
-        $result = RvMedia::uploadFromUrl($request->input('url'), $request->input('folderId'));
+        $result = RvMedia::uploadFromUrl($request->input('url'), $request->input('folderId', 0));
 
-        if (!$result['error']) {
+        if (! $result['error']) {
             return RvMedia::responseSuccess([
-                'id'        => $result['data']->id,
-                'src'       => Storage::url($result['data']->url),
-                'url'       => $result['data']->url,
-                'message'   => trans('core/media::media.javascript.message.success_header')
+                'id' => $result['data']->id,
+                'src' => Storage::url($result['data']->url),
+                'url' => $result['data']->url,
+                'message' => trans('core/media::media.javascript.message.success_header'),
             ]);
         }
 

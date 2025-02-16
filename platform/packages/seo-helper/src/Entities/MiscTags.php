@@ -4,6 +4,7 @@ namespace Botble\SeoHelper\Entities;
 
 use Botble\SeoHelper\Contracts\Entities\MetaCollectionContract;
 use Botble\SeoHelper\Contracts\Entities\MiscTagsContract;
+use Botble\SeoHelper\Contracts\Entities\WebmastersContract;
 
 class MiscTags implements MiscTagsContract
 {
@@ -17,7 +18,7 @@ class MiscTags implements MiscTagsContract
     /**
      * Meta collection.
      *
-     * @var MetaCollectionContract
+     * @var MetaCollectionContract|WebmastersContract
      */
     protected $meta;
 
@@ -143,22 +144,12 @@ class MiscTags implements MiscTagsContract
         return $this->render();
     }
 
-    /**
-     * Check if has the current URL.
-     *
-     * @return bool
-     */
-    protected function hasUrl()
+    protected function hasUrl(): bool
     {
-        return !empty($this->getUrl());
+        return ! empty($this->getUrl());
     }
 
-    /**
-     * Add the canonical link.
-     *
-     * @return MiscTags
-     */
-    protected function addCanonical()
+    protected function addCanonical(): static
     {
         if ($this->hasUrl()) {
             $this->add('canonical', $this->currentUrl);

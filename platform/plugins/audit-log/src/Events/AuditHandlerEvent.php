@@ -3,62 +3,27 @@
 namespace Botble\AuditLog\Events;
 
 use Botble\Base\Events\Event;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Auth;
 
 class AuditHandlerEvent extends Event
 {
     use SerializesModels;
 
-    /**
-     * @var string
-     */
-    public $module;
+    public string|int $referenceUser;
 
-    /**
-     * @var string
-     */
-    public $action;
-
-    /**
-     * @var string
-     */
-    public $referenceId;
-
-    /**
-     * @var string
-     */
-    public $referenceUser;
-
-    /**
-     * @var string
-     */
-    public $referenceName;
-
-    /**
-     * @var string
-     */
-    public $type;
-
-    /**
-     * AuditHandlerEvent constructor.
-     * @param string $module
-     * @param string $action
-     * @param int $referenceId
-     * @param null $referenceName
-     * @param string $type
-     * @param int $referenceUser
-     */
-    public function __construct($module, $action, $referenceId, $referenceName, $type, $referenceUser = 0)
-    {
-        if ($referenceUser === 0 && Auth::check()) {
-            $referenceUser = Auth::id();
+    public function __construct(
+        public string $module,
+        public string $action,
+        public int|string $referenceId,
+        public ?string $referenceName,
+        public string $type,
+        int|string $referenceUser = 0
+    ) {
+        if ($referenceUser === 0 && Auth::guard()->check()) {
+            $referenceUser = Auth::guard()->id();
         }
-        $this->module = $module;
-        $this->action = $action;
+
         $this->referenceUser = $referenceUser;
-        $this->referenceId = $referenceId;
-        $this->referenceName = $referenceName;
-        $this->type = $type;
     }
 }

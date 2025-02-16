@@ -2,43 +2,20 @@
 
 namespace Botble\Slug\Listeners;
 
+use Botble\Base\Contracts\BaseModel;
 use Botble\Base\Events\DeletedContentEvent;
-use Botble\Slug\Repositories\Interfaces\SlugInterface;
-use Exception;
-use SlugHelper;
+use Botble\Slug\Facades\SlugHelper;
+use Botble\Slug\Models\Slug;
 
 class DeletedContentListener
 {
-    /**
-     * @var SlugInterface
-     */
-    protected $slugRepository;
-
-    /**
-     * @param SlugInterface $slugRepository
-     */
-    public function __construct(SlugInterface $slugRepository)
+    public function handle(DeletedContentEvent $event): void
     {
-        $this->slugRepository = $slugRepository;
-    }
-
-    /**
-     * Handle the event.
-     *
-     * @param DeletedContentEvent $event
-     * @return void
-     */
-    public function handle(DeletedContentEvent $event)
-    {
-        if (SlugHelper::isSupportedModel(get_class($event->data))) {
-            try {
-                $this->slugRepository->deleteBy([
-                    'reference_id'   => $event->data->id,
-                    'reference_type' => get_class($event->data),
-                ]);
-            } catch (Exception $exception) {
-                info($exception->getMessage());
-            }
+        if ($event->data instanceof BaseModel && SlugHelper::isSupportedModel($event->data::class)) {
+            Slug::query()->where([
+                'reference_id' => $event->data->getKey(),
+                'reference_type' => $event->data::class,
+            ])->delete();
         }
     }
 }

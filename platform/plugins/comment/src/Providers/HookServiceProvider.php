@@ -2,10 +2,12 @@
 
 namespace Botble\Comment\Providers;
 
+use Botble\Base\Facades\Html;
 use Botble\Base\Models\BaseModel;
 use Botble\Blog\Models\Post;
+use Botble\Comment\Facades\BbComment;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
-use Html;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 use MetaBox;
 use RvMedia;
@@ -14,26 +16,20 @@ use Theme;
 
 class HookServiceProvider extends ServiceProvider
 {
-    /**
-     * @var BaseModel
-     */
-    protected $currentReference;
+    protected ?BaseModel $currentReference = null;
 
-    /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function boot()
+    public function boot(): void
     {
         add_shortcode('comment', 'Comment', 'Comment for this article', [$this, 'renderComment']);
-        // add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, [$this, 'storageCurrentReference'], 100, 2);
+        add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, [$this, 'storageCurrentReference'], 100, 2);
         add_filter(BASE_FILTER_APPEND_MENU_NAME, [$this, 'getUnreadCount'], 210, 2);
 
         if (setting('comment_enable')) {
             add_filter(BASE_FILTER_BEFORE_RENDER_FORM, function ($form, $data) {
                 if (get_class($data) == Post::class) {
                     $form->add('comment_status', 'onOff', [
-                        'label'         => trans('plugins/comment::comment.name'),
-                        'label_attr'    => ['class' => 'control-label'],
+                        'label' => trans('plugins/comment::comment.name'),
+                        'label_attr' => ['class' => 'control-label'],
                         'default_value' => true,
                     ]);
                 }
@@ -41,13 +37,13 @@ class HookServiceProvider extends ServiceProvider
                 return $form;
             }, 127, 2);
 
-            add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object) {
+            add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object): void {
                 if (get_class($object) == Post::class) {
                     MetaBox::saveMetaBoxData($object, 'comment_status', $request->input('comment_status'));
                 }
             }, 230, 3);
 
-            add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object) {
+            add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object): void {
                 if (get_class($object) == Post::class) {
                     MetaBox::saveMetaBoxData($object, 'comment_status', $request->input('comment_status'));
                 }
@@ -55,13 +51,9 @@ class HookServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Render comment view section
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
-     */
-    public function renderComment()
+    public function renderComment(): ?string
     {
-        if (!setting('comment_enable')) {
+        if (! setting('comment_enable')) {
             return null;
         }
 
@@ -73,21 +65,21 @@ class HookServiceProvider extends ServiceProvider
 
         add_filter(THEME_FRONT_HEADER, function ($html) {
             $this->addSchemas($html);
+
             return $html . view('plugins/comment::partials.trans');
         }, 15);
 
         return $reference ? view('plugins/comment::short-codes.comment', compact('reference', 'loggedUser')) : null;
     }
 
-    /**
-     * @return void
-     */
-    protected function loadAssets()
+    protected function loadAssets(): void
     {
+        $version = BbComment::getVersion();
+
         Theme::asset()
             ->container('footer')
             ->usePath(false)
-            ->add('bb-comment', 'vendor/core/plugins/comment/js/comment.js', ['jquery'], [], comment_plugin_version());
+            ->add('bb-comment', 'vendor/core/plugins/comment/js/comment.js', ['jquery'], [], $version);
 
         Theme::asset()
             ->usePath(false)
@@ -96,39 +88,35 @@ class HookServiceProvider extends ServiceProvider
                 'vendor/core/plugins/comment/css/vendor/fontawesome-all.min.css',
                 [],
                 [],
-                comment_plugin_version()
+                $version
             )
-            ->add('bb-comment-css', 'vendor/core/plugins/comment/css/comment.css', [], [], comment_plugin_version());
+            ->add('bb-comment-css', 'vendor/core/plugins/comment/css/comment.css', [], [], $version);
     }
 
-    /**
-     * @param bool $isBase64
-     * @return string|array
-     */
-    protected function getReference($isBase64 = true)
+    protected function getReference(bool $isBase64 = true): array|string
     {
         $slug = SlugHelper::getSlug(request()->route('slug'));
 
+        if (! $slug) {
+            return '';
+        }
+
         $reference = [
             'reference_type' => $slug->reference_type,
-            'reference_id'   => $slug->reference_id,
+            'reference_id' => $slug->reference_id,
         ];
 
         return $isBase64 ? base64_encode(json_encode($reference)) : $reference;
     }
 
-    /**
-     * @param string $html
-     * @return void
-     */
-    protected function addSchemas(&$html)
+    protected function addSchemas(?string &$html): void
     {
         $schemaJson = [
-            '@context' => 'http://schema.org',
-            '@type'    => 'NewsArticle',
+            '@context' => 'https://schema.org',
+            '@type' => 'NewsArticle',
         ];
 
-        if ($this->currentReference && get_class($this->currentReference) === Post::class) {
+        if (get_class($this->currentReference) === Post::class) {
             $post = $this->currentReference;
             $category = $post->categories()->first();
 
@@ -137,38 +125,29 @@ class HookServiceProvider extends ServiceProvider
             }
 
             $schemaJson = array_merge($schemaJson, [
-                'url'         => $post->url,
+                'url' => $post->url,
                 'description' => $post->description,
-                'name'        => $post->name,
-                'image'       => RvMedia::getImageUrl($post->image),
+                'name' => $post->name,
+                'image' => RvMedia::getImageUrl($post->image),
             ]);
 
             $html .= '<script type="application/ld+json">' . json_encode($schemaJson) . '</script>';
         }
     }
 
-    /**
-     * @param string $screen
-     * @param BaseModel $object
-     */
-    public function storageCurrentReference($screen, $object)
+    public function storageCurrentReference(string $screen, ?Model $object)
     {
         $this->currentReference = $object;
         $menuEnables = json_decode(setting('comment_menu_enable', '[]'), true);
 
         if (setting('comment_enable') && in_array(get_class($object), $menuEnables)) {
-            if (strpos($object->content, '[comment') === false) {
+            if (! str_contains($object->content, '[comment')) {
                 $object->content .= '[comment][/comment]';
             }
         }
     }
 
-    /**
-     * @param int $index
-     * @param string $menuId
-     * @return string
-     */
-    public function getUnreadCount($index, $menuId)
+    public function getUnreadCount(int|string|null $index, string $menuId): int|string|null
     {
         if ($menuId == 'cms-plugins-comment') {
             $unread = app(CommentInterface::class)->count([
@@ -176,7 +155,7 @@ class HookServiceProvider extends ServiceProvider
             ]);
 
             if ($unread > 0) {
-                return Html::tag('span', (string)$unread, ['class' => 'badge badge-success'])->toHtml();
+                return Html::tag('span', (string) $unread, ['class' => 'badge badge-success'])->toHtml();
             }
         }
 

@@ -2,8 +2,11 @@
 
 return [
     'name' => 'Languages',
+    'description' => 'View and update your website languages',
     'choose_language' => 'Choose a language',
     'select_language' => 'Select language',
+    'select_language_code' => 'Select language code',
+    'select_locale' => 'Select locale',
     'choose_language_helper' => 'You can choose a language in the list or directly edit it below.',
     'language_name' => 'Language name',
     'language_name_helper' => 'The name is how it is displayed on your site (for example: English).',
@@ -55,4 +58,8 @@ return [
     'delete_confirmation_message' => 'Do you really want to delete this language? It also deletes all items in this language and cannot rollback!',
     'added_already' => 'This language was added already!',
     'language_auto_detect_user_language' => 'Auto detect user language?',
+    'language_auto_detect_user_language_helper' => 'If enabled, the system will try to detect the user language based on the browser language.',
+    'setup_site_language' => 'To set up the site language, please go to :link page. Or go to :appearance_link to set up the admin language.',
+    'no_languages' => 'There are no languages in your site!',
+    'update' => 'Update',
 ];

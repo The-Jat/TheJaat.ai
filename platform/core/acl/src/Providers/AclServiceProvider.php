@@ -7,27 +7,31 @@ use Botble\ACL\Http\Middleware\RedirectIfAuthenticated;
 use Botble\ACL\Models\Activation;
 use Botble\ACL\Models\Role;
 use Botble\ACL\Models\User;
-use Botble\ACL\Repositories\Caches\RoleCacheDecorator;
 use Botble\ACL\Repositories\Eloquent\ActivationRepository;
 use Botble\ACL\Repositories\Eloquent\RoleRepository;
 use Botble\ACL\Repositories\Eloquent\UserRepository;
 use Botble\ACL\Repositories\Interfaces\ActivationInterface;
 use Botble\ACL\Repositories\Interfaces\RoleInterface;
 use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Facades\EmailHandler;
+use Botble\Base\Facades\PanelSectionManager;
+use Botble\Base\PanelSections\PanelSectionItem;
+use Botble\Base\PanelSections\System\SystemPanelSection;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use EmailHandler;
+use Botble\Media\Facades\RvMedia;
 use Exception;
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Routing\Router;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\View;
+use Illuminate\View\View as IlluminateView;
 
 class AclServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function register()
+    public function register(): void
     {
         $this->app->bind(UserInterface::class, function () {
             return new UserRepository(new User());
@@ -38,14 +42,11 @@ class AclServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(RoleInterface::class, function () {
-            return new RoleCacheDecorator(new RoleRepository(new Role()));
+            return new RoleRepository(new Role());
         });
     }
 
-    /**
-     * @throws BindingResolutionException
-     */
-    public function boot()
+    public function boot(): void
     {
         $this->app->register(CommandServiceProvider::class);
         $this->app->register(EventServiceProvider::class);
@@ -56,86 +57,107 @@ class AclServiceProvider extends ServiceProvider
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
             ->publishAssets()
-            ->loadRoutes(['web'])
+            ->loadRoutes()
             ->loadMigrations();
 
         $this->garbageCollect();
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()
-                ->registerItem([
-                    'id'          => 'cms-core-role-permission',
-                    'priority'    => 2,
-                    'parent_id'   => 'cms-core-platform-administration',
-                    'name'        => 'core/acl::permissions.role_permission',
-                    'icon'        => null,
-                    'url'         => route('roles.index'),
-                    'permissions' => ['roles.index'],
-                ])
-                ->registerItem([
-                    'id'          => 'cms-core-user',
-                    'priority'    => 3,
-                    'parent_id'   => 'cms-core-platform-administration',
-                    'name'        => 'core/acl::users.users',
-                    'icon'        => null,
-                    'url'         => route('users.index'),
-                    'permissions' => ['users.index'],
-                ]);
-
-            /**
-             * @var Router $router
-             */
+        $this->app['events']->listen(RouteMatched::class, function (): void {
             $router = $this->app['router'];
 
             $router->aliasMiddleware('auth', Authenticate::class);
             $router->aliasMiddleware('guest', RedirectIfAuthenticated::class);
         });
 
-        $this->app->booted(function () {
+        $this->registerPanelSections();
+
+        $this->app->booted(function (): void {
             config()->set(['auth.providers.users.model' => User::class]);
 
             EmailHandler::addTemplateSettings('acl', config('core.acl.email', []), 'core');
 
             $this->app->register(HookServiceProvider::class);
+
+            View::composer('core/acl::layouts.guest', function (IlluminateView $view): void {
+                $view->with('backgroundUrl', $this->getLoginPageBackgroundUrl());
+            });
         });
+    }
+
+    protected function registerPanelSections(): void
+    {
+        PanelSectionManager::group('system')
+            ->beforeRendering(function (): void {
+                PanelSectionManager::registerItems(
+                    SystemPanelSection::class,
+                    fn () => [
+                        PanelSectionItem::make('users')
+                            ->setTitle(trans('core/acl::users.users'))
+                            ->withIcon('ti ti-users')
+                            ->withDescription(trans('core/acl::users.users_description'))
+                            ->withPriority(-9999)
+                            ->withRoute('users.index'),
+                        PanelSectionItem::make('roles')
+                            ->setTitle(trans('core/acl::permissions.role_permission'))
+                            ->withIcon('ti ti-users-group')
+                            ->withDescription(trans('core/acl::permissions.role_permission_description'))
+                            ->withPriority(-9980)
+                            ->withRoute('roles.index'),
+                    ]
+                );
+            });
+    }
+
+    protected function getLoginPageBackgroundUrl(): string
+    {
+        $default = url(Arr::random(config('core.acl.general.backgrounds', [])));
+
+        $images = setting('login_screen_backgrounds', []);
+
+        if (! $images) {
+            return $default;
+        }
+
+        $images = is_array($images) ? $images : json_decode($images, true);
+
+        $images = array_filter($images);
+
+        if (empty($images)) {
+            return $default;
+        }
+
+        $image = Arr::random($images);
+
+        if (! $image) {
+            return $default;
+        }
+
+        return RvMedia::getImageUrl($image);
     }
 
     /**
      * Garbage collect activations and reminders.
-     *
-     * @return void
-     * @throws BindingResolutionException
      */
-    protected function garbageCollect()
+    protected function garbageCollect(): void
     {
         $config = $this->app->make('config')->get('core.acl.general');
 
-        $this->sweep($this->app->make(ActivationInterface::class), $config['activations']['lottery']);
+        $this->sweep($this->app->make(ActivationInterface::class), Arr::get($config, 'activations.lottery', [2, 100]));
     }
 
-    /**
-     * Sweep expired codes.
-     *
-     * @param mixed $repository
-     * @param array $lottery
-     * @return void
-     */
-    protected function sweep($repository, array $lottery)
+    protected function sweep(ActivationInterface $repository, array $lottery): void
     {
         if ($this->configHitsLottery($lottery)) {
             try {
                 $repository->removeExpired();
             } catch (Exception $exception) {
-                info($exception->getMessage());
+                BaseHelper::logError($exception);
             }
         }
     }
 
     /**
      * Determine if the configuration odds hit the lottery.
-     *
-     * @param array $lottery
-     * @return bool
      */
     protected function configHitsLottery(array $lottery): bool
     {

@@ -12,7 +12,7 @@ class PostCollectionCreatePostCollectionTable extends Migration
      */
     public function up()
     {
-        Schema::create('post_collections', function (Blueprint $table) {
+        Schema::create('post_collections', function (Blueprint $table): void {
             $table->id();
             $table->string('name', 255);
             $table->string('description', 400)->nullable();
@@ -21,7 +21,7 @@ class PostCollectionCreatePostCollectionTable extends Migration
             $table->timestamps();
         });
 
-        Schema::create('post_collections_posts', function (Blueprint $table) {
+        Schema::create('post_collections_posts', function (Blueprint $table): void {
             $table->id();
             $table->integer('post_collection_id')->unsigned()->references('id')->on('post_collections')->onDelete('cascade');
             $table->integer('post_id')->unsigned()->references('id')->on('posts')->onDelete('cascade');

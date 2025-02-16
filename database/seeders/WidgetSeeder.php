@@ -8,252 +8,247 @@ use Theme;
 
 class WidgetSeeder extends BaseSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         WidgetModel::truncate();
 
         $data = [
             'en_US' => [
                 [
-                    'widget_id'  => 'SocialsWidget',
+                    'widget_id' => 'SocialsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
-                        'id'    => 'SocialsWidget',
+                    'position' => 0,
+                    'data' => [
+                        'id' => 'SocialsWidget',
                         'title' => 'Follow us',
                     ],
                 ],
                 [
-                    'widget_id'  => 'AdsWidget',
+                    'widget_id' => 'AdsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
-                        'id'           => 'AdsWidget',
+                    'position' => 0,
+                    'data' => [
+                        'id' => 'AdsWidget',
                         'ads_location' => 'top-sidebar-ads',
                     ],
                 ],
                 [
-                    'widget_id'  => 'CategoriesMenuWidget',
+                    'widget_id' => 'CategoriesMenuWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
+                    'position' => 0,
+                    'data' => [
                         'id' => 'CategoriesMenuWidget',
                     ],
                 ],
                 [
-                    'widget_id'  => 'LastestPostsWidget',
+                    'widget_id' => 'LastestPostsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
-                        'id'             => 'LastestPostsWidget',
-                        'name'           => 'Lastest Post',
+                    'position' => 0,
+                    'data' => [
+                        'id' => 'LastestPostsWidget',
+                        'name' => 'Lastest Post',
                         'number_display' => 6,
                     ],
                 ],
                 [
-                    'widget_id'  => 'TagsWidget',
+                    'widget_id' => 'TagsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'             => 'TagsWidget',
-                        'name'           => 'Tags',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'TagsWidget',
+                        'name' => 'Tags',
                         'number_display' => 10,
                     ],
                 ],
                 [
-                    'widget_id'  => 'AdsWidget',
+                    'widget_id' => 'AdsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'           => 'AdsWidget',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'AdsWidget',
                         'ads_location' => 'bottom-sidebar-ads',
                     ],
                 ],
                 [
-                    'widget_id'  => 'AboutWidget',
+                    'widget_id' => 'AboutWidget',
                     'sidebar_id' => 'footer_sidebar_1',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'          => 'AboutWidget',
-                        'name'        => 'About me',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'AboutWidget',
+                        'name' => 'About me',
                         'description' => 'Introduction about the author of this blog. You should write because you love the shape of stories and sentences and the creation of different words on a page. Writing comes from reading, and reading is the finest teacher of how to write.',
                     ],
                 ],
                 [
-                    'widget_id'  => 'PopularPostsWidget',
+                    'widget_id' => 'PopularPostsWidget',
                     'sidebar_id' => 'footer_sidebar_2',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'                => 'PopularPostsWidget',
-                        'name'              => 'Popular Posts',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'PopularPostsWidget',
+                        'name' => 'Popular Posts',
                         'name_custom_class' => 'color-white',
-                        'number_display'    => 3,
+                        'number_display' => 3,
                     ],
                 ],
                 [
-                    'widget_id'  => 'CustomMenuWidget',
+                    'widget_id' => 'CustomMenuWidget',
                     'sidebar_id' => 'footer_sidebar_3',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'      => 'CustomMenuWidget',
-                        'name'    => 'Quick links',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'CustomMenuWidget',
+                        'name' => 'Quick links',
                         'menu_id' => 'quick-links',
                     ],
                 ],
                 [
-                    'widget_id'  => 'TagsWidget',
+                    'widget_id' => 'TagsWidget',
                     'sidebar_id' => 'footer_sidebar_3',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'                => 'TagsWidget',
-                        'name'              => 'Tags',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'TagsWidget',
+                        'name' => 'Tags',
                         'name_custom_class' => 'color-white',
                     ],
                 ],
                 [
-                    'widget_id'  => 'NewsletterWidget',
+                    'widget_id' => 'NewsletterWidget',
                     'sidebar_id' => 'footer_sidebar_4',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'          => 'NewsletterWidget',
-                        'name'        => 'Newsletter',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'NewsletterWidget',
+                        'name' => 'Newsletter',
                         'description' => 'Subscribe to Our Newsletter',
                     ],
                 ],
                 [
-                    'widget_id'  => 'CopyrightFooterMenuWidget',
+                    'widget_id' => 'CopyrightFooterMenuWidget',
                     'sidebar_id' => 'footer_copyright_menu',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'      => 'CopyrightFooterMenuWidget',
-                        'name'    => 'Copyright footer Menu',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'CopyrightFooterMenuWidget',
+                        'name' => 'Copyright footer Menu',
                         'menu_id' => 'quick-links',
                     ],
                 ],
             ],
             'vi' => [
                 [
-                    'widget_id'  => 'SocialsWidget',
+                    'widget_id' => 'SocialsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
-                        'id'    => 'SocialsWidget',
+                    'position' => 0,
+                    'data' => [
+                        'id' => 'SocialsWidget',
                         'title' => 'Follow us',
                     ],
                 ],
                 [
-                    'widget_id'  => 'AdsWidget',
+                    'widget_id' => 'AdsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
-                        'id'           => 'AdsWidget',
+                    'position' => 0,
+                    'data' => [
+                        'id' => 'AdsWidget',
                         'ads_location' => 'top-sidebar-ads',
                     ],
                 ],
                 [
-                    'widget_id'  => 'CategoriesMenuWidget',
+                    'widget_id' => 'CategoriesMenuWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
+                    'position' => 0,
+                    'data' => [
                         'id' => 'CategoriesMenuWidget',
                     ],
                 ],
                 [
-                    'widget_id'  => 'LastestPostsWidget',
+                    'widget_id' => 'LastestPostsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 0,
-                    'data'       => [
-                        'id'             => 'LastestPostsWidget',
-                        'name'           => 'Bài viết mới nhất',
+                    'position' => 0,
+                    'data' => [
+                        'id' => 'LastestPostsWidget',
+                        'name' => 'Bài viết mới nhất',
                         'number_display' => 6,
                     ],
                 ],
                 [
-                    'widget_id'  => 'TagsWidget',
+                    'widget_id' => 'TagsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'             => 'TagsWidget',
-                        'name'           => 'Thẻ',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'TagsWidget',
+                        'name' => 'Thẻ',
                         'number_display' => 10,
                     ],
                 ],
                 [
-                    'widget_id'  => 'AdsWidget',
+                    'widget_id' => 'AdsWidget',
                     'sidebar_id' => 'primary_sidebar',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'           => 'AdsWidget',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'AdsWidget',
                         'ads_location' => 'bottom-sidebar-ads',
                     ],
                 ],
                 [
-                    'widget_id'  => 'AboutWidget',
+                    'widget_id' => 'AboutWidget',
                     'sidebar_id' => 'footer_sidebar_1',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'          => 'AboutWidget',
-                        'name'        => 'Về chúng tôi',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'AboutWidget',
+                        'name' => 'Về chúng tôi',
                         'description' => 'Introduction about the author of this blog. You should write because you love the shape of stories and sentences and the creation of different words on a page. Writing comes from reading, and reading is the finest teacher of how to write.',
                     ],
                 ],
                 [
-                    'widget_id'  => 'PopularPostsWidget',
+                    'widget_id' => 'PopularPostsWidget',
                     'sidebar_id' => 'footer_sidebar_2',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'                => 'PopularPostsWidget',
-                        'name'              => 'Nổi bật',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'PopularPostsWidget',
+                        'name' => 'Nổi bật',
                         'name_custom_class' => 'color-white',
-                        'number_display'    => 3,
+                        'number_display' => 3,
                     ],
                 ],
                 [
-                    'widget_id'  => 'CustomMenuWidget',
+                    'widget_id' => 'CustomMenuWidget',
                     'sidebar_id' => 'footer_sidebar_3',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'      => 'CustomMenuWidget',
-                        'name'    => 'Quick links',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'CustomMenuWidget',
+                        'name' => 'Quick links',
                         'menu_id' => 'quick-links',
                     ],
                 ],
                 [
-                    'widget_id'  => 'TagsWidget',
+                    'widget_id' => 'TagsWidget',
                     'sidebar_id' => 'footer_sidebar_3',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'                => 'TagsWidget',
-                        'name'              => 'Tags',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'TagsWidget',
+                        'name' => 'Tags',
                         'name_custom_class' => 'color-white',
                     ],
                 ],
                 [
-                    'widget_id'  => 'NewsletterWidget',
+                    'widget_id' => 'NewsletterWidget',
                     'sidebar_id' => 'footer_sidebar_4',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'          => 'NewsletterWidget',
-                        'name'        => 'Newsletter',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'NewsletterWidget',
+                        'name' => 'Newsletter',
                         'description' => 'Subscribe to Our Newsletter',
                     ],
                 ],
                 [
-                    'widget_id'  => 'CopyrightFooterMenuWidget',
+                    'widget_id' => 'CopyrightFooterMenuWidget',
                     'sidebar_id' => 'footer_copyright_menu',
-                    'position'   => 1,
-                    'data'       => [
-                        'id'      => 'CopyrightFooterMenuWidget',
-                        'name'    => 'Copyright footer Menu',
+                    'position' => 1,
+                    'data' => [
+                        'id' => 'CopyrightFooterMenuWidget',
+                        'name' => 'Copyright footer Menu',
                         'menu_id' => 'quick-links',
                     ],
                 ],
-            ]
+            ],
         ];
 
         $theme = Theme::getThemeName();

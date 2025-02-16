@@ -2,35 +2,24 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-class CreateSystemRequestLogsTable extends Migration
-{
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+return new class () extends Migration {
+    public function up(): void
     {
-        Schema::create('request_logs', function (Blueprint $table) {
-            $table->engine = 'InnoDB';
+        Schema::create('request_logs', function (Blueprint $table): void {
             $table->id();
             $table->integer('status_code')->nullable();
             $table->string('url')->nullable();
-            $table->integer('count')->default(0);
-            $table->string('user_id', 255)->nullable();
+            $table->integer('count')->default(0)->unsigned();
+            $table->string('user_id')->nullable();
             $table->text('referrer')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('request_logs');
     }
-}
+};

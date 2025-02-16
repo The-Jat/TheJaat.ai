@@ -1,23 +1,65 @@
-let mix = require('laravel-mix');
-let glob = require('glob');
+const mix = require('laravel-mix')
+const glob = require('glob')
 
 mix.options({
     processCssUrls: false,
     clearConsole: true,
     terser: {
         extractComments: false,
+    },
+    manifest: false,
+})
+
+mix.webpackConfig({
+    stats: {
+        children: false,
+    },
+    externals: {
+        vue: 'Vue',
+    },
+})
+
+mix.disableSuccessNotifications()
+
+mix.vue()
+
+let buildPaths = []
+
+function pushToPath(path, type) {
+    buildPaths.push(`${type}/${path === 'true' ? '*' : path}`)
+}
+
+const types = [
+    {
+        key: 'npm_config_theme',
+        name: 'themes',
+    },
+    {
+        key: 'npm_config_plugin',
+        name: 'plugins',
+    },
+    {
+        key: 'npm_config_package',
+        name: 'packages',
+    },
+    {
+        key: 'npm_config_core',
+        name: 'core',
+    },
+]
+
+for (const assetType of types) {
+    const assetPath = process.env[assetType.key]
+
+    if (! assetPath) {
+        continue
     }
-});
 
-// Run all webpack.mix.js in app
-glob.sync('./platform/**/**/webpack.mix.js').forEach(item => require(item));
+    pushToPath(assetPath, assetType.name)
+}
 
-// Run only for a package, replace [package] by the name of package you want to compile assets
-// require('./platform/packages/[package]/webpack.mix.js');
+if (! buildPaths.length) {
+    buildPaths = ['*/*']
+}
 
-// Run only for a plugin, replace [plugin] by the name of plugin you want to compile assets
-// require('./platform/plugins/[plugin]/webpack.mix.js');
-
-// Run only for themes, you shouldn't modify below config, just uncomment if you want to compile only theme's assets
-// glob.sync('./platform/themes/**/webpack.mix.js').forEach(item => require(item));
-
+buildPaths.forEach(buildPath => glob.sync(`./platform/${buildPath}/webpack.mix.js`).forEach(item => require(__dirname + '/' + item)))

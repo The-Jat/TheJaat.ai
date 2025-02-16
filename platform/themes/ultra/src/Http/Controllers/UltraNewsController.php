@@ -19,32 +19,18 @@ use Theme;
 
 class UltraNewsController extends PublicController
 {
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
     public function ajaxGetPanelInner(Request $request, BaseHttpResponse $response)
     {
-        if (!$request->ajax()) {
-            abort(404);
-        }
+        abort_unless($request->ajax(), 404);
 
         return $response->setData(Theme::partial('components.panel-inner'));
     }
 
-    /**
-     * @param string $slug
-     * @param MemberInterface $authorRepository
-     * @return \Response
-     */
     public function getAuthor($slug, MemberInterface $authorRepository)
     {
         $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Member::class), Member::class);
 
-        if (!$slug) {
-            abort(404);
-        }
+        abort_unless($slug, 404);
 
         $condition = [
             'id' => $slug->reference_id,
@@ -59,9 +45,7 @@ class UltraNewsController extends PublicController
             ->with(['slugable'])
             ->first();
 
-        if (!$author) {
-            abort(404);
-        }
+        abort_unless($author, 404);
 
         SeoHelper::setTitle($author->name)->setDescription($author->description);
 
@@ -82,22 +66,19 @@ class UltraNewsController extends PublicController
         $posts = app(PostInterface::class)->advancedGet([
             'condition' => [
                 'posts.status' => BaseStatusEnum::PUBLISHED,
-                'author_id'    => $author->id,
-                'author_type'  => Member::class,
+                'author_id' => $author->id,
+                'author_type' => Member::class,
             ],
-            'paginate'  => [
-                'per_page'      => 12,
-                'current_paged' => (int)request()->input('page', 1),
+            'paginate' => [
+                'per_page' => 12,
+                'current_paged' => (int) request()->input('page', 1),
             ],
-            'order_by'  => ['created_at' => 'DESC'],
+            'order_by' => ['created_at' => 'DESC'],
         ]);
 
         return Theme::scope('author', compact('author', 'posts'))->render();
     }
 
-    /**
-     * @return \Response
-     */
     public function getNewsVideos()
     {
         SeoHelper::setTitle('Videos');
@@ -107,11 +88,11 @@ class UltraNewsController extends PublicController
             'condition' => [
                 'posts.format_type' => 'video',
             ],
-            'paginate'  => [
-                'per_page'      => 10,
-                'current_paged' => (int)request()->input('page', 1),
+            'paginate' => [
+                'per_page' => 10,
+                'current_paged' => (int) request()->input('page', 1),
             ],
-            'order_by'  => ['created_at' => 'DESC'],
+            'order_by' => ['created_at' => 'DESC'],
         ]);
 
         $postsLayout = 'metro';

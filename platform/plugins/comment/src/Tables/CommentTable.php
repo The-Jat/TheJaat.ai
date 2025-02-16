@@ -2,50 +2,38 @@
 
 namespace Botble\Comment\Tables;
 
-use Auth;
 use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Comment\Models\Comment;
+use Botble\Base\Facades\Html;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Setting\Supports\SettingStore;
 use Botble\Table\Abstracts\TableAbstract;
-use Html;
 use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\DataTables;
 
 class CommentTable extends TableAbstract
 {
-    /**
-     * @var bool
-     */
     protected $hasActions = true;
 
-    /**
-     * @var bool
-     */
     protected $hasFilter = true;
 
-    /**
-     * CommentTable constructor.
-     * @param DataTables $table
-     * @param UrlGenerator $urlGenerator
-     * @param CommentInterface $commentRepository
-     */
     public function __construct(DataTables $table, UrlGenerator $urlGenerator, CommentInterface $commentRepository)
     {
         $this->repository = $commentRepository;
         $this->setOption('id', 'plugins-comment-table');
         parent::__construct($table, $urlGenerator);
 
-        if (!Auth::user()->hasAnyPermission(['comment.edit', 'comment.destroy'])) {
+        if (! Auth::user()->hasAnyPermission(['comment.edit', 'comment.destroy'])) {
             $this->hasOperations = false;
             $this->hasActions = false;
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
+    public function ajax(): JsonResponse
     {
         $data = $this->table
             ->eloquent($this->query())
@@ -63,7 +51,7 @@ class CommentTable extends TableAbstract
                     $item->reference->url . '#bb-comment',
                     $item->reference->name,
                     ['target' => '_blank']
-                ) : '';
+                ) : '&mdash;';
             })
             ->editColumn('user', function ($item) {
                 return $item->user ? $item->user->name : 'Guest';
@@ -84,16 +72,14 @@ class CommentTable extends TableAbstract
                         ['class' => 'btn btn-info']
                     )->toHtml();
                 }
+
                 return $this->getOperations(false, 'comment.destroy', $item, $extra);
             })
             ->escapeColumns([])
             ->make(true);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function query()
+    public function query(): Relation|Builder|QueryBuilder
     {
         $query = $this->repository->getModel()
             ->with(['reference'])
@@ -102,38 +88,32 @@ class CommentTable extends TableAbstract
         return $this->applyScopes($query);
     }
 
-    /**
-     * storage latest viewed comment id
-     */
-    protected function storageLatestViewed()
+    protected function storageLatestViewed(): void
     {
-        if ((int)request()->input('start', -1) === 0) {
+        if ((int) request()->input('start', -1) === 0) {
             $latestId = $this->repository->getModel()->latest()->first();
-            if ($latestId && (int)setting('admin-comment_latest_viewed_id', 0) !== $latestId) {
+            if ($latestId && (int) setting('admin-comment_latest_viewed_id', 0) !== $latestId) {
                 app(SettingStore::class)->set('admin-comment_latest_viewed_id', $latestId->id)->save();
             }
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
+    public function columns(): array
     {
         return [
-            'id'         => [
+            'id' => [
                 'title' => trans('core/base::tables.id'),
                 'width' => '20px',
             ],
-            'comment'    => [
+            'comment' => [
                 'title' => trans('plugins/comment::comment.name'),
                 'class' => 'text-start',
             ],
-            'user'       => [
+            'user' => [
                 'title' => trans('plugins/comment::comment.user'),
                 'class' => 'text-start',
             ],
-            'reference'  => [
+            'reference' => [
                 'title' => trans('plugins/comment::comment.article'),
                 'class' => 'text-start',
             ],
@@ -141,59 +121,35 @@ class CommentTable extends TableAbstract
                 'title' => trans('core/base::tables.created_at'),
                 'width' => '100px',
             ],
-            'status'     => [
+            'status' => [
                 'title' => trans('core/base::tables.status'),
                 'width' => '100px',
             ],
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        $buttons = [];
-
-        return apply_filters(BASE_FILTER_TABLE_BUTTONS, $buttons, Comment::class);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function bulkActions(): array
     {
         return $this->addDeleteAction(route('comment.deletes'), 'comment.destroy', parent::bulkActions());
     }
 
-    /**
-     * @return array
-     */
-    public function getFilters(): array
-    {
-        return $this->getBulkChanges();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getBulkChanges(): array
     {
         return [
-            'comments.name'       => [
-                'title'    => trans('core/base::tables.name'),
-                'type'     => 'text',
+            'comments.name' => [
+                'title' => trans('core/base::tables.name'),
+                'type' => 'text',
                 'validate' => 'required|max:120',
             ],
-            'comments.status'     => [
-                'title'    => trans('core/base::tables.status'),
-                'type'     => 'select',
-                'choices'  => BaseStatusEnum::labels(),
+            'comments.status' => [
+                'title' => trans('core/base::tables.status'),
+                'type' => 'select',
+                'choices' => BaseStatusEnum::labels(),
                 'validate' => 'required|in:' . implode(',', BaseStatusEnum::values()),
             ],
             'comments.created_at' => [
                 'title' => trans('core/base::tables.created_at'),
-                'type'  => 'date',
+                'type' => 'date',
             ],
         ];
     }

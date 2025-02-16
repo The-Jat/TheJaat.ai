@@ -2,6 +2,7 @@
 
 namespace Botble\JsValidation\Javascript;
 
+use Botble\JsValidation\JsValidatorFactory;
 use Botble\JsValidation\Support\DelegatedValidator;
 use Botble\JsValidation\Support\RuleListTrait;
 use Botble\JsValidation\Support\UseDelegatedValidatorTrait;
@@ -74,12 +75,7 @@ class RuleParser
         return [$attribute, $jsRule, $parameters];
     }
 
-    /**
-     * Gets rules from Validator instance.
-     *
-     * @return array
-     */
-    public function getValidatorRules()
+    public function getValidatorRules(): array
     {
         return $this->validator->getRules();
     }
@@ -93,9 +89,9 @@ class RuleParser
      */
     public function addConditionalRules($attribute, $rules = [])
     {
-        foreach ((array)$attribute as $key) {
-            $current = isset($this->conditional[$key]) ? $this->conditional[$key] : [];
-            $rules = $this->validator->explodeRules((array)$rules);
+        foreach ((array) $attribute as $key) {
+            $current = $this->conditional[$key] ?? [];
+            $rules = $this->validator->explodeRules((array) $rules);
             $merge = reset($rules);
             $this->conditional[$key] = array_merge($current, $merge);
         }
@@ -161,6 +157,8 @@ class RuleParser
      */
     protected function getAttributeName($attribute)
     {
+        $attribute = str_replace(JsValidatorFactory::ASTERISK, '*', $attribute);
+
         $attributeArray = explode('.', $attribute);
         if (count($attributeArray) > 1) {
             return $attributeArray[0] . '[' . implode('][', array_slice($attributeArray, 1)) . ']';

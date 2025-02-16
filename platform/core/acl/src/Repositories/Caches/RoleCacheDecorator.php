@@ -2,16 +2,11 @@
 
 namespace Botble\ACL\Repositories\Caches;
 
-use Botble\ACL\Repositories\Interfaces\RoleInterface;
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
+use Botble\ACL\Repositories\Eloquent\RoleRepository;
 
-class RoleCacheDecorator extends CacheAbstractDecorator implements RoleInterface
+/**
+ * @deprecated
+ */
+class RoleCacheDecorator extends RoleRepository
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function createSlug($name, $id)
-    {
-        return $this->flushCacheAndUpdateData(__FUNCTION__, func_get_args());
-    }
 }

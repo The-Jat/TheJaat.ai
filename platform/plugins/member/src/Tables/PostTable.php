@@ -2,143 +2,113 @@
 
 namespace Botble\Member\Tables;
 
-use BaseHelper;
-use Botble\Blog\Repositories\Interfaces\PostInterface;
+use Botble\Base\Models\BaseQueryBuilder;
+use Botble\Blog\Models\Category;
+use Botble\Blog\Models\Post;
 use Botble\Member\Models\Member;
+use Botble\Member\Tables\Traits\ForMember;
 use Botble\Table\Abstracts\TableAbstract;
-use Html;
-use Illuminate\Contracts\Routing\UrlGenerator;
-use Yajra\DataTables\DataTables;
+use Botble\Table\Actions\DeleteAction;
+use Botble\Table\Actions\EditAction;
+use Botble\Table\BulkActions\DeleteBulkAction;
+use Botble\Table\BulkChanges\CreatedAtBulkChange;
+use Botble\Table\BulkChanges\NameBulkChange;
+use Botble\Table\BulkChanges\SelectBulkChange;
+use Botble\Table\BulkChanges\StatusBulkChange;
+use Botble\Table\Columns\CreatedAtColumn;
+use Botble\Table\Columns\FormattedColumn;
+use Botble\Table\Columns\ImageColumn;
+use Botble\Table\Columns\NameColumn;
+use Botble\Table\Columns\StatusColumn;
+use Botble\Table\HeaderActions\CreateHeaderAction;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Relations\Relation as EloquentRelation;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class PostTable extends TableAbstract
 {
-    /**
-     * @var bool
-     */
-    public $hasActions = false;
+    use ForMember;
 
-    /**
-     * @var bool
-     */
-    public $hasCheckbox = false;
-
-    /**
-     * PostTable constructor.
-     * @param DataTables $table
-     * @param UrlGenerator $urlGenerator
-     * @param PostInterface $postRepository
-     */
-    public function __construct(
-        DataTables $table,
-        UrlGenerator $urlGenerator,
-        PostInterface $postRepository
-    ) {
-        parent::__construct($table, $urlGenerator);
-
-        $this->repository = $postRepository;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
+    public function setup(): void
     {
-        $data = $this->table
-            ->eloquent($this->query())
-            ->editColumn('name', function ($item) {
-                return Html::link(route('public.member.posts.edit', $item->id), $item->name);
-            })
-            ->editColumn('image', function ($item) {
-                return $this->displayThumbnail($item->image);
-            })
-            ->editColumn('checkbox', function ($item) {
-                return $this->getCheckbox($item->id);
-            })
-            ->editColumn('created_at', function ($item) {
-                return BaseHelper::formatDate($item->created_at);
-            })
-            ->editColumn('updated_at', function ($item) {
-                return implode(', ', $item->categories->pluck('name')->all());
-            })
-            ->editColumn('status', function ($item) {
-                return $item->status->toHtml();
-            })
-            ->addColumn('operations', function ($item) {
-                return view('plugins/member::table.actions', [
-                    'edit'   => 'public.member.posts.edit',
-                    'delete' => 'public.member.posts.destroy',
-                    'item'   => $item,
-                ])->render();
-            });
-
-        return $this->toJson($data);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function query()
-    {
-        $query = $this->repository->getModel()
-            ->with(['categories'])
-            ->select([
-                'id',
-                'name',
-                'image',
-                'created_at',
-                'status',
-                'updated_at',
+        $this
+            ->model(Post::class)
+            ->addHeaderAction(CreateHeaderAction::make()->url(route('public.member.posts.create')))
+            ->addColumns([
+                CreatedAtColumn::make(),
+                ImageColumn::make(),
+                NameColumn::make()->route('public.member.posts.edit'),
+                FormattedColumn::make('categories_name')
+                    ->title(trans('plugins/blog::posts.categories'))
+                    ->width(150)
+                    ->orderable(false)
+                    ->searchable(false)
+                    ->getValueUsing(function (FormattedColumn $column) {
+                        return implode(', ', $column->getItem()->categories->pluck('name')->all());
+                    }),
+                CreatedAtColumn::make(),
+                StatusColumn::make(),
             ])
-            ->where([
-                'author_id'   => auth('member')->id(),
-                'author_type' => Member::class,
-            ]);
+            ->addActions([
+                EditAction::make()->route('public.member.posts.edit'),
+                DeleteAction::make()->route('public.member.posts.destroy'),
+            ])
+            ->addBulkActions([
+                DeleteBulkAction::make()
+                    ->beforeDispatch(function (Post $model, array $ids): void {
+                        foreach ($ids as $id) {
+                            $post = Post::query()->findOrFail($id);
 
-        return $this->applyScopes($query);
+                            abort_if(auth('member')->id() !== $post->author_id, 403);
+                        }
+                    }),
+            ])
+            ->queryUsing(function (EloquentBuilder $query) {
+                return $query
+                    ->with(['categories'])
+                    ->select([
+                        'id',
+                        'name',
+                        'image',
+                        'created_at',
+                        'status',
+                        'updated_at',
+                    ])
+                    ->where([
+                        'author_id' => auth('member')->id(),
+                        'author_type' => Member::class,
+                    ]);
+            })
+            ->onFilterQuery(
+                function (
+                    EloquentBuilder|QueryBuilder|EloquentRelation $query,
+                    string $key,
+                    string $operator,
+                    ?string $value
+                ) {
+                    if (! $value || $key !== 'category') {
+                        return false;
+                    }
+
+                    return $query->whereHas(
+                        'categories',
+                        fn (BaseQueryBuilder $query) => $query->where('categories.id', $value)
+                    );
+                }
+            );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        return $this->addCreateButton(route('public.member.posts.create'));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
+    public function getFilters(): array
     {
         return [
-            'id'         => [
-                'title' => trans('core/base::tables.id'),
-                'width' => '20px',
-            ],
-            'image'      => [
-                'title' => trans('core/base::tables.image'),
-                'width' => '70px',
-            ],
-            'name'       => [
-                'title' => trans('core/base::tables.name'),
-                'class' => 'text-start',
-            ],
-            'updated_at' => [
-                'title'     => trans('plugins/blog::posts.categories'),
-                'width'     => '150px',
-                'class'     => 'no-sort text-center',
-                'orderable' => false,
-            ],
-            'created_at' => [
-                'title' => trans('core/base::tables.created_at'),
-                'width' => '100px',
-                'class' => 'text-center',
-            ],
-            'status'     => [
-                'title' => trans('core/base::tables.status'),
-                'width' => '100px',
-                'class' => 'text-center',
-            ],
+            NameBulkChange::make(),
+            StatusBulkChange::make(),
+            CreatedAtBulkChange::make(),
+            SelectBulkChange::make()
+                ->name('category')
+                ->title(trans('plugins/blog::posts.category'))
+                ->searchable()
+                ->choices(fn () => Category::query()->pluck('name', 'id')->all()),
         ];
     }
 }

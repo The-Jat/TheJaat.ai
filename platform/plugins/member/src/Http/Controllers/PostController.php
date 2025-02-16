@@ -2,279 +2,196 @@
 
 namespace Botble\Member\Http\Controllers;
 
-use Assets;
 use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Base\Events\BeforeEditContentEvent;
-use Botble\Base\Events\CreatedContentEvent;
-use Botble\Base\Events\UpdatedContentEvent;
-use Botble\Base\Forms\FormBuilder;
-use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\Base\Facades\EmailHandler;
+use Botble\Base\Http\Controllers\BaseController;
 use Botble\Blog\Models\Post;
-use Botble\Blog\Repositories\Interfaces\PostInterface;
-use Botble\Blog\Repositories\Interfaces\TagInterface;
+use Botble\Blog\Models\Tag;
 use Botble\Blog\Services\StoreCategoryService;
 use Botble\Blog\Services\StoreTagService;
+use Botble\Media\Facades\RvMedia;
 use Botble\Member\Forms\PostForm;
 use Botble\Member\Http\Requests\PostRequest;
 use Botble\Member\Models\Member;
-use Botble\Member\Repositories\Interfaces\MemberActivityLogInterface;
-use Botble\Member\Repositories\Interfaces\MemberInterface;
+use Botble\Member\Models\MemberActivityLog;
 use Botble\Member\Tables\PostTable;
-use EmailHandler;
-use Exception;
-use Illuminate\Contracts\Config\Repository;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
-use Illuminate\View\View;
-use Response;
-use RvMedia;
-use SeoHelper;
-use Throwable;
 
-class PostController extends Controller
+class PostController extends BaseController
 {
-    /**
-     * @var MemberInterface
-     */
-    protected $memberRepository;
-
-    /**
-     * @var PostInterface
-     */
-    protected $postRepository;
-
-    /**
-     * @var MemberActivityLogInterface
-     */
-    protected $activityLogRepository;
-
-    /**
-     * PostController constructor.
-     * @param Repository $config
-     * @param MemberInterface $memberRepository
-     * @param PostInterface $postRepository
-     * @param MemberActivityLogInterface $memberActivityLogRepository
-     */
-    public function __construct(
-        Repository $config,
-        MemberInterface $memberRepository,
-        PostInterface $postRepository,
-        MemberActivityLogInterface $memberActivityLogRepository
-    ) {
-        $this->memberRepository = $memberRepository;
-        $this->postRepository = $postRepository;
-        $this->activityLogRepository = $memberActivityLogRepository;
-
-        Assets::setConfig($config->get('plugins.member.assets', []));
-    }
-
-    /**
-     * @param Request $request
-     * @param PostTable $postTable
-     * @return JsonResponse|View|Response
-     * @throws Throwable
-     */
     public function index(PostTable $postTable)
     {
-        SeoHelper::setTitle(trans('plugins/blog::posts.posts'));
+        $this->pageTitle(trans('plugins/blog::posts.posts'));
 
-        return $postTable->render('plugins/member::table.base');
+        return $postTable->renderTable();
     }
 
-    /**
-     * @param FormBuilder $formBuilder
-     * @return string
-     * @throws Throwable
-     */
-    public function create(FormBuilder $formBuilder)
+    public function create()
     {
-        SeoHelper::setTitle(trans('plugins/member::member.write_a_post'));
+        $this->pageTitle(trans('plugins/member::member.write_a_post'));
 
-        return $formBuilder->create(PostForm::class)->renderForm();
+        return PostForm::create()->renderForm();
     }
 
-    /**
-     * @param PostRequest $request
-     * @param StoreTagService $tagService
-     * @param StoreCategoryService $categoryService
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse|RedirectResponse
-     *
-     * @throws FileNotFoundException
-     */
-    public function store(
-        PostRequest $request,
-        StoreTagService $tagService,
-        StoreCategoryService $categoryService,
-        BaseHttpResponse $response
-    ) {
-        if ($request->hasFile('image_input')) {
-            $result = RvMedia::handleUpload($request->file('image_input'), 0, 'members');
-            if ($result['error'] == false) {
-                $file = $result['data'];
-                $request->merge(['image' => $file->url]);
-            }
-        }
+    public function store(PostRequest $request, StoreTagService $tagService, StoreCategoryService $categoryService)
+    {
+        $this->processRequestData($request);
 
+        $postForm = PostForm::create();
+        $postForm
+            ->saving(function (PostForm $form) use ($categoryService, $tagService, $request): void {
+                $post = $form->getModel();
+                $post
+                    ->fill([...$request->except('status'),
+                        'author_id' => auth('member')->id(),
+                        'author_type' => Member::class,
+                        'status' => BaseStatusEnum::PENDING,
+                    ])
+                    ->save();
+
+                MemberActivityLog::query()->create([
+                    'action' => 'create_post',
+                    'reference_name' => $post->name,
+                    'reference_url' => route('public.member.posts.edit', $post->getKey()),
+                ]);
+
+                $tagService->execute($request, $post);
+
+                $categoryService->execute($request, $post);
+
+                EmailHandler::setModule(MEMBER_MODULE_SCREEN_NAME)
+                    ->setVariableValues([
+                        'post_name' => $post->name,
+                        'post_url' => route('posts.edit', $post->getKey()),
+                        'post_author' => $post->author->name,
+                    ])
+                    ->sendUsingTemplate('new-pending-post');
+            });
+
+        return $this
+            ->httpResponse()
+            ->setPreviousRoute('public.member.posts.index')
+            ->setNextRoute('public.member.posts.edit', $postForm->getModel()->getKey())
+            ->withCreatedSuccessMessage();
+    }
+
+    public function edit(Post $post)
+    {
         /**
          * @var Post $post
          */
-        $post = $this->postRepository->createOrUpdate(array_merge($request->except('status'), [
-            'author_id'   => auth('member')->id(),
-            'author_type' => Member::class,
-            'status'      => BaseStatusEnum::PENDING,
-        ]));
-
-        event(new CreatedContentEvent(POST_MODULE_SCREEN_NAME, $request, $post));
-
-        $this->activityLogRepository->createOrUpdate([
-            'action'         => 'create_post',
-            'reference_name' => $post->name,
-            'reference_url'  => route('public.member.posts.edit', $post->id),
-        ]);
-
-        $tagService->execute($request, $post);
-
-        $categoryService->execute($request, $post);
-
-        EmailHandler::setModule(MEMBER_MODULE_SCREEN_NAME)
-            ->setVariableValues([
-                'post_name'   => $post->name,
-                'post_url'    => route('posts.edit', $post->id),
-                'post_author' => $post->author->name,
+        $post = Post::query()
+            ->where([
+                'id' => $post->getKey(),
+                'author_id' => auth('member')->id(),
+                'author_type' => Member::class,
             ])
-            ->sendUsingTemplate('new-pending-post');
+            ->firstOrFail();
 
-        return $response
-            ->setPreviousUrl(route('public.member.posts.index'))
-            ->setNextUrl(route('public.member.posts.edit', $post->id))
-            ->setMessage(trans('core/base::notices.create_success_message'));
+        $this->pageTitle(trans('core/base::forms.edit_item', ['name' => $post->name]));
+
+        return PostForm::createFromModel($post)->renderForm();
     }
 
-    /**
-     * @param int $id
-     * @param FormBuilder $formBuilder
-     * @param Request $request
-     * @return string
-     *
-     * @throws Throwable
-     */
-    public function edit($id, FormBuilder $formBuilder, Request $request)
+    public function update(Post $post, PostRequest $request, StoreTagService $tagService, StoreCategoryService $categoryService)
     {
-        $post = $this->postRepository->getFirstBy([
-            'id'          => $id,
-            'author_id'   => auth('member')->id(),
-            'author_type' => Member::class,
-        ]);
+        /**
+         * @var Post $post
+         */
+        $post = Post::query()
+            ->where([
+                'id' => $post->getKey(),
+                'author_id' => auth('member')->id(),
+                'author_type' => Member::class,
+            ])
+            ->firstOrFail();
 
-        if (!$post) {
-            abort(404);
-        }
+        $this->processRequestData($request);
 
-        event(new BeforeEditContentEvent($request, $post));
+        $postForm = PostForm::createFromModel($post);
 
-        SeoHelper::setTitle(trans('plugins/blog::posts.edit') . ' "' . $post->name . '"');
+        $postForm
+            ->saving(function (PostForm $form) use ($categoryService, $tagService, $request): void {
+                $post = $form->getModel();
 
-        return $formBuilder
-            ->create(PostForm::class, ['model' => $post])
-            ->renderForm();
+                $post
+                    ->fill($request->except('status'))
+                    ->save();
+
+                MemberActivityLog::query()->create([
+                    'action' => 'update_post',
+                    'reference_name' => $post->name,
+                    'reference_url' => route('public.member.posts.edit', $post->getKey()),
+                ]);
+
+                $tagService->execute($request, $post);
+
+                $categoryService->execute($request, $post);
+            });
+
+        return $this
+            ->httpResponse()
+            ->setPreviousRoute('public.member.posts.index')
+            ->withUpdatedSuccessMessage();
     }
 
-    /**
-     * @param int $id
-     * @param PostRequest $request
-     * @param StoreTagService $tagService
-     * @param StoreCategoryService $categoryService
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse|RedirectResponse
-     *
-     * @throws FileNotFoundException
-     */
-    public function update(
-        $id,
-        PostRequest $request,
-        StoreTagService $tagService,
-        StoreCategoryService $categoryService,
-        BaseHttpResponse $response
-    ) {
-        $post = $this->postRepository->getFirstBy([
-            'id'          => $id,
-            'author_id'   => auth('member')->id(),
-            'author_type' => Member::class,
-        ]);
-
-        if (!$post) {
-            abort(404);
-        }
+    protected function processRequestData(Request $request): Request
+    {
+        $account = auth('member')->user();
 
         if ($request->hasFile('image_input')) {
-            $result = RvMedia::handleUpload($request->file('image_input'), 0, 'members');
-            if ($result['error'] == false) {
+            $result = RvMedia::handleUpload($request->file('image_input'), 0, $account->upload_folder);
+            if (! $result['error']) {
                 $file = $result['data'];
                 $request->merge(['image' => $file->url]);
             }
         }
 
-        $post->fill($request->except('status'));
+        $shortcodeCompiler = shortcode()->getCompiler();
 
-        $this->postRepository->createOrUpdate($post);
-
-        event(new UpdatedContentEvent(POST_MODULE_SCREEN_NAME, $request, $post));
-
-        $this->activityLogRepository->createOrUpdate([
-            'action'         => 'update_post',
-            'reference_name' => $post->name,
-            'reference_url'  => route('public.member.posts.edit', $post->id),
+        $request->merge([
+            'content' => $shortcodeCompiler->strip(
+                $request->input('content'),
+                $shortcodeCompiler->whitelistShortcodes()
+            ),
         ]);
 
-        $tagService->execute($request, $post);
+        $except = [
+            'status',
+            'is_featured',
+        ];
 
-        $categoryService->execute($request, $post);
-
-        return $response
-            ->setPreviousUrl(route('public.member.posts.index'))
-            ->setMessage(trans('core/base::notices.update_success_message'));
-    }
-
-    /**
-     * @param int $id
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Exception
-     */
-    public function destroy($id, BaseHttpResponse $response)
-    {
-        $post = $this->postRepository->getFirstBy([
-            'id'          => $id,
-            'author_id'   => auth('member')->id(),
-            'author_type' => Member::class,
-        ]);
-
-        if (!$post) {
-            abort(404);
+        foreach ($except as $item) {
+            $request->request->remove($item);
         }
 
-        $this->postRepository->delete($post);
+        return $request;
+    }
 
-        $this->activityLogRepository->createOrUpdate([
-            'action'         => 'delete_post',
+    public function destroy(Post $post)
+    {
+        $post = Post::query()
+            ->where([
+                'id' => $post->getKey(),
+                'author_id' => auth('member')->id(),
+                'author_type' => Member::class,
+            ])
+            ->firstOrFail();
+
+        $post->delete();
+
+        MemberActivityLog::query()->create([
+            'action' => 'delete_post',
             'reference_name' => $post->name,
         ]);
 
-        return $response->setMessage(trans('core/base::notices.delete_success_message'));
+        return $this
+            ->httpResponse()
+            ->withDeletedSuccessMessage();
     }
 
-    /**
-     * Get list tags in db
-     *
-     * @param TagInterface $tagRepository
-     * @return array
-     */
-    public function getAllTags(TagInterface $tagRepository)
+    public function getAllTags()
     {
-        return $tagRepository->pluck('name');
+        return Tag::query()->pluck('name')->all();
     }
 }

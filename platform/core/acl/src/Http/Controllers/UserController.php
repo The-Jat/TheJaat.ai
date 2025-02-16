@@ -2,214 +2,116 @@
 
 namespace Botble\ACL\Http\Controllers;
 
-use Assets;
-use Botble\Base\Events\UpdatedContentEvent;
-use Botble\Media\Services\ThumbnailService;
-use File;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\Factory;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 use Botble\ACL\Forms\PasswordForm;
+use Botble\ACL\Forms\PreferenceForm;
 use Botble\ACL\Forms\ProfileForm;
 use Botble\ACL\Forms\UserForm;
-use Botble\ACL\Tables\UserTable;
+use Botble\ACL\Http\Requests\AvatarRequest;
 use Botble\ACL\Http\Requests\CreateUserRequest;
+use Botble\ACL\Http\Requests\PreferencePatchRequest;
+use Botble\ACL\Http\Requests\PreferenceRequest;
 use Botble\ACL\Http\Requests\UpdatePasswordRequest;
 use Botble\ACL\Http\Requests\UpdateProfileRequest;
-use Botble\ACL\Models\UserMeta;
-use Botble\ACL\Repositories\Interfaces\RoleInterface;
-use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Botble\ACL\Models\User;
 use Botble\ACL\Services\ChangePasswordService;
 use Botble\ACL\Services\CreateUserService;
-use Botble\Base\Events\CreatedContentEvent;
-use Botble\Base\Events\DeletedContentEvent;
-use Botble\Base\Forms\FormBuilder;
-use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Media\Repositories\Interfaces\MediaFileInterface;
-use Botble\ACL\Http\Requests\AvatarRequest;
+use Botble\ACL\Tables\UserTable;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Http\Actions\DeleteResourceAction;
+use Botble\Base\Http\Controllers\BaseSystemController;
+use Botble\Base\Supports\Breadcrumb;
+use Botble\Media\Facades\RvMedia;
+use Botble\Media\Models\MediaFile;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Contracts\View\View;
-use RvMedia;
 use Throwable;
 
-class UserController extends BaseController
+class UserController extends BaseSystemController
 {
-    /**
-     * @var UserInterface
-     */
-    protected $userRepository;
-
-    /**
-     * @var RoleInterface
-     */
-    protected $roleRepository;
-
-    /**
-     * @var MediaFileInterface
-     */
-    protected $fileRepository;
-
-    /**
-     * UserController constructor.
-     * @param UserInterface $userRepository
-     * @param RoleInterface $roleRepository
-     * @param MediaFileInterface $fileRepository
-     */
-    public function __construct(
-        UserInterface $userRepository,
-        RoleInterface $roleRepository,
-        MediaFileInterface $fileRepository
-    ) {
-        $this->userRepository = $userRepository;
-        $this->roleRepository = $roleRepository;
-        $this->fileRepository = $fileRepository;
+    protected function breadcrumb(): Breadcrumb
+    {
+        return parent::breadcrumb()
+            ->add(
+                trans('core/acl::users.users'),
+                route('users.index')
+            );
     }
 
-    /**
-     * @param UserTable $dataTable
-     * @return JsonResponse|View
-     *
-     * @throws Throwable
-     */
     public function index(UserTable $dataTable)
     {
-        page_title()->setTitle(trans('core/acl::users.users'));
-
-        Assets::addScripts(['bootstrap-editable', 'jquery-ui'])
-            ->addStyles(['bootstrap-editable']);
+        $this->pageTitle(trans('core/acl::users.users'));
 
         return $dataTable->renderTable();
     }
 
-    /**
-     * @param FormBuilder $formBuilder
-     * @return string
-     */
-    public function create(FormBuilder $formBuilder)
+    public function create()
     {
-        page_title()->setTitle(trans('core/acl::users.create_new_user'));
+        $this->pageTitle(trans('core/acl::users.create_new_user'));
 
-        return $formBuilder->create(UserForm::class)->renderForm();
+        return UserForm::create()->renderForm();
     }
 
-    /**
-     * @param CreateUserRequest $request
-     * @param CreateUserService $service
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function store(CreateUserRequest $request, CreateUserService $service, BaseHttpResponse $response)
+    public function store(CreateUserRequest $request, CreateUserService $service)
     {
-        $user = $service->execute($request);
+        $form = UserForm::create();
+        $user = null;
 
-        event(new CreatedContentEvent(USER_MODULE_SCREEN_NAME, $request, $user));
+        $form->saving(function (UserForm $form) use ($service, $request, &$user): void {
+            $user = $service->execute($request);
 
-        return $response
-            ->setPreviousUrl(route('users.index'))
-            ->setNextUrl(route('users.profile.view', $user->id))
-            ->setMessage(trans('core/base::notices.create_success_message'));
+            $form->setModel($user);
+        });
+
+        return $this
+            ->httpResponse()
+            ->setPreviousRoute('users.index')
+            ->setNextUrl($user->url)
+            ->withCreatedSuccessMessage();
     }
 
-    /**
-     * @param int $id
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function destroy($id, Request $request, BaseHttpResponse $response)
+    public function destroy(User $user)
     {
-        if ($request->user()->getKey() == $id) {
-            return $response
-                ->setError()
-                ->setMessage(trans('core/acl::users.delete_user_logged_in'));
-        }
+        return DeleteResourceAction::make($user)
+            ->beforeDeleting(function (DeleteResourceAction $action): void {
+                $request = $action->getRequest();
+                $model = $action->getModel();
 
-        try {
-            $user = $this->userRepository->findOrFail($id);
-
-            if (!$request->user()->isSuperUser() && $user->isSuperUser()) {
-                return $response
-                    ->setError()
-                    ->setMessage(trans('core/acl::users.cannot_delete_super_user'));
-            }
-
-            $this->userRepository->delete($user);
-            event(new DeletedContentEvent(USER_MODULE_SCREEN_NAME, $request, $user));
-
-            return $response->setMessage(trans('core/acl::users.deleted'));
-        } catch (Exception $exception) {
-            return $response
-                ->setError()
-                ->setMessage(trans('core/acl::users.cannot_delete'));
-        }
-    }
-
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function deletes(Request $request, BaseHttpResponse $response)
-    {
-        $ids = $request->input('ids');
-        if (empty($ids)) {
-            return $response
-                ->setError()
-                ->setMessage(trans('core/base::notices.no_select'));
-        }
-
-        foreach ($ids as $id) {
-            if ($request->user()->getKey() == $id) {
-                return $response
-                    ->setError()
-                    ->setMessage(trans('core/acl::users.delete_user_logged_in'));
-            }
-            try {
-                $user = $this->userRepository->findOrFail($id);
-                if (!$request->user()->isSuperUser() && $user->isSuperUser()) {
-                    continue;
+                if ($request->user()->is($model)) {
+                    throw new Exception(trans('core/acl::users.delete_user_logged_in'));
                 }
-                $this->userRepository->delete($user);
-                event(new DeletedContentEvent(USER_MODULE_SCREEN_NAME, $request, $user));
-            } catch (Exception $exception) {
-                return $response
-                    ->setError()
-                    ->setMessage($exception->getMessage());
-            }
-        }
 
-        return $response->setMessage(trans('core/acl::users.deleted'));
+                if (! $request->user()->isSuperUser() && $model instanceof User && $model->isSuperUser()) {
+                    throw new Exception(trans('core/acl::users.cannot_delete_super_user'));
+                }
+            });
     }
 
-    /**
-     * @param int $id
-     * @param Request $request
-     * @param FormBuilder $formBuilder
-     * @return Factory|Application|View
-     */
-    public function getUserProfile($id, Request $request, FormBuilder $formBuilder)
+    public function getUserProfile(User $user, Request $request)
     {
-        Assets::addScripts(['bootstrap-pwstrength', 'cropper'])
+        Assets::addScripts('cropper')
             ->addScriptsDirectly('vendor/core/core/acl/js/profile.js');
 
-        $user = $this->userRepository->findOrFail($id);
+        $this->pageTitle($user->name);
 
-        page_title()->setTitle(trans(':name', ['name' => $user->name]));
+        $request->route()->setParameter('id', $user->getKey());
 
-        $form = $formBuilder
-            ->create(ProfileForm::class, ['model' => $user])
-            ->setUrl(route('users.update-profile', $user->id));
-        $passwordForm = $formBuilder
-            ->create(PasswordForm::class)
-            ->setUrl(route('users.change-password', $user->id));
+        $user->password = null;
 
-        $canChangeProfile = $request->user()->getKey() == $id || $request->user()->isSuperUser();
+        $form = ProfileForm::createFromModel($user)
+            ->setUrl(route('users.update-profile', $user->getKey()));
 
-        if (!$canChangeProfile) {
+        $passwordForm = PasswordForm::createFromModel($user)
+            ->setUrl(route('users.change-password', $user->getKey()));
+
+        $preferenceForm = PreferenceForm::createFromModel($user)
+            ->setUrl(route('users.update-preferences', $user->getKey()))
+            ->renderForm();
+
+        $currentUser = $request->user();
+
+        $canChangeProfile = $currentUser->hasPermission('users.edit') || $currentUser->getKey() == $user->getKey() || $currentUser->isSuperUser();
+
+        if (! $canChangeProfile) {
             $form->disableFields();
             $form->removeActionButtons();
             $form->setActionButtons(' ');
@@ -218,221 +120,219 @@ class UserController extends BaseController
             $passwordForm->setActionButtons(' ');
         }
 
-        if ($request->user()->isSuperUser()) {
-            $passwordForm->remove('old_password');
-        }
         $form = $form->renderForm();
         $passwordForm = $passwordForm->renderForm();
 
-        return view('core/acl::users.profile.base', compact('user', 'form', 'passwordForm', 'canChangeProfile'));
+        return view(
+            'core/acl::users.profile.base',
+            compact('user', 'form', 'passwordForm', 'canChangeProfile', 'preferenceForm')
+        );
     }
 
-    /**
-     * @param int $id
-     * @param UpdateProfileRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function postUpdateProfile($id, UpdateProfileRequest $request, BaseHttpResponse $response)
+    public function postUpdateProfile(User $user, UpdateProfileRequest $request)
     {
-        $user = $this->userRepository->findOrFail($id);
+        if ($user->email !== $request->input('email')) {
+            $users = User::query()
+                ->where('email', $request->input('email'))
+                ->where('id', '<>', $user->getKey())
+                ->exists();
 
-        $currentUser = $request->user();
-        if (($currentUser->hasPermission('users.update-profile') && $currentUser->getKey() === $user->id) ||
-            $currentUser->isSuperUser()
-        ) {
-            if ($user->email !== $request->input('email')) {
-                $users = $this->userRepository->getModel()
-                    ->where('email', $request->input('email'))
-                    ->where('id', '<>', $user->id)
-                    ->count();
-                if ($users) {
-                    return $response
-                        ->setError()
-                        ->setMessage(trans('core/acl::users.email_exist'))
-                        ->withInput();
-                }
-            }
-
-            if ($user->username !== $request->input('username')) {
-                $users = $this->userRepository->getModel()
-                    ->where('username', $request->input('username'))
-                    ->where('id', '<>', $user->id)
-                    ->count();
-                if ($users) {
-                    return $response
-                        ->setError()
-                        ->setMessage(trans('core/acl::users.username_exist'))
-                        ->withInput();
-                }
+            if ($users) {
+                return $this
+                    ->httpResponse()
+                    ->setError()
+                    ->setMessage(trans('core/acl::users.email_exist'))
+                    ->withInput();
             }
         }
 
-        $user->fill($request->input());
-        $this->userRepository->createOrUpdate($user);
+        if ($user->username !== $request->input('username')) {
+            $users = User::query()
+                ->where('username', $request->input('username'))
+                ->where('id', '<>', $user->getKey())
+                ->exists();
+
+            if ($users) {
+                return $this
+                    ->httpResponse()
+                    ->setError()
+                    ->setMessage(trans('core/acl::users.username_exist'))
+                    ->withInput();
+            }
+        }
+
+        ProfileForm::createFromModel($user)
+            ->setRequest($request)
+            ->save();
+
         do_action(USER_ACTION_AFTER_UPDATE_PROFILE, USER_MODULE_SCREEN_NAME, $request, $user);
 
-        event(new UpdatedContentEvent(USER_MODULE_SCREEN_NAME, $request, $user));
-
-        return $response->setMessage(trans('core/acl::users.update_profile_success'));
+        return $this
+            ->httpResponse()
+            ->setMessage(trans('core/acl::users.update_profile_success'));
     }
 
-    /**
-     * @param int $id
-     * @param UpdatePasswordRequest $request
-     * @param ChangePasswordService $service
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws \Illuminate\Auth\AuthenticationException
-     */
-    public function postChangePassword(
-        $id,
-        UpdatePasswordRequest $request,
-        ChangePasswordService $service,
-        BaseHttpResponse $response
-    ) {
-        $request->merge(['id' => $id]);
-        $result = $service->execute($request);
+    public function postChangePassword(User $user, UpdatePasswordRequest $request, ChangePasswordService $service)
+    {
+        $request->merge(['id' => $user->getKey()]);
 
-        if ($result instanceof Exception) {
-            return $response
+        try {
+            PasswordForm::createFromModel($user)
+                ->saving(function (PasswordForm $form) use ($service, $request) {
+                    return tap($service->execute($request), fn ($user) => $form->setupModel($user));
+                });
+        } catch (Throwable $exception) {
+            return $this
+                ->httpResponse()
                 ->setError()
-                ->setMessage($result->getMessage());
+                ->setMessage($exception->getMessage());
         }
 
-        return $response->setMessage(trans('core/acl::users.password_update_success'));
+        return $this
+            ->httpResponse()
+            ->setMessage(trans('core/acl::users.password_update_success'));
     }
 
-    /**
-     * @param int $id
-     * @param AvatarRequest $request
-     * @param ThumbnailService $thumbnailService
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function postAvatar($id, AvatarRequest $request, ThumbnailService $thumbnailService, BaseHttpResponse $response)
+    public function updatePreferences(User $user, PreferenceRequest $request)
     {
-        try {
-            $user = $this->userRepository->findOrFail($id);
+        PreferenceForm::createFromModel($user)
+            ->saving(function (PreferenceForm $form) use ($request): void {
+                /**
+                 * @var User $model
+                 */
+                $model = $form->getModel();
+                $model->setMeta('locale', $request->input('locale'));
+                $model->setMeta('locale_direction', $request->input('locale_direction'));
+                $model->setMeta('theme_mode', $request->input('theme_mode'));
+            });
 
-            $result = RvMedia::handleUpload($request->file('avatar_file'), 0, 'users');
+        return $this
+            ->httpResponse()
+            ->setMessage(trans('core/acl::users.update_preferences_success'));
+    }
+
+    public function patchUpdatePreferences(User $user, PreferencePatchRequest $request)
+    {
+        foreach ($request->validated() as $key => $value) {
+            $user->setMeta($key, $value);
+        }
+
+        $user->save();
+
+        return $this->httpResponse()->withUpdatedSuccessMessage();
+    }
+
+    public function postAvatar(User $user, AvatarRequest $request)
+    {
+        $currentUser = $request->user();
+
+        $hasRightToUpdate = ($currentUser->hasPermission('users.edit') && $currentUser->getKey() === $user->getKey()) || $currentUser->isSuperUser();
+
+        if (! $hasRightToUpdate) {
+            return $this
+                ->httpResponse()
+                ->setNextUrl($user->url)
+                ->setError()
+                ->setMessage(trans('core/acl::permissions.access_denied_message'));
+        }
+
+        try {
+            $result = RvMedia::uploadFromBlob($request->file('avatar_file'), folderSlug: 'users');
 
             if ($result['error']) {
-                return $response->setError()->setMessage($result['message']);
+                return $this
+                    ->httpResponse()->setError()->setMessage($result['message']);
             }
-
-            $avatarData = json_decode($request->input('avatar_data'));
 
             $file = $result['data'];
 
-            $thumbnailService
-                ->setImage(RvMedia::getRealPath($file->url))
-                ->setSize((int)$avatarData->width, (int)$avatarData->height)
-                ->setCoordinates((int)$avatarData->x, (int)$avatarData->y)
-                ->setDestinationPath(File::dirname($file->url))
-                ->setFileName(File::name($file->url) . '.' . File::extension($file->url))
-                ->save('crop');
-
-            $this->fileRepository->forceDelete(['id' => $user->avatar_id]);
+            $mediaFile = MediaFile::query()->find($user->avatar_id);
+            $mediaFile?->delete();
 
             $user->avatar_id = $file->id;
+            $user->save();
 
-            $this->userRepository->createOrUpdate($user);
-
-            return $response
+            return $this
+                ->httpResponse()
                 ->setMessage(trans('core/acl::users.update_avatar_success'))
                 ->setData(['url' => RvMedia::url($file->url)]);
         } catch (Exception $exception) {
-            return $response
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param string $theme
-     * @return RedirectResponse
-     */
-    public function getTheme($theme)
+    public function removeAvatar(User $user, Request $request)
     {
-        if (Auth::check() && !app()->environment('demo')) {
-            UserMeta::setMeta('admin-theme', $theme);
+        $currentUser = $request->user();
+
+        $hasRightToUpdate = ($currentUser->hasPermission('users.edit') && $currentUser->getKey() === $user->getKey()) ||
+            $currentUser->isSuperUser();
+
+        if (! $hasRightToUpdate) {
+            return $this
+                ->httpResponse()
+                ->setNextUrl($user->url)
+                ->setError()
+                ->setMessage(trans('core/acl::permissions.access_denied_message'));
         }
 
-        session()->put('admin-theme', $theme);
+        $mediaFile = MediaFile::query()->find($user->avatar_id);
 
-        try {
-            return redirect()->back();
-        } catch (Exception $exception) {
-            return redirect()->route('access.login');
-        }
+        $mediaFile?->delete();
+
+        $user->avatar_id = null;
+
+        $user->save();
+
+        return $this
+            ->httpResponse()
+            ->setMessage(trans('core/acl::users.delete_avatar_success'))
+            ->setData(['url' => $user->avatar_url]);
     }
 
-    /**
-     * @param int $id
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function makeSuper($id, BaseHttpResponse $response)
+    public function makeSuper(User $user)
     {
         try {
-            $user = $this->userRepository->findOrFail($id);
-
-            $user->updatePermission(ACL_ROLE_SUPER_USER, true);
-            $user->updatePermission(ACL_ROLE_MANAGE_SUPERS, true);
+            $user->updatePermission(ACL_ROLE_SUPER_USER);
+            $user->updatePermission(ACL_ROLE_MANAGE_SUPERS);
             $user->super_user = 1;
             $user->manage_supers = 1;
-            $this->userRepository->createOrUpdate($user);
+            $user->save();
 
-            return $response
-                ->setNextUrl(route('users.index'))
+            return $this
+                ->httpResponse()
+                ->setNextRoute('users.index')
                 ->setMessage(trans('core/base::system.supper_granted'));
         } catch (Exception $exception) {
-            return $response
+            return $this
+                ->httpResponse()
                 ->setError()
-                ->setNextUrl(route('users.index'))
+                ->setNextRoute('users.index')
                 ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param int $id
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function removeSuper($id, Request $request, BaseHttpResponse $response)
+    public function removeSuper(User $user, Request $request)
     {
-        if ($request->user()->getKey() == $id) {
-            return $response
+        if ($request->user()->is($user)) {
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage(trans('core/base::system.cannot_revoke_yourself'));
         }
-
-        $user = $this->userRepository->findOrFail($id);
 
         $user->updatePermission(ACL_ROLE_SUPER_USER, false);
         $user->updatePermission(ACL_ROLE_MANAGE_SUPERS, false);
         $user->super_user = 0;
         $user->manage_supers = 0;
-        $this->userRepository->createOrUpdate($user);
+        $user->save();
 
-        return $response
-            ->setNextUrl(route('users.index'))
+        return $this
+            ->httpResponse()
+            ->setNextRoute('users.index')
             ->setMessage(trans('core/base::system.supper_revoked'));
-    }
-
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function toggleSidebarMenu(Request $request, BaseHttpResponse $response)
-    {
-        $status = $request->input('status') == 'true';
-
-        session()->put('sidebar-menu-toggle', $status ? now() : '');
-
-        return $response->setMessage($status);
     }
 }

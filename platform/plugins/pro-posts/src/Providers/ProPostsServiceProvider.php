@@ -2,14 +2,14 @@
 
 namespace TheSky\ProPosts\Providers;
 
+use Botble\Base\Traits\LoadAndPublishDataTrait;
+use Illuminate\Routing\Events\RouteMatched;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use TheSky\ProPosts\Models\FavoritePosts;
 use TheSky\ProPosts\Repositories\Caches\FavoritePostsCacheDecorator;
 use TheSky\ProPosts\Repositories\Eloquent\FavoritePostsRepository;
 use TheSky\ProPosts\Repositories\Interfaces\FavoritePostsInterface;
-use Illuminate\Support\Facades\Event;
-use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Illuminate\Routing\Events\RouteMatched;
 
 class ProPostsServiceProvider extends ServiceProvider
 {
@@ -33,7 +33,7 @@ class ProPostsServiceProvider extends ServiceProvider
             ->loadAndPublishViews()
             ->loadRoutes(['web']);
 
-        Event::listen(RouteMatched::class, function () {
+        Event::listen(RouteMatched::class, function (): void {
             if (defined('LANGUAGE_MODULE_SCREEN_NAME')) {
                 \Language::registerModule([FavoritePosts::class]);
             }

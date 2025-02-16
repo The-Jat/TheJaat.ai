@@ -2,6 +2,7 @@
 
 return [
     'name' => 'Menus',
+    'description' => 'Manage your system menus',
     'key_name' => 'Menu name (key: :key)',
     'basic_info' => 'Basic information',
     'add_to_menu' => 'Add to menu',
@@ -18,7 +19,6 @@ return [
     'self_open_link' => 'Open link directly',
     'blank_open_link' => 'Open link in new tab',
     'create' => 'Create menu',
-    'edit' => 'Edit menu',
     'menu_settings' => 'Menu settings',
     'display_location' => 'Display location',
     'title_placeholder' => 'Title',
@@ -26,4 +26,9 @@ return [
     'url_placeholder' => 'URL',
     'css_class_placeholder' => 'CSS class',
     'menu_id' => 'Menu ID',
+    'badge_text' => 'Badge text',
+    'badge_color' => 'Badge color',
+    'items' => 'Items',
+    'locations' => 'Locations',
+    'main_navigation' => 'Main Navigation',
 ];

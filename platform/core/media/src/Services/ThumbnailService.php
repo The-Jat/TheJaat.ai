@@ -2,157 +2,85 @@
 
 namespace Botble\Media\Services;
 
-use Exception;
-use Intervention\Image\ImageManager;
-use Log;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Media\Facades\RvMedia;
+use Illuminate\Support\Facades\File;
+use Intervention\Image\Encoders\AutoEncoder;
+use Throwable;
 
 class ThumbnailService
 {
-    /**
-     * @var ImageManager
-     */
-    protected $imageManager;
+    protected string $imagePath;
 
-    /**
-     * @var string
-     */
-    protected $imagePath;
+    protected float $thumbRate;
 
-    /**
-     * @var float
-     */
-    protected $thumbRate;
+    protected int|string|null $thumbWidth;
 
-    /**
-     * @var int
-     */
-    protected $thumbWidth;
+    protected int|string|null $thumbHeight;
 
-    /**
-     * @var int
-     */
-    protected $thumbHeight;
+    protected string $destinationPath;
 
-    /**
-     * @var string
-     */
-    protected $destinationPath;
+    protected ?int $xCoordinate;
 
-    /**
-     * @var string
-     */
-    protected $xCoordinate;
+    protected ?int $yCoordinate;
 
-    /**
-     * @var string
-     */
-    protected $yCoordinate;
+    protected string $fitPosition;
 
-    /**
-     * @var string
-     */
-    protected $fitPosition;
+    protected string $fileName;
 
-    /**
-     * @var string
-     */
-    protected $fileName;
-
-    /**
-     * @var UploadsManager
-     */
-    protected $uploadManager;
-
-    /**
-     * ThumbnailService constructor.
-     * @param UploadsManager $uploadManager
-     * @param ImageManager $imageManager
-     */
-    public function __construct(UploadsManager $uploadManager, ImageManager $imageManager)
+    public function __construct(protected UploadsManager $uploadManager)
     {
         $this->thumbRate = 0.75;
         $this->xCoordinate = null;
         $this->yCoordinate = null;
-        $this->fitPosition = 'center';
-
-        $driver = 'gd';
-        if (extension_loaded('imagick')) {
-            $driver = 'imagick';
-        }
-
-        $this->imageManager = $imageManager->configure(compact('driver'));
-        $this->uploadManager = $uploadManager;
+        $this->fitPosition = setting('media_thumbnail_crop_position', 'center');
     }
 
-    /**
-     * @param string $imagePath
-     * @return ThumbnailService
-     */
-    public function setImage(string $imagePath): ThumbnailService
+    public function setImage(string $imagePath): self
     {
         $this->imagePath = $imagePath;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getImage(): string
     {
         return $this->imagePath;
     }
 
-    /**
-     * @param int|string $width
-     * @param int|string $height
-     * @return ThumbnailService
-     */
-    public function setSize($width, $height = 'auto'): ThumbnailService
+    public function setSize(int|string $width, int|string $height = 'auto'): self
     {
         $this->thumbWidth = $width;
         $this->thumbHeight = $height;
 
-        if (!$height || $height == 'auto') {
+        if (! $height || $height == 'auto') {
             $this->thumbHeight = 0;
         } elseif ($height == 'rate') {
-            $this->thumbHeight = (int)($this->thumbWidth * $this->thumbRate);
+            $this->thumbHeight = (int) ($this->thumbWidth * $this->thumbRate);
         }
 
-        if (!$width || $width == 'auto') {
+        if (! $width || $width == 'auto') {
             $this->thumbWidth = 0;
         } elseif ($width == 'rate') {
-            $this->thumbWidth = (int)($this->thumbHeight * $this->thumbRate);
+            $this->thumbWidth = (int) ($this->thumbHeight * $this->thumbRate);
         }
 
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getSize(): array
     {
         return [$this->thumbWidth, $this->thumbHeight];
     }
 
-    /**
-     * @param string $destinationPath
-     * @return ThumbnailService
-     */
-    public function setDestinationPath(string $destinationPath): ThumbnailService
+    public function setDestinationPath(string $destinationPath): self
     {
         $this->destinationPath = $destinationPath;
 
         return $this;
     }
 
-    /**
-     * @param int $xCoordination
-     * @param int $yCoordination
-     * @return ThumbnailService
-     */
-    public function setCoordinates(int $xCoordination, int $yCoordination): ThumbnailService
+    public function setCoordinates(int $xCoordination, int $yCoordination): self
     {
         $this->xCoordinate = $xCoordination;
         $this->yCoordinate = $yCoordination;
@@ -160,40 +88,26 @@ class ThumbnailService
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getCoordinates(): array
     {
         return [$this->xCoordinate, $this->yCoordinate];
     }
 
-    /**
-     * @param string $fileName
-     * @return ThumbnailService
-     */
-    public function setFileName(string $fileName): ThumbnailService
+    public function setFileName(string $fileName): self
     {
         $this->fileName = $fileName;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getFileName(): string
     {
         return $this->fileName;
     }
 
-    /**
-     * @param string $type
-     * @return bool|string
-     */
-    public function save(string $type = 'fit')
+    public function save(string $type = 'fit'): bool|string
     {
-        $fileName = pathinfo($this->imagePath, PATHINFO_BASENAME);
+        $fileName = File::basename($this->imagePath);
 
         if ($this->fileName) {
             $fileName = $this->fileName;
@@ -201,52 +115,68 @@ class ThumbnailService
 
         $destinationPath = sprintf('%s/%s', trim($this->destinationPath, '/'), $fileName);
 
-        $thumbImage = $this->imageManager->make($this->imagePath);
+        $thumbImage = RvMedia::imageManager()->read($this->imagePath);
 
-        if ($this->thumbWidth && !$this->thumbHeight) {
+        if ($this->thumbWidth && ! $this->thumbHeight) {
             $type = 'width';
-        } elseif ($this->thumbHeight && !$this->thumbWidth) {
+        } elseif ($this->thumbHeight && ! $this->thumbWidth) {
             $type = 'height';
         }
 
         switch ($type) {
             case 'width':
-                $thumbImage->resize($this->thumbWidth, null, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                });
+                if (! $this->thumbWidth) {
+                    return $destinationPath;
+                }
+
+                $thumbImage->scale($this->thumbWidth);
+
                 break;
 
             case 'height':
-                $thumbImage->resize(null, $this->thumbHeight, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                });
+                if (! $this->thumbHeight) {
+                    return $destinationPath;
+                }
+
+                $thumbImage->scale(null, $this->thumbHeight);
+
                 break;
 
             case 'resize':
+                if (! $this->thumbWidth || ! $this->thumbHeight) {
+                    return $destinationPath;
+                }
+
                 $thumbImage->resize($this->thumbWidth, $this->thumbHeight);
+
                 break;
 
             case 'crop':
+                if (! $this->thumbWidth || ! $this->thumbHeight) {
+                    return $destinationPath;
+                }
+
                 $thumbImage->crop($this->thumbWidth, $this->thumbHeight, $this->xCoordinate, $this->yCoordinate);
+
                 break;
 
             case 'fit':
             default:
-                if (extension_loaded('exif')) {
-                    $thumbImage->orientate();
+                if (! $this->thumbWidth || ! $this->thumbHeight) {
+                    return $destinationPath;
                 }
 
-                $thumbImage->fit($this->thumbWidth, $this->thumbHeight, null, $this->fitPosition);
+                $thumbImage->cover($this->thumbWidth, $this->thumbHeight, $this->fitPosition);
+
                 break;
         }
 
         try {
-            $this->uploadManager->saveFile($destinationPath, $thumbImage->stream()->__toString());
-        } catch (Exception $exception) {
-            Log::error($exception->getMessage());
-            return false;
+            $this->uploadManager->saveFile($destinationPath, $thumbImage->encode(new AutoEncoder()));
+        } catch (Throwable $exception) {
+            BaseHelper::logError($exception);
+
+            throw $exception;
         }
 
         return $destinationPath;

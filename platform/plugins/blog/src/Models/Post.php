@@ -3,63 +3,31 @@
 namespace Botble\Blog\Models;
 
 use Botble\ACL\Models\User;
-use Botble\Base\Traits\EnumCastable;
-use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Revision\RevisionableTrait;
+use Botble\Base\Casts\SafeContent;
 use Botble\Base\Models\BaseModel;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Botble\Blog\Enums\PostStatusEnum;
+use Botble\Revision\RevisionableTrait;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Str;
 
 class Post extends BaseModel
 {
     use RevisionableTrait;
-    use EnumCastable;
 
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'posts';
 
-    /**
-     * @var mixed
-     */
-    protected $revisionEnabled = true;
+    protected bool $revisionEnabled = true;
 
-    /**
-     * @var mixed
-     */
-    protected $revisionCleanup = true;
+    protected bool $revisionCleanup = true;
 
-    /**
-     * @var int
-     */
-    protected $historyLimit = 20;
+    protected int $historyLimit = 20;
 
-    /**
-     * @var array
-     */
-    protected $dontKeepRevisionOf = [
+    protected array $dontKeepRevisionOf = [
         'content',
         'views',
     ];
 
-    /**
-     * @var array
-     */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-    ];
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'name',
         'description',
@@ -72,100 +40,102 @@ class Post extends BaseModel
         'author_type',
     ];
 
-    /**
-     * @var array
-     */
-    protected $casts = [
-        'status' => BaseStatusEnum::class,
-    ];
-
-    /**
-     * @return BelongsTo
-     * @deprecated
-     */
-    public function user(): BelongsTo
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class)->withDefault();
+        static::deleted(function (self $post): void {
+            $post->categories()->detach();
+            $post->tags()->detach();
+        });
+
+        static::creating(function (self $post): void {
+            $post->author_id = $post->author_id ?: auth()->id();
+            $post->author_type = $post->author_type ?: User::class;
+        });
     }
 
-    /**
-     * @return BelongsToMany
-     */
+    protected $casts = [
+        'status' => PostStatusEnum::class,
+        'name' => SafeContent::class,
+        'description' => SafeContent::class,
+    ];
+
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'post_tags');
     }
 
-    /**
-     * @return BelongsToMany
-     */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'post_categories');
     }
 
-    /**
-     * @return Category
-     */
-    public function getFirstCategoryAttribute(): ?Category
-    {
-        return $this->categories->first();
-    }
-
-    /**
-     * @return MorphTo
-     */
     public function author(): MorphTo
     {
         return $this->morphTo()->withDefault();
     }
 
-    /**
-     * Define a polymorphic, inverse one-to-one or many relationship.
-     *
-     * @param string|null $name
-     * @param string|null $type
-     * @param string|null $id
-     * @param string|null $ownerKey
-     * @return MorphTo
-     */
-    public function morphTo($name = null, $type = null, $id = null, $ownerKey = null)
+    protected function firstCategory(): Attribute
     {
-        // If no name is provided, we will use the backtrace to get the function name
-        // since that is most likely the name of the polymorphic interface. We can
-        // use that to get both the class and foreign key that will be utilized.
-        $name = $name ?: $this->guessBelongsToRelation();
+        return Attribute::get(function (): ?Category {
+            $this->loadMissing('categories');
 
-        [$type, $id] = $this->getMorphs(
-            Str::snake($name),
-            $type,
-            $id
-        );
-
-        // If the type value is null it is probably safe to assume we're eager loading
-        // the relationship. In this case we'll just pass in a dummy query where we
-        // need to remove any eager loads that may already be defined on a model.
-
-        $class = $this->getAttributeFromArray($type);
-
-        if (empty($class)) {
-            return $this->morphEagerTo($name, $type, $id, $ownerKey);
-        }
-
-        if (!class_exists($class)) {
-            $class = User::class;
-        }
-
-        return $this->morphInstanceTo($class, $name, $type, $id, $ownerKey);
+            return $this->categories->first();
+        });
     }
 
-    protected static function boot()
+    protected function timeReading(): Attribute
     {
-        parent::boot();
+        return Attribute::make(
+            get: function (): ?string {
+                if (! $this->content) {
+                    return null;
+                }
 
-        static::deleting(function (Post $post) {
-            $post->categories()->detach();
-            $post->tags()->detach();
-        });
+                $this->loadMissing('metadata');
+
+                $timeToRead = $this->getMetaData('time_to_read', true);
+
+                if ($timeToRead != null) {
+                    return number_format((float) $timeToRead);
+                }
+
+                return number_format(ceil(str_word_count(strip_tags($this->content)) / 200));
+            }
+        );
+    }
+
+    protected function authorUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?string {
+                if (! $this->author_id || ! class_exists($this->author_type)) {
+                    return null;
+                }
+
+                /**
+                 * @var BaseModel $author
+                 */
+                $author = $this->author;
+
+                if ($author && method_exists($author, 'url')) {
+                    return $author->url;
+                }
+
+                return null;
+            }
+        );
+    }
+
+    protected function authorName(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?string {
+                if (! $this->author_id || ! class_exists($this->author_type)) {
+                    return null;
+                }
+
+                return $this->author?->name;
+            }
+        );
     }
 }

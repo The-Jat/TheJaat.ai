@@ -2,6 +2,7 @@
 
 namespace Botble\SeoHelper\Entities;
 
+use Botble\Base\Facades\BaseHelper;
 use Botble\SeoHelper\Contracts\Entities\DescriptionContract;
 use Botble\SeoHelper\Exceptions\InvalidArgumentException;
 use Botble\SeoHelper\Helpers\Meta;
@@ -70,7 +71,7 @@ class Description implements DescriptionContract
     public function set($content)
     {
         if ($content) {
-            $this->content = trim(strip_tags($content));
+            $this->content = trim(strip_tags(BaseHelper::cleanShortcodes((string) $content)));
         }
 
         return $this;
@@ -103,28 +104,20 @@ class Description implements DescriptionContract
         return $this;
     }
 
-    /**
-     * Make a description instance.
-     *
-     * @param string $content
-     * @param int $max
-     *
-     * @return $this
-     * @throws InvalidArgumentException
-     */
-    public static function make($content, $max = 386)
+    public static function make(): self
     {
-        return new self();
+        return app(Description::class);
     }
 
     /**
      * Render the tag.
      *
      * @return string
+     * @throws InvalidArgumentException
      */
     public function render()
     {
-        if (!$this->hasContent()) {
+        if (! $this->hasContent()) {
             return '';
         }
 
@@ -148,7 +141,7 @@ class Description implements DescriptionContract
      */
     protected function hasContent()
     {
-        return !empty($this->get());
+        return ! empty($this->get());
     }
 
     /**
@@ -160,7 +153,7 @@ class Description implements DescriptionContract
      */
     protected function checkMax($max)
     {
-        if (!is_int($max)) {
+        if (! is_int($max)) {
             throw new InvalidArgumentException(
                 'The description maximum length must be integer.'
             );

@@ -2,6 +2,7 @@
 
 namespace Botble\SeoHelper;
 
+use Botble\Base\Facades\BaseHelper;
 use Botble\SeoHelper\Contracts\Entities\AnalyticsContract;
 use Botble\SeoHelper\Contracts\Entities\DescriptionContract;
 use Botble\SeoHelper\Contracts\Entities\MiscTagsContract;
@@ -43,17 +44,15 @@ class SeoMeta implements SeoMetaContract
      * The Analytics instance.
      *
      * @var AnalyticsContract
+     *
+     * @deprecated since 7.3.0 use ThemeSupport::renderGoogleTagManagerScript() instead.
      */
     protected $analytics;
 
-    /**
-     * @var null
-     */
-    protected $currentUrl = null;
+    protected ?string $currentUrl = null;
 
     /**
      * Make SeoMeta instance.
-     * @throws Exceptions\InvalidArgumentException
      */
     public function __construct()
     {
@@ -126,6 +125,8 @@ class SeoMeta implements SeoMetaContract
      * @param AnalyticsContract $analytics
      *
      * @return $this
+     *
+     * @deprecated since 7.3.0 use ThemeSupport::renderGoogleTagManagerScript() instead.
      */
     protected function analytics(AnalyticsContract $analytics)
     {
@@ -141,6 +142,7 @@ class SeoMeta implements SeoMetaContract
     public function setGoogle($code)
     {
         $this->analytics->setGoogle($code);
+
         return $this;
     }
 
@@ -153,11 +155,16 @@ class SeoMeta implements SeoMetaContract
     {
         $title = $this->title->getTitleOnly();
 
-        if (!theme_option('show_site_name') && $title) {
+        if (! theme_option('show_site_name') && $title) {
             return $title;
         }
 
         return $this->title->getTitle();
+    }
+
+    public function getTitleOnly(): ?string
+    {
+        return $this->title->getTitleOnly();
     }
 
     /**
@@ -171,15 +178,15 @@ class SeoMeta implements SeoMetaContract
      */
     public function setTitle($title, $siteName = null, $separator = null)
     {
-        if (!empty($title)) {
+        if (! empty($title)) {
             $this->title->set($title);
         }
 
-        if (!empty($siteName)) {
+        if (! empty($siteName)) {
             $this->title->setSiteName($siteName);
         }
 
-        if (!empty($separator)) {
+        if (! empty($separator)) {
             $this->title->setSeparator($separator);
         }
 
@@ -195,9 +202,19 @@ class SeoMeta implements SeoMetaContract
      */
     public function setDescription($content)
     {
+        $content = BaseHelper::cleanShortcodes($content);
+
         $this->description->set($content);
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDescription()
+    {
+        return $this->description->getContent();
     }
 
     /**
@@ -273,6 +290,11 @@ class SeoMeta implements SeoMetaContract
         return $this;
     }
 
+    public function getAnalytics(): AnalyticsContract
+    {
+        return $this->analytics;
+    }
+
     /**
      * Render all seo tags.
      *
@@ -295,7 +317,6 @@ class SeoMeta implements SeoMetaContract
             $this->description->render(),
             $this->misc->render(),
             $this->webmasters->render(),
-            $this->analytics->render(),
         ]));
     }
 }

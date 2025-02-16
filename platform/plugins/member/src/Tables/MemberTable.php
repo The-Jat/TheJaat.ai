@@ -2,161 +2,90 @@
 
 namespace Botble\Member\Tables;
 
-use BaseHelper;
-use Botble\Member\Repositories\Interfaces\MemberInterface;
+use Botble\Member\Models\Member;
 use Botble\Table\Abstracts\TableAbstract;
-use Html;
-use Illuminate\Contracts\Routing\UrlGenerator;
-use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\DataTables;
+use Botble\Table\Actions\DeleteAction;
+use Botble\Table\Actions\EditAction;
+use Botble\Table\BulkActions\DeleteBulkAction;
+use Botble\Table\BulkChanges\CreatedAtBulkChange;
+use Botble\Table\BulkChanges\EmailBulkChange;
+use Botble\Table\BulkChanges\NameBulkChange;
+use Botble\Table\Columns\CreatedAtColumn;
+use Botble\Table\Columns\EmailColumn;
+use Botble\Table\Columns\IdColumn;
+use Botble\Table\Columns\ImageColumn;
+use Botble\Table\Columns\NameColumn;
+use Botble\Table\HeaderActions\CreateHeaderAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class MemberTable extends TableAbstract
 {
-    /**
-     * @var bool
-     */
-    protected $hasActions = true;
-
-    /**
-     * @var bool
-     */
-    protected $hasFilter = true;
-
-    /**
-     * MemberTable constructor.
-     * @param DataTables $table
-     * @param UrlGenerator $urlGenerator
-     * @param MemberInterface $memberRepository
-     */
-    public function __construct(DataTables $table, UrlGenerator $urlGenerator, MemberInterface $memberRepository)
+    public function setup(): void
     {
-        parent::__construct($table, $urlGenerator);
-
-        $this->repository = $memberRepository;
-
-        if (!Auth::user()->hasAnyPermission(['member.edit', 'member.destroy'])) {
-            $this->hasOperations = false;
-            $this->hasActions = false;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
-    {
-        $data = $this->table
-            ->eloquent($this->query())
-            ->editColumn('avatar_id', function ($item) {
-                return Html::tag('img', '', ['src' => $item->avatar_thumb_url, 'alt' => $item->name, 'width' => 50]);
+        $this
+            ->model(Member::class)
+            ->addHeaderAction(CreateHeaderAction::make()->route('member.create'))
+            ->addColumns([
+                IdColumn::make(),
+                ImageColumn::make('avatar_thumb_url')
+                    ->title(trans('plugins/member::member.avatar'))
+                    ->fullMediaSize()
+                    ->relative(),
+                NameColumn::make()->route('member.edit')->orderable(false),
+                EmailColumn::make()->linkable(),
+                CreatedAtColumn::make(),
+            ])
+            ->addActions([
+                EditAction::make()->route('member.edit'),
+                DeleteAction::make()->route('member.destroy'),
+            ])
+            ->addBulkActions([
+                DeleteBulkAction::make()->permission('member.destroy'),
+            ])
+            ->addBulkChanges([
+                NameBulkChange::make()
+                    ->name('first_name')
+                    ->title(trans('plugins/member::member.first_name')),
+                NameBulkChange::make()
+                    ->name('last_name')
+                    ->title(trans('plugins/member::member.last_name')),
+                EmailBulkChange::make(),
+                CreatedAtBulkChange::make(),
+            ])
+            ->queryUsing(function ($query) {
+                return $query->select([
+                    'id',
+                    'avatar_id',
+                    'first_name',
+                    'last_name',
+                    'email',
+                    'created_at',
+                ]);
             })
-            ->editColumn('first_name', function ($item) {
-                if (!Auth::user()->hasPermission('member.edit')) {
-                    return $item->name;
-                }
+            ->onAjax(function (TableAbstract $table) {
+                return $table->toJson(
+                    $this->table
+                        ->eloquent($this->query())
+                        ->filter(function (Builder $query) {
+                            $keyword = $this->request->input('search.value');
 
-                return Html::link(route('member.edit', $item->id), $item->name);
-            })
-            ->editColumn('checkbox', function ($item) {
-                return $this->getCheckbox($item->id);
-            })
-            ->editColumn('created_at', function ($item) {
-                return BaseHelper::formatDate($item->created_at);
-            })
-            ->addColumn('operations', function ($item) {
-                return $this->getOperations('member.edit', 'member.destroy', $item);
+                            if (! $keyword) {
+                                return $query;
+                            }
+
+                            return $query->where(function (Builder $query) use ($keyword): void {
+                                $likeKeyword = '%' . $keyword . '%';
+
+                                $query
+                                    ->where('id', $keyword)
+                                    ->orWhere('first_name', 'LIKE', $likeKeyword)
+                                    ->orWhere('last_name', 'LIKE', $likeKeyword)
+                                    ->orWhereRaw('concat(first_name, " ", last_name) LIKE ?', $likeKeyword)
+                                    ->orWhere('email', 'LIKE', $likeKeyword)
+                                    ->orWhereDate('created_at', $keyword);
+                            });
+                        })
+                );
             });
-
-        return $this->toJson($data);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function query()
-    {
-        $query = $this->repository->getModel()->select([
-            'id',
-            'avatar_id',
-            'first_name',
-            'last_name',
-            'email',
-            'created_at',
-        ]);
-
-        return $this->applyScopes($query);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
-    {
-        return [
-            'id'         => [
-                'title' => trans('core/base::tables.id'),
-                'width' => '20px',
-            ],
-            'avatar_id'  => [
-                'title' => trans('plugins/member::member.avatar'),
-                'width' => '70px',
-            ],
-            'first_name' => [
-                'title' => trans('core/base::tables.name'),
-                'class' => 'text-start',
-            ],
-            'email'      => [
-                'title' => trans('core/base::tables.email'),
-                'class' => 'text-start',
-            ],
-            'created_at' => [
-                'title' => trans('core/base::tables.created_at'),
-                'width' => '100px',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        return $this->addCreateButton(route('member.create'), 'member.create');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function bulkActions(): array
-    {
-        return $this->addDeleteAction(route('member.deletes'), 'member.destroy', parent::bulkActions());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBulkChanges(): array
-    {
-        return [
-            'first_name' => [
-                'title'    => trans('plugins/member::member.first_name'),
-                'type'     => 'text',
-                'validate' => 'required|max:120',
-            ],
-            'last_name'  => [
-                'title'    => trans('plugins/member::member.last_name'),
-                'type'     => 'text',
-                'validate' => 'required|max:120',
-            ],
-            'email'      => [
-                'title'    => trans('core/base::tables.email'),
-                'type'     => 'text',
-                'validate' => 'required|max:120|email',
-            ],
-            'created_at' => [
-                'title' => trans('core/base::tables.created_at'),
-                'type'  => 'date',
-            ],
-        ];
     }
 }

@@ -1,95 +1,152 @@
+@php
+    /** @var Botble\Table\Abstracts\TableAbstract $table */
+@endphp
+
 <div class="wrapper-filter">
     <p>{{ trans('core/table::table.filters') }}</p>
 
-    <input type="hidden" class="filter-data-url" value="{{ route('tables.get-filter-input') }}">
+    <input
+        type="hidden"
+        class="filter-data-url"
+        value="{{ isset($table) ? $table->getFilterInputUrl() : route('table.filter.input') }}"
+    />
 
     <div class="sample-filter-item-wrap hidden">
-        <div class="filter-item form-filter">
-            <div class="ui-select-wrapper">
-                <select name="filter_columns[]" class="ui-select filter-column-key">
-                    <option value="">{{ trans('core/table::table.select_field') }}</option>
-                    @foreach($columns as $columnKey => $column)
-                        <option value="{{ $columnKey }}">{{ $column['title'] }}</option>
-                    @endforeach
-                </select>
-                <svg class="svg-next-icon svg-next-icon-size-16">
-                    <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#select-chevron"></use>
-                </svg>
+        <div class="row filter-item form-filter">
+            <div class="col-auto w-50 w-sm-auto">
+                <x-core::form.select
+                    name="filter_columns[]"
+                    :options="array_combine(array_keys($columns), array_column($columns, 'title'))"
+                    class="filter-column-key"
+                />
             </div>
-            <div class="ui-select-wrapper">
-                <select name="filter_operators[]" class="ui-select filter-operator filter-column-operator">
-                    <option value="like">{{ trans('core/table::table.contains') }}</option>
-                    <option value="=">{{ trans('core/table::table.is_equal_to') }}</option>
-                    <option value=">">{{ trans('core/table::table.greater_than') }}</option>
-                    <option value="<">{{ trans('core/table::table.less_than') }}</option>
-                </select>
-                <svg class="svg-next-icon svg-next-icon-size-16">
-                    <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#select-chevron"></use>
-                </svg>
+
+            <div class="col-auto w-50 w-sm-auto">
+                <x-core::form.select
+                    name="filter_operators[]"
+                    :options="[
+                        'like' => trans('core/table::table.contains'),
+                        '=' => trans('core/table::table.is_equal_to'),
+                        '>' => trans('core/table::table.greater_than'),
+                        '<' => trans('core/table::table.less_than'),
+                    ]"
+                    class="filter-operator filter-column-operator"
+                />
             </div>
-            <span class="filter-column-value-wrap">
-                <input class="form-control filter-column-value" type="text" placeholder="{{ trans('core/table::table.value') }}"
-                       name="filter_values[]">
-            </span>
-            <span class="btn-remove-filter-item" title="{{ trans('core/table::table.delete') }}">
-                <i class="fa fa-trash text-danger"></i>
-            </span>
+
+            <div class="col-auto w-100 w-sm-25">
+                <span class="filter-column-value-wrap">
+                    <input
+                        class="form-control filter-column-value"
+                        type="text"
+                        placeholder="{{ trans('core/table::table.value') }}"
+                        name="filter_values[]"
+                    >
+                </span>
+            </div>
+
+            <div class="col">
+                <x-core::button
+                    type="button"
+                    class="btn-remove-filter-item mb-3 text-danger"
+                    :tooltip="trans('core/table::table.delete')"
+                    icon="ti ti-trash"
+                    :icon-only="true"
+                />
+            </div>
         </div>
     </div>
 
-    {{ Form::open(['method' => 'GET', 'class' => 'filter-form']) }}
-        <input type="hidden" name="filter_table_id" class="filter-data-table-id" value="{{ $tableId }}">
-        <input type="hidden" name="class" class="filter-data-class" value="{{ $class }}">
+    <x-core::form class="filter-form" method="get">
+        <input
+            type="hidden"
+            name="filter_table_id"
+            class="filter-data-table-id"
+            value="{{ $tableId }}"
+        >
+        <input
+            type="hidden"
+            name="class"
+            class="filter-data-class"
+            value="{{ $class }}"
+        >
         <div class="filter_list inline-block filter-items-wrap">
-            @foreach($requestFilters as $filterItem)
-                <div class="filter-item form-filter @if ($loop->first) filter-item-default @endif">
-                    <div class="ui-select-wrapper">
-                        <select name="filter_columns[]" class="ui-select filter-column-key">
-                            <option value="">{{ trans('core/table::table.select_field') }}</option>
-                            @foreach($columns as $columnKey => $column)
-                                <option value="{{ $columnKey }}" @if ($filterItem['column'] == $columnKey) selected @endif>{{ $column['title'] }}</option>
-                            @endforeach
-                        </select>
-                        <svg class="svg-next-icon svg-next-icon-size-16">
-                            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#select-chevron"></use>
-                        </svg>
+            @foreach ($requestFilters as $filterItem)
+                <div @class([
+                    'row filter-item form-filter',
+                    'filter-item-default' => $loop->first,
+                ])>
+                    <div class="col-auto w-50 w-sm-auto">
+                        <x-core::form.select
+                            name="filter_columns[]"
+                            :options="['' => trans('core/table::table.select_field')] + array_combine(array_keys($columns), array_column($columns, 'title'))"
+                            :value="$filterItem['column']"
+                            class="filter-column-key"
+                        />
                     </div>
-                    <div class="ui-select-wrapper">
-                        <select name="filter_operators[]" class="ui-select filter-column-operator">
-                            <option value="like"
-                                    @if ($filterItem['operator'] == 'like') selected @endif>{{ trans('core/table::table.contains') }}</option>
-                            <option value="="
-                                    @if ($filterItem['operator'] == '=') selected @endif>{{ trans('core/table::table.is_equal_to') }}</option>
-                            <option value=">"
-                                    @if ($filterItem['operator'] == '>') selected @endif>{{ trans('core/table::table.greater_than') }}</option>
-                            <option value="<"
-                                    @if ($filterItem['operator'] == '<') selected @endif>{{ trans('core/table::table.less_than') }}</option>
-                        </select>
-                        <svg class="svg-next-icon svg-next-icon-size-16">
-                            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#select-chevron"></use>
-                        </svg>
+
+                    <div class="col-auto w-50 w-sm-auto">
+                        <x-core::form.select
+                            name="filter_operators[]"
+                            :options="[
+                                'like' => trans('core/table::table.contains'),
+                                '=' => trans('core/table::table.is_equal_to'),
+                                '>' => trans('core/table::table.greater_than'),
+                                '<' => trans('core/table::table.less_than'),
+                            ]"
+                            :value="$filterItem['operator']"
+                            class="filter-operator filter-column-operator"
+                        />
                     </div>
-                    <span class="filter-column-value-wrap">
-                        <input class="form-control filter-column-value" type="text" placeholder="{{ trans('core/table::table.value') }}"
-                               name="filter_values[]" value="{{ $filterItem['value'] }}">
-                    </span>
-                    @if ($loop->first)
-                        <span class="btn-reset-filter-item" title="{{ trans('core/table::table.reset') }}">
-                            <i class="fa fa-eraser text-info" style="font-size: 13px;"></i>
-                        </span>
-                    @else
-                        <span class="btn-remove-filter-item" title="{{ trans('core/table::table.delete') }}">
-                            <i class="fa fa-trash text-danger"></i>
-                        </span>
-                    @endif
+
+                    <div class="col-auto w-100 w-sm-25">
+                        <div class="filter-column-value-wrap mb-3">
+                            <input
+                                class="form-control filter-column-value"
+                                type="text"
+                                placeholder="{{ trans('core/table::table.value') }}"
+                                name="filter_values[]"
+                                value="{{ $filterItem['value'] }}"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="col">
+                        @if (!$loop->first)
+                            <x-core::button
+                                type="button"
+                                class="btn-remove-filter-item mb-3 text-danger"
+                                :tooltip="trans('core/table::table.delete')"
+                                icon="ti ti-trash"
+                                :icon-only="true"
+                            />
+                        @endif
+                    </div>
                 </div>
             @endforeach
         </div>
-        <div style="margin-top: 10px;">
-            <a href="javascript:;" class="btn btn-secondary add-more-filter">{{ trans('core/table::table.add_additional_filter') }}</a>
-            <a href="{{ URL::current() }}" class="btn btn-info @if (!request()->has('filter_table_id')) hidden @endif">{{ trans('core/table::table.reset') }}</a>
-            <button type="submit" class="btn btn-primary btn-apply">{{ trans('core/table::table.apply') }}</button>
+        <div class="btn-list">
+            <x-core::button
+                type="button"
+                class="add-more-filter"
+            >
+                {{ trans('core/table::table.add_additional_filter') }}
+            </x-core::button>
+            <x-core::button
+                type="submit"
+                color="primary"
+                class="btn-apply"
+            >
+                {{ trans('core/table::table.apply') }}
+            </x-core::button>
+            <x-core::button
+                tag="a"
+                href="{{ URL::current() }}"
+                data-bb-toggle="datatable-reset-filter"
+                @style(['display: none' => !request()->has('filter_table_id')])
+                icon="ti ti-refresh"
+                :icon-only="true"
+            />
         </div>
-
-    {{ Form::close() }}
+    </x-core::form>
 </div>

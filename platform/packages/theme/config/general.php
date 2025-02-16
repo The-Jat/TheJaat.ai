@@ -47,10 +47,10 @@ return [
     */
 
     'containerDir' => [
-        'layout'  => 'layouts',
-        'asset'   => '',
+        'layout' => 'layouts',
+        'asset' => '',
         'partial' => 'partials',
-        'view'    => 'views',
+        'view' => 'views',
     ],
 
     /*
@@ -71,7 +71,11 @@ return [
 
     'enable_custom_html_shortcode' => env('CMS_THEME_ENABLE_CUSTOM_HTML_SHORTCODE', true),
 
+    'enable_robots_txt_editor' => env('CMS_THEME_ENABLE_ROBOTS_TXT_EDITOR', true),
+
     'public_theme_name' => env('CMS_THEME_PUBLIC_NAME'),
 
     'display_theme_manager_in_admin_panel' => env('CMS_THEME_DISPLAY_THEME_MANAGER_IN_ADMIN_PANEL', true),
+
+    'public_single_ending_url' => env('PUBLIC_SINGLE_ENDING_URL'),
 ];

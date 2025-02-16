@@ -358,10 +358,15 @@
 
     //Counter
     var numberCounter = function () {
-        $(".counter-number").counterUp({
-            delay: 10,
-            time: 2000
-        });
+        const counterUp = window.counterUp.default
+        const counters = document.querySelectorAll( '.counter-number' )
+
+        for(const el of counters) {
+            counterUp( el, {
+                duration: 2000,
+                delay: 10,
+            } )
+        }
     };
 
     // Slider Range JS

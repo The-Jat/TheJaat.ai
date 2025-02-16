@@ -2,46 +2,54 @@
 
 namespace Botble\LanguageAdvanced\Supports;
 
-use Botble\Base\Models\BaseModel;
-use Botble\LanguageAdvanced\Models\PageTranslation;
-use Botble\Page\Models\Page;
+use Botble\Base\Contracts\BaseModel;
+use Botble\Base\Facades\MacroableModels;
+use Botble\Language\Facades\Language;
+use Botble\LanguageAdvanced\Models\TranslationResolver;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Language;
+use Illuminate\Support\Str;
 
 class LanguageAdvancedManager
 {
-    /**
-     * @param BaseModel|\stdClass $object
-     * @param Request $request
-     * @return bool
-     */
-    public static function save($object, $request): bool
+    public static function save(?Model $object, Request $request): bool
     {
-        if (!self::isSupported($object)) {
+        if (! self::isSupported($object)) {
             return false;
         }
 
         $language = $request->input('language');
 
+        if (! $language) {
+            $language = Language::getCurrentAdminLocaleCode();
+        }
+
         $condition = [
-            'lang_code'                 => $language,
-            $object->getTable() . '_id' => $object->id,
+            'lang_code' => $language,
+            $object->getTable() . '_id' => $object->getKey(),
         ];
 
         $table = $object->getTable() . '_translations';
 
         $data = [];
         foreach (DB::getSchemaBuilder()->getColumnListing($table) as $column) {
-            if (!in_array($column, array_keys($condition))) {
+            if (! in_array($column, array_keys($condition))) {
                 $data[$column] = $request->input($column);
             }
         }
 
         $data = array_merge($data, $condition);
 
-        $translate = DB::table($table)->where($condition)->first();
+        $data = apply_filters('language_advanced_before_save', $data, $object, $request);
+
+        $data = array_map(function ($value) {
+            return is_array($value) ? json_encode($value) : $value;
+        }, $data);
+
+        $translate = DB::table($table)->where($condition)->exists();
 
         if ($translate) {
             DB::table($table)->where($condition)->update($data);
@@ -49,17 +57,19 @@ class LanguageAdvancedManager
             DB::table($table)->insert($data);
         }
 
-        if ($language != Language::getDefaultLocaleCode()) {
+        $defaultLocale = Language::getDefaultLocaleCode();
+
+        if ($language != $defaultLocale) {
             $defaultTranslation = DB::table($table)
                 ->where([
-                    'lang_code'                 => Language::getDefaultLocaleCode(),
-                    $object->getTable() . '_id' => $object->id,
+                    'lang_code' => $defaultLocale,
+                    $object->getTable() . '_id' => $object->getKey(),
                 ])
                 ->first();
 
             if ($defaultTranslation) {
                 foreach (DB::getSchemaBuilder()->getColumnListing($table) as $column) {
-                    if (!in_array($column, array_keys($condition))) {
+                    if (! in_array($column, array_keys($condition))) {
                         $object->{$column} = $defaultTranslation->{$column};
                     }
                 }
@@ -71,13 +81,9 @@ class LanguageAdvancedManager
         return true;
     }
 
-    /**
-     * @param string|BaseModel $model
-     * @return bool
-     */
-    public static function isSupported($model): bool
+    public static function isSupported(BaseModel|Model|string|null $model): bool
     {
-        if (!$model) {
+        if (! $model) {
             return false;
         }
 
@@ -88,37 +94,24 @@ class LanguageAdvancedManager
         return in_array($model, self::supportedModels());
     }
 
-    /**
-     * @return int[]|string[]
-     */
     public static function supportedModels(): array
     {
         return array_keys(self::getSupported());
     }
 
-    /**
-     * @return array
-     */
     public static function getSupported(): array
     {
         return config('plugins.language-advanced.general.supported', []);
     }
 
-    /**
-     * @return array
-     */
     public static function getConfigs(): array
     {
         return config('plugins.language-advanced.general', []);
     }
 
-    /**
-     * @param string|BaseModel $model
-     * @return array
-     */
-    public static function getTranslatableColumns($model): array
+    public static function getTranslatableColumns(BaseModel|Model|string|null $model): array
     {
-        if (!$model) {
+        if (! $model) {
             return [];
         }
 
@@ -126,35 +119,9 @@ class LanguageAdvancedManager
             $model = get_class($model);
         }
 
-        return Arr::get(LanguageAdvancedManager::getSupported(), $model, []);
+        return Arr::get(self::getSupported(), $model, []);
     }
 
-    /**
-     * @param string|BaseModel $model
-     * @return ?string
-     */
-    public static function getTranslationModel($model): ?string
-    {
-        if (!$model) {
-            return null;
-        }
-
-        if (is_object($model)) {
-            $model = get_class($model);
-        }
-
-        if ($model == Page::class) {
-            return PageTranslation::class;
-        }
-
-        return $model . 'Translation';
-    }
-
-    /**
-     * @param string $model
-     * @param array $columns
-     * @return bool
-     */
     public static function registerModule(string $model, array $columns): bool
     {
         config([
@@ -164,36 +131,37 @@ class LanguageAdvancedManager
         return true;
     }
 
-    /**
-     * @param BaseModel|\stdClass $object
-     * @return bool
-     */
-    public static function delete($object): bool
+    public static function removeModule(array|string $model): void
     {
-        if (!self::isSupported($object)) {
+        foreach ((array) $model as $item) {
+            $supported = self::getSupported();
+
+            if (isset($supported[$item])) {
+                unset($supported[$item]);
+            }
+
+            config(['plugins.language-advanced.general.supported' => $supported]);
+        }
+    }
+
+    public static function delete(BaseModel|Model|string|null $object): bool
+    {
+        if (! self::isSupported($object)) {
             return false;
         }
 
         $table = $object->getTable() . '_translations';
 
-        DB::table($table)->where([$object->getTable() . '_id' => $object->id])->delete();
+        DB::table($table)->where([$object->getTable() . '_id' => $object->getKey()])->delete();
 
         return true;
     }
 
-    /**
-     * @param string $metaBoxKey
-     * @return bool
-     */
     public static function isTranslatableMetaBox(string $metaBoxKey): bool
     {
         return in_array($metaBoxKey, Arr::get(self::getConfigs(), 'translatable_meta_boxes', []));
     }
 
-    /**
-     * @param string $metaBoxKey
-     * @return bool
-     */
     public static function addTranslatableMetaBox(string $metaBoxKey): bool
     {
         $metaBoxes = array_merge(Arr::get(self::getConfigs(), 'translatable_meta_boxes', []), [$metaBoxKey]);
@@ -201,5 +169,70 @@ class LanguageAdvancedManager
         config(['plugins.language-advanced.general.translatable_meta_boxes' => $metaBoxes]);
 
         return true;
+    }
+
+    public static function initModelRelations(): void
+    {
+        $locale = is_in_admin() ? Language::getCurrentAdminLocaleCode() : Language::getCurrentLocaleCode();
+
+        $isDefaultLocale = $locale == Language::getDefaultLocaleCode();
+
+        foreach (self::getSupported() as $item => $columns) {
+            if (! class_exists($item)) {
+                continue;
+            }
+            /**
+             * @var Model $item
+             */
+            $item::resolveRelationUsing('translations', function ($model) {
+                $instance = tap(
+                    new TranslationResolver(),
+                    function ($instance): void {
+                        if (! $instance->getConnectionName()) {
+                            $instance->setConnection(DB::getDefaultConnection());
+                        }
+                    }
+                );
+
+                $modelTable = $model->getTable();
+
+                $instance->setTable($modelTable . '_translations');
+
+                $instance->fillable(array_merge([
+                    'lang_code',
+                    $modelTable . '_id',
+                ], self::getTranslatableColumns($model::class)));
+
+                return new HasMany(
+                    $instance->newQuery(),
+                    $model,
+                    $modelTable . '_translations.' . $modelTable . '_id',
+                    $model->getKeyName()
+                );
+            });
+
+            foreach ($columns as $column) {
+                MacroableModels::addMacro(
+                    $item,
+                    'get' . ucfirst(Str::camel($column)) . 'Attribute',
+                    function () use ($column, $locale, $isDefaultLocale) {
+                        /**
+                         * @var Model $model
+                         */
+                        $model = $this; // @phpstan-ignore-line
+
+                        if (
+                            ! $model->lang_code &&
+                            ! $isDefaultLocale &&
+                            $translation = $model->translations->where('lang_code', $locale)->value($column)
+                        ) {
+                            return $translation;
+                        }
+
+                        return $model->getAttribute($column);
+                    }
+                );
+            }
+        }
     }
 }

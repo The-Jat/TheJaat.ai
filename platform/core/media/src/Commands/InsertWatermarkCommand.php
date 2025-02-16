@@ -2,84 +2,75 @@
 
 namespace Botble\Media\Commands;
 
-use Botble\Media\Repositories\Interfaces\MediaFileInterface;
+use Botble\Media\Facades\RvMedia;
+use Botble\Media\Models\MediaFile;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use RvMedia;
 
+use function Laravel\Prompts\{progress, table};
+
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\InputOption;
+
+#[AsCommand('cms:media:insert-watermark', 'Insert watermark for existing images')]
 class InsertWatermarkCommand extends Command
 {
-    /**
-     * The console command signature.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:media:insert-watermark {--folder= : Folder ID}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Insert watermark for existing images';
-
-    /**
-     * @var MediaFileInterface
-     */
-    protected $fileRepository;
-
-    /**
-     * @param MediaFileInterface $fileRepository
-     */
-    public function __construct(MediaFileInterface $fileRepository)
+    public function handle(): int
     {
-        parent::__construct();
-        $this->fileRepository = $fileRepository;
-    }
+        $this->components->info('Starting to insert watermark...');
 
-    /**
-     * @return int
-     */
-    public function handle()
-    {
-        $this->info('Starting to insert watermark...');
+        if (! setting('media_watermark_enabled', RvMedia::getConfig('watermark.enabled'))) {
+            $this->components->error('Watermark is not enabled!');
 
-        if (!setting('media_watermark_enabled', RvMedia::getConfig('watermark.enabled'))) {
-            $this->error('Watermark is not enabled!');
-            return 1;
+            return self::FAILURE;
         }
 
         $watermarkImage = setting('media_watermark_source', RvMedia::getConfig('watermark.source'));
 
-        if (!$watermarkImage) {
-            $this->error('Path to watermark image is not correct!');
-            return 1;
+        if (! $watermarkImage) {
+            $this->components->error('Path to watermark image is not correct!');
+
+            return self::FAILURE;
         }
 
         $watermarkPath = RvMedia::getRealPath($watermarkImage);
 
-        if (!File::exists($watermarkPath)) {
-            $this->error('Path to watermark image is not correct!');
-            return 1;
+        if (! File::exists($watermarkPath)) {
+            $this->components->error('Path to watermark image is not correct!');
+
+            return self::FAILURE;
         }
 
         if ($this->option('folder')) {
-            $files = $this->fileRepository->allBy(['folder_id' => $this->option('folder')], [], ['url', 'mime_type', 'folder_id']);
+            $files = MediaFile::query()
+                ->where('folder_id', $this->option('folder'))
+                ->select(['url', 'mime_type', 'folder_id'])
+                ->get();
         } else {
-            $files = $this->fileRepository->allBy([], [], ['url', 'mime_type', 'folder_id']);
+            $files = MediaFile::query()
+                ->select(['url', 'mime_type', 'folder_id'])
+                ->get();
         }
 
-        $this->info('Processing ' . $files->count() . ' ' . Str::plural('file', $files->count()) . '...');
+        $progress = progress(
+            label: sprintf('Processing %d %s...', $files->count(), Str::plural('file', $files->count())),
+            steps: $files->count()
+        );
 
         $errors = [];
 
         $watermarkImage = setting('media_watermark_source', RvMedia::getConfig('watermark.source'));
 
         foreach ($files as $file) {
+            /**
+             * @var MediaFile $file
+             */
             try {
-                if (!$file->canGenerateThumbnails()) {
+                $progress->label(sprintf('Processing %s...', $file->url));
+
+                if (! $file->canGenerateThumbnails()) {
                     continue;
                 }
 
@@ -87,33 +78,40 @@ class InsertWatermarkCommand extends Command
                     continue;
                 }
 
-                $folderIds = json_decode(setting('media_folders_can_add_watermark'), true);
+                $folderIds = json_decode(setting('media_folders_can_add_watermark', ''), true);
 
                 if (empty($folderIds) || in_array($file->folder_id, $folderIds)) {
                     RvMedia::insertWatermark($file->url);
                 }
+
+                $progress->advance();
             } catch (Exception $exception) {
                 $errors[] = $file->url;
-                $this->error($exception->getMessage());
+                $this->components->error($exception->getMessage());
             }
         }
 
-        $this->info('Inserted watermark successfully!');
+        $progress->finish();
+
+        $this->components->info('Inserted watermark successfully!');
 
         $errors = array_unique($errors);
 
-        $errors = array_map(function ($item) {
-            return [$item];
-        }, $errors);
+        $errors = array_map(fn ($item) => [$item], $errors);
 
         if ($errors) {
-            $this->info('We are unable to insert watermark for these files:');
+            $this->components->info('We are unable to insert watermark for these files:');
 
-            $this->table(['File directory'], $errors);
+            table(['File directory'], $errors);
 
-            return 1;
+            return self::FAILURE;
         }
 
-        return 0;
+        return self::SUCCESS;
+    }
+
+    protected function configure(): void
+    {
+        $this->addOption('folder', 'f', InputOption::VALUE_REQUIRED, 'The folder ID');
     }
 }

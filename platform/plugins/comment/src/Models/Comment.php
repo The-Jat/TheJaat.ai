@@ -4,35 +4,24 @@ namespace Botble\Comment\Models;
 
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
-use Botble\Base\Traits\EnumCastable;
-use Botble\Member\Models\Member;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Comment extends BaseModel
 {
-    use EnumCastable;
+    public static ?Model $author = null;
 
-    /**
-     * @var BaseModel
-     */
-    public static $author;
-
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'bb_comments';
 
-    /**
-     * @var array
-     */
     protected $fillable = [
         'comment',
         'reference_id',
         'reference_type',
         'ip_address',
         'user_id',
+        'user_type',
         'status',
         'parent_id',
         'reply_count',
@@ -40,16 +29,10 @@ class Comment extends BaseModel
         'updated_at',
     ];
 
-    /**
-     * @var array
-     */
     protected $casts = [
         'status' => BaseStatusEnum::class,
     ];
 
-    /**
-     * @var string[]
-     */
     protected $appends = [
         'time',
         'rep',
@@ -57,9 +40,6 @@ class Comment extends BaseModel
         'liked',
     ];
 
-    /**
-     * @var string[]
-     */
     protected $with = [
         'user',
     ];
@@ -68,47 +48,35 @@ class Comment extends BaseModel
     {
         parent::boot();
 
-        static::created(function (Comment $comment) {
-            if ((int)$comment->parent_id !== 0) {
+        static::created(function (Comment $comment): void {
+            if ((int) $comment->parent_id !== 0) {
                 $parent = Comment::where(['id' => $comment->parent_id])->first();
                 $parent->reply_count = Comment::where(['parent_id' => $parent->id])->count();
                 $parent->save();
             }
         });
 
-        static::deleted(function (Comment $comment) {
+        static::deleted(function (Comment $comment): void {
             Comment::where(['parent_id' => $comment->id])->delete();
         });
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
-    public function user()
+    public function user(): MorphTo
     {
-        return $this->hasOne(Member::class, 'id', 'user_id')->withDefault();
+        return $this->morphTo('user')->withDefault();
     }
 
-    /**
-     * @return MorphTo
-     */
-    public function reference()
+    public function reference(): MorphTo
     {
         return $this->morphTo();
     }
 
-    /**
-     * @return string
-     */
-    public function getTimeAttribute()
+    public function getTimeAttribute(): string
     {
         return $this->created_at->diffForHumans();
     }
 
-    /**
-     * @return bool
-     */
-    public function getIsAuthorAttribute()
+    public function getIsAuthorAttribute(): bool
     {
         if (self::$author && $this->user) {
             return $this->user->email === self::$author->email && $this->user->user_type === get_class(self::$author);
@@ -117,40 +85,28 @@ class Comment extends BaseModel
         return false;
     }
 
-    /**
-     * @return array|\Illuminate\Contracts\Pagination\LengthAwarePaginator
-     */
-    public function getRepAttribute()
+    public function getRepAttribute(): LengthAwarePaginator|array
     {
-        return (int)$this->reply_count > 0 ? $this->replies()
+        return (int) $this->reply_count > 0 ? $this->replies()
             ->orderBy('created_at', 'DESC')
             ->paginate(5, ['*'], 'rep_page') : [];
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function replies()
+    public function replies(): HasMany
     {
         return $this->hasMany(Comment::class, 'parent_id', 'id');
     }
 
-    /**
-     * @return bool
-     */
-    public function getLikedAttribute()
+    public function getLikedAttribute(): bool
     {
-        if ((int)$this->like_count > 0 && auth()->guard(COMMENT_GUARD)->check()) {
+        if ((int) $this->like_count > 0 && auth()->guard(COMMENT_GUARD)->check()) {
             return $this->likes()->where(['user_id' => auth()->guard(COMMENT_GUARD)->id()])->exists();
         }
 
         return false;
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function likes()
+    public function likes(): HasMany
     {
         return $this->hasMany(CommentLike::class);
     }

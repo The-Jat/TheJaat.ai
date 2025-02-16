@@ -5,63 +5,30 @@ namespace Botble\Sitemap\Providers;
 use Botble\Base\Events\CreatedContentEvent;
 use Botble\Base\Events\DeletedContentEvent;
 use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Sitemap\Sitemap;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Foundation\Application;
 
 class SitemapServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    /**
-     * Indicates if loading of the provider is deferred.
-     *
-     * @var bool
-     */
-    protected $defer = true;
+    protected bool $defer = true;
 
-    /**
-     * Bootstrap the application events.
-     *
-     * @return void
-     */
-    public function boot()
+    public function register(): void
     {
-        $this->setNamespace('packages/sitemap')
-            ->loadAndPublishConfigurations(['config'])
-            ->loadAndPublishViews()
-            ->publishAssets();
-
-        Event::listen(CreatedContentEvent::class, function () {
-            cache()->forget('cache_site_map_key');
-        });
-
-        Event::listen(UpdatedContentEvent::class, function () {
-            cache()->forget('cache_site_map_key');
-        });
-
-        Event::listen(DeletedContentEvent::class, function () {
-            cache()->forget('cache_site_map_key');
-        });
-    }
-
-    /**
-     * Register the service provider.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        $this->app->bind('sitemap', function ($app) {
-            $config = config('packages.sitemap.config');
+        $this->app->bind('sitemap', function (Application $app) {
+            $config = $app['config']->get('packages.sitemap.config', []);
 
             return new Sitemap(
                 $config,
-                $app['Illuminate\Cache\Repository'],
+                $app[Repository::class],
                 $app['config'],
                 $app['files'],
-                $app['Illuminate\Contracts\Routing\ResponseFactory'],
+                $app[ResponseFactory::class],
                 $app['view']
             );
         });
@@ -69,12 +36,24 @@ class SitemapServiceProvider extends ServiceProvider
         $this->app->alias('sitemap', Sitemap::class);
     }
 
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array
-     */
-    public function provides()
+    public function boot(): void
+    {
+        $this
+            ->setNamespace('packages/sitemap')
+            ->loadAndPublishConfigurations(['config'])
+            ->loadAndPublishViews()
+            ->publishAssets();
+
+        $this->app['events']->listen([
+            CreatedContentEvent::class,
+            UpdatedContentEvent::class,
+            DeletedContentEvent::class,
+        ], function (): void {
+            $this->app['cache']->forget('cache_site_map_key');
+        });
+    }
+
+    public function provides(): array
     {
         return ['sitemap', Sitemap::class];
     }

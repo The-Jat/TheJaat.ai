@@ -5,18 +5,13 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class () extends Migration {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        if (!Schema::hasTable('posts_translations')) {
-            Schema::create('posts_translations', function (Blueprint $table) {
-                $table->string('lang_code');
-                $table->integer('posts_id');
-                $table->string('name', 255)->nullable();
+        if (! Schema::hasTable('posts_translations')) {
+            Schema::create('posts_translations', function (Blueprint $table): void {
+                $table->string('lang_code', 20);
+                $table->foreignId('posts_id');
+                $table->string('name')->nullable();
                 $table->string('description', 400)->nullable();
                 $table->longText('content')->nullable();
 
@@ -24,22 +19,22 @@ return new class () extends Migration {
             });
         }
 
-        if (!Schema::hasTable('categories_translations')) {
-            Schema::create('categories_translations', function (Blueprint $table) {
-                $table->string('lang_code');
-                $table->integer('categories_id');
-                $table->string('name', 255)->nullable();
+        if (! Schema::hasTable('categories_translations')) {
+            Schema::create('categories_translations', function (Blueprint $table): void {
+                $table->string('lang_code', 20);
+                $table->foreignId('categories_id');
+                $table->string('name')->nullable();
                 $table->string('description', 400)->nullable();
 
                 $table->primary(['lang_code', 'categories_id'], 'categories_translations_primary');
             });
         }
 
-        if (!Schema::hasTable('tags_translations')) {
-            Schema::create('tags_translations', function (Blueprint $table) {
-                $table->string('lang_code');
-                $table->integer('tags_id');
-                $table->string('name', 255)->nullable();
+        if (! Schema::hasTable('tags_translations')) {
+            Schema::create('tags_translations', function (Blueprint $table): void {
+                $table->string('lang_code', 20);
+                $table->foreignId('tags_id');
+                $table->string('name')->nullable();
                 $table->string('description', 400)->nullable();
 
                 $table->primary(['lang_code', 'tags_id'], 'tags_translations_primary');
@@ -47,12 +42,7 @@ return new class () extends Migration {
         }
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('posts_translations');
         Schema::dropIfExists('categories_translations');

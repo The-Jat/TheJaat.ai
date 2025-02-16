@@ -2,135 +2,87 @@
 
 namespace Botble\Language\Http\Controllers;
 
-use Assets;
-use BaseHelper;
 use Botble\Base\Events\CreatedContentEvent;
-use Botble\Base\Events\DeletedContentEvent;
 use Botble\Base\Events\UpdatedContentEvent;
-use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Supports\Language;
+use Botble\Language\Facades\Language as LanguageFacade;
+use Botble\Language\Forms\Settings\LanguageSettingForm;
 use Botble\Language\Http\Requests\LanguageRequest;
 use Botble\Language\LanguageManager;
+use Botble\Language\Models\Language as LanguageModel;
 use Botble\Language\Models\LanguageMeta;
-use Botble\Language\Repositories\Interfaces\LanguageInterface;
-use Botble\Language\Repositories\Interfaces\LanguageMetaInterface;
-use Botble\Setting\Models\Setting;
-use Botble\Setting\Supports\SettingStore;
+use Botble\Setting\Facades\Setting;
+use Botble\Setting\Http\Controllers\SettingController;
+use Botble\Theme\Facades\Theme;
+use Botble\Theme\Facades\ThemeOption;
 use Botble\Translation\Manager;
 use Botble\Widget\Models\Widget;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
-use Exception;
-use File;
-use Illuminate\Contracts\View\Factory;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Language as LanguageFacade;
-use Theme;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 
-class LanguageController extends BaseController
+class LanguageController extends SettingController
 {
-    /**
-     * @var LanguageInterface
-     */
-    protected $languageRepository;
-
-    /**
-     * @var LanguageMetaInterface
-     */
-    protected $languageMetaRepository;
-
-    /**
-     * LanguageController constructor.
-     * @param LanguageInterface $languageRepository
-     * @param LanguageMetaInterface $languageMetaRepository
-     */
-    public function __construct(LanguageInterface $languageRepository, LanguageMetaInterface $languageMetaRepository)
-    {
-        $this->languageRepository = $languageRepository;
-        $this->languageMetaRepository = $languageMetaRepository;
-    }
-
-    /**
-     * @return Factory|Application|View
-     */
     public function index()
     {
-        page_title()->setTitle(trans('plugins/language::language.name'));
+        $this->pageTitle(trans('plugins/language::language.name'));
 
         Assets::addScriptsDirectly(['vendor/core/plugins/language/js/language.js']);
 
         $languages = Language::getListLanguages();
         $flags = Language::getListLanguageFlags();
-        $activeLanguages = $this->languageRepository->all();
+        $languageCodes = Language::getLanguageCodes();
+        $localeKeys = Language::getLocaleKeys();
+        $activeLanguages = LanguageModel::query()->orderBy('lang_order')->get();
 
-        return view('plugins/language::index', compact('languages', 'flags', 'activeLanguages'));
+        $languageSettingForm = LanguageSettingForm::create();
+
+        return view(
+            'plugins/language::index',
+            compact('languages', 'flags', 'activeLanguages', 'languageSettingForm', 'languageCodes', 'localeKeys')
+        );
     }
 
-    /**
-     * @param LanguageRequest $request
-     * @param BaseHttpResponse $response
-     * @param LanguageManager $languageManager
-     * @return BaseHttpResponse
-     * @throws Throwable
-     */
-    public function postStore(LanguageRequest $request, BaseHttpResponse $response, LanguageManager $languageManager)
+    public function store(LanguageRequest $request, LanguageManager $languageManager)
     {
         try {
-            $language = $this->languageRepository->getFirstBy([
-                'lang_code' => $request->input('lang_code'),
-            ]);
+            $language = LanguageModel::query()
+                ->where('lang_code', $request->input('lang_code'))
+                ->first();
 
             if ($language) {
-                return $response
+                return $this
+                    ->httpResponse()
                     ->setError()
                     ->setMessage(trans('plugins/language::language.added_already'));
             }
 
-            if ($this->languageRepository->count() == 0) {
+            if (! LanguageModel::query()->exists()) {
                 $request->merge(['lang_is_default' => 1]);
             }
 
-            if (!File::isWritable(lang_path()) || !File::isWritable(lang_path('vendor'))) {
-                return $response
+            File::ensureDirectoryExists(lang_path('vendor'));
+
+            if (! File::isWritable(lang_path()) || ! File::isWritable(lang_path('vendor'))) {
+                return $this
+                    ->httpResponse()
                     ->setError()
-                    ->setMessage(trans('plugins/translation::translation.folder_is_not_writeable', ['lang_path' => lang_path()]));
+                    ->setMessage(
+                        trans('plugins/translation::translation.folder_is_not_writeable', ['lang_path' => lang_path()])
+                    );
             }
 
             $locale = $request->input('lang_locale');
 
-            if (!File::isDirectory(lang_path($locale))) {
-                $importedLocale = false;
+            $this->importLocaleIfMissing($locale);
 
-                if (is_plugin_active('translation')) {
-                    $result = app(Manager::class)->downloadRemoteLocale($locale);
-
-                    $importedLocale = !$result['error'];
-                }
-
-                if (!$importedLocale) {
-                    $defaultLocale = lang_path('en');
-                    if (File::exists($defaultLocale)) {
-                        File::copyDirectory($defaultLocale, lang_path($locale));
-                    }
-
-                    $this->createLocaleInPath(lang_path('vendor/core'), $locale);
-                    $this->createLocaleInPath(lang_path('vendor/packages'), $locale);
-                    $this->createLocaleInPath(lang_path('vendor/plugins'), $locale);
-
-                    $themeLocale = Arr::first(BaseHelper::scanFolder(theme_path(Theme::getThemeName() . '/lang')));
-
-                    if ($themeLocale) {
-                        File::copy(theme_path(Theme::getThemeName() . '/lang/' . $themeLocale), lang_path($locale . '.json'));
-                    }
-                }
-            }
-
-            $language = $this->languageRepository->createOrUpdate($request->except('lang_id'));
+            $language = LanguageModel::query()->create($request->except('lang_id'));
 
             $this->clearRoutesCache();
 
@@ -139,13 +91,13 @@ class LanguageController extends BaseController
             try {
                 $models = $languageManager->supportedModels();
 
-                if ($this->languageRepository->count() == 1) {
+                if (LanguageModel::query()->count() == 1) {
                     foreach ($models as $model) {
-                        if (!class_exists($model)) {
+                        if (! class_exists($model)) {
                             continue;
                         }
 
-                        $ids = LanguageMeta::where('reference_type', $model)
+                        $ids = LanguageMeta::query()->where('reference_type', $model)
                             ->pluck('reference_id')
                             ->all();
 
@@ -159,80 +111,109 @@ class LanguageController extends BaseController
                         $data = [];
                         foreach ($referenceIds as $referenceId) {
                             $data[] = [
-                                'reference_id'     => $referenceId,
-                                'reference_type'   => $model,
-                                'lang_meta_code'   => $language->lang_code,
+                                'reference_id' => $referenceId,
+                                'reference_type' => $model,
+                                'lang_meta_code' => $language->lang_code,
                                 'lang_meta_origin' => md5($referenceId . $model . time()),
                             ];
                         }
 
-                        LanguageMeta::insert($data);
+                        LanguageMeta::query()->insert($data);
                     }
                 }
-            } catch (Exception $exception) {
-                return $response
+            } catch (Throwable $exception) {
+                return $this
+                    ->httpResponse()
                     ->setData(view('plugins/language::partials.language-item', ['item' => $language])->render())
                     ->setMessage($exception->getMessage());
             }
 
-            return $response
+            return $this
+                ->httpResponse()
                 ->setData(view('plugins/language::partials.language-item', ['item' => $language])->render())
-                ->setMessage(trans('core/base::notices.create_success_message'));
-        } catch (Exception $exception) {
-            return $response
+                ->withCreatedSuccessMessage();
+        } catch (Throwable $exception) {
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Throwable
-     */
-    public function update(Request $request, BaseHttpResponse $response)
+    protected function importLocaleIfMissing(string $locale): bool
     {
-        try {
-            $language = $this->languageRepository->getFirstBy(['lang_id' => $request->input('lang_id')]);
-            if (empty($language)) {
-                abort(404);
+        if (File::isDirectory(lang_path($locale))) {
+            return false;
+        }
+
+        $importedLocale = false;
+
+        if (is_plugin_active('translation')) {
+            $result = app(Manager::class)->downloadRemoteLocale($locale);
+
+            $importedLocale = ! $result['error'];
+        }
+
+        if (! $importedLocale) {
+            $defaultLocale = lang_path('en');
+            if (File::exists($defaultLocale)) {
+                File::copyDirectory($defaultLocale, lang_path($locale));
             }
 
+            $this->createLocaleInPath(lang_path('vendor/core'), $locale);
+            $this->createLocaleInPath(lang_path('vendor/packages'), $locale);
+            $this->createLocaleInPath(lang_path('vendor/plugins'), $locale);
+
+            $this->copyThemeLangFiles($locale);
+        }
+
+        return $importedLocale;
+    }
+
+    public function update(Request $request)
+    {
+        try {
+            $language = LanguageModel::query()->where('lang_id', $request->input('lang_id'))->first();
+            abort_if(empty($language), 404);
+
             $language->fill($request->input());
-            $language = $this->languageRepository->createOrUpdate($language);
+            $language->save();
+
+            $locale = $request->input('lang_locale');
+
+            $this->importLocaleIfMissing($locale);
 
             $this->clearRoutesCache();
 
             event(new UpdatedContentEvent(LANGUAGE_MODULE_SCREEN_NAME, $request, $language));
 
-            return $response
+            return $this
+                ->httpResponse()
                 ->setData(view('plugins/language::partials.language-item', ['item' => $language])->render())
-                ->setMessage(trans('core/base::notices.update_success_message'));
-        } catch (Exception $exception) {
-            return $response
+                ->withUpdatedSuccessMessage();
+        } catch (Throwable $exception) {
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function postChangeItemLanguage(Request $request, BaseHttpResponse $response)
+    public function postChangeItemLanguage(Request $request)
     {
         $referenceId = $request->input('reference_id') ?: $request->input('lang_meta_created_from');
-        $currentLanguage = $this->languageMetaRepository->getFirstBy([
-            'reference_id'   => $referenceId,
-            'reference_type' => $request->input('reference_type'),
-        ]);
+        $currentLanguage = LanguageMeta::query()
+            ->where([
+                'reference_id' => $referenceId,
+                'reference_type' => $request->input('reference_type'),
+            ])
+            ->first();
 
-        $others = $this->languageMetaRepository->getModel();
+        $others = LanguageMeta::query();
 
         if ($currentLanguage) {
-            $others = $others->where('lang_meta_code', '!=', $request->input('lang_meta_current_language'))
+            $others = $others
+                ->where('lang_meta_code', '!=', $request->input('lang_meta_current_language'))
                 ->where('lang_meta_origin', $currentLanguage->origin);
         }
 
@@ -240,22 +221,25 @@ class LanguageController extends BaseController
 
         $data = [];
         foreach ($others as $other) {
-            $language = $this->languageRepository->getFirstBy(['lang_code' => $other->lang_code], [
-                'lang_flag',
-                'lang_name',
-                'lang_code',
-            ]);
+            $language = LanguageModel::query()
+                ->where('lang_code', $other->lang_code)
+                ->select([
+                    'lang_flag',
+                    'lang_name',
+                    'lang_code',
+                ])
+                ->first();
 
-            if (!empty($language) && !empty($currentLanguage) && $language->lang_code != $currentLanguage->lang_meta_code) {
+            if (! empty($language) && ! empty($currentLanguage) && $language->lang_code != $currentLanguage->lang_meta_code) {
                 $data[$language->lang_code]['lang_flag'] = $language->lang_flag;
                 $data[$language->lang_code]['lang_name'] = $language->lang_name;
                 $data[$language->lang_code]['reference_id'] = $other->reference_id;
             }
         }
 
-        $languages = $this->languageRepository->all();
+        $languages = LanguageModel::query()->get();
         foreach ($languages as $language) {
-            if (!array_key_exists(
+            if (! array_key_exists(
                 $language->lang_code,
                 $data
             ) && $language->lang_code != $request->input('lang_meta_current_language')) {
@@ -265,181 +249,179 @@ class LanguageController extends BaseController
             }
         }
 
-        return $response->setData($data);
+        return $this
+            ->httpResponse()
+            ->setData($data);
     }
 
-    /**
-     * @param Request $request
-     * @param int $id
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function destroy(Request $request, $id, BaseHttpResponse $response)
+    public function destroy(int|string $id)
     {
-        try {
-            $language = $this->languageRepository->getFirstBy(['lang_id' => $id]);
-            $this->languageRepository->delete($language);
-            $defaultLanguageId = false;
+        $language = LanguageModel::query()->where('lang_id', $id)->first();
 
-            if ($language->lang_is_default) {
-                $defaultLanguage = $this->languageRepository->getFirstBy([
-                    'lang_is_default' => 1,
-                ]);
+        return DeleteResourceAction::make($language)
+            ->afterDeleting(function (DeleteResourceAction $action): void {
+                $defaultLanguageId = false;
 
-                if ($defaultLanguage) {
-                    $defaultLanguageId = $defaultLanguage->lang_id;
+                if ($action->getModel()->lang_is_default) {
+                    $defaultLanguage = LanguageModel::query()->where('lang_is_default', 1)->first();
+
+                    if ($defaultLanguage) {
+                        $defaultLanguageId = $defaultLanguage->lang_id;
+                    }
                 }
-            }
 
-            $this->clearRoutesCache();
+                $this->clearRoutesCache();
 
-            event(new DeletedContentEvent(LANGUAGE_MODULE_SCREEN_NAME, $request, $language));
-
-            return $response
-                ->setData($defaultLanguageId)
-                ->setMessage(trans('core/base::notices.delete_success_message'));
-        } catch (Exception $exception) {
-            return $response
-                ->setError()
-                ->setMessage($exception->getMessage());
-        }
+                $this->httpResponse()->setData($defaultLanguageId);
+            });
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function getSetDefault(Request $request, BaseHttpResponse $response)
+    public function getSetDefault(Request $request)
     {
+        $newLanguageId = $request->input('lang_id');
+
+        $newLanguage = LanguageModel::query()->where('lang_id', $newLanguageId)->firstOrFail();
+
+        $newLanguageCode = $newLanguage->lang_code;
+
+        $themeName = Theme::getThemeName();
+
         $defaultLanguage = LanguageFacade::getDefaultLanguage(['lang_id', 'lang_code']);
 
-        $this->languageRepository->update(['lang_is_default' => 1], ['lang_is_default' => 0]);
+        if ($defaultLanguage) {
+            $currentLanguageId = $defaultLanguage->lang_id;
+            $currentLanguageCode = $defaultLanguage->lang_code;
 
-        $language = $this->languageRepository->getFirstBy(['lang_id' => $request->input('lang_id')]);
-        if ($language) {
-            $language->lang_is_default = 1;
-            $this->languageRepository->createOrUpdate($language);
-        }
+            try {
+                if ($currentLanguageId != $newLanguageId) {
+                    if (! Widget::query()->where('theme', Widget::getThemeName($newLanguageCode))->exists()) {
+                        $widgets = Widget::query()->where('theme', $themeName)->get();
 
-        try {
-            if ($defaultLanguage->lang_id != $request->input('lang_id')) {
-                $widgets = Widget::where('theme', 'NOT LIKE', '%-' . $language->lang_code)->get();
+                        foreach ($widgets as $widget) {
+                            $replicated = $widget->replicate();
 
-                foreach ($widgets as $widget) {
-                    if (!Widget::where('theme', $widget->theme . '-' . $language->lang_code)->count()) {
-                        $widget->replicate()->save();
+                            $widget->theme = Widget::getThemeName($currentLanguageCode);
+                            $widget->save();
+
+                            $replicated->save();
+                        }
+                    } else {
+                        $currentWidgets = Widget::query()->where('theme', Widget::getThemeName($newLanguageCode))->get();
+
+                        Widget::query()->where('theme', Widget::getThemeName($newLanguageCode))->delete();
+
+                        $widgets = Widget::query()->where('theme', $themeName)->get();
+
+                        foreach ($widgets as $widget) {
+                            $widget->theme = Widget::getThemeName($currentLanguageCode);
+                            $widget->save();
+                        }
+
+                        foreach ($currentWidgets as $widget) {
+                            $widget = $widget->replicate();
+                            $widget->theme = $themeName;
+                            $widget->save();
+                        }
                     }
 
-                    $widget->theme = $widget->theme . '-' . $defaultLanguage->lang_code;
-                    $widget->save();
-                }
+                    $themeOptionKey = ThemeOption::getOptionKey('', $currentLanguageCode);
 
-                $widgets = Widget::where('theme', 'LIKE', '%-' . $language->lang_code)->get();
+                    if (! Setting::newQuery()->where(
+                        'key',
+                        'LIKE',
+                        ThemeOption::getOptionKey('%', $newLanguageCode)
+                    )->exists()) {
+                        $themeOptions = Setting::newQuery()->where('key', 'LIKE', $themeOptionKey . '%')->get();
 
-                foreach ($widgets as $widget) {
-                    $widget->theme = str_replace('-' . $language->lang_code, '', $widget->theme);
-                    $widget->save();
-                }
+                        foreach ($themeOptions as $themeOption) {
+                            $replicated = $themeOption->replicate();
 
-                $themeName = Theme::getThemeName();
+                            $themeOption->key = str_replace(
+                                ThemeOption::getOption($themeOption->key, $defaultLanguage->lang_code),
+                                ThemeOption::getOption($themeOption->key),
+                                $themeOption->key
+                            );
+                            $themeOption->save();
 
-                $themeOptions = Setting::where('key', 'LIKE', 'theme-' . $themeName . '-%')
-                    ->where('key', 'NOT LIKE', 'theme-' . $themeName . '-' . $language->lang_code . '-%')->get();
+                            $replicated->save();
+                        }
+                    } else {
+                        $currentThemeOptions = Setting::newQuery()->where(
+                            'key',
+                            'LIKE',
+                            ThemeOption::getOptionKey('%', $newLanguageCode)
+                        )->get();
 
-                foreach ($themeOptions as $themeOption) {
-                    $currentLanguageKey = str_replace('theme-' . $themeName . '-', 'theme-' . $themeName . '-' . $language->lang_code . '-', $themeOption->key);
+                        Setting::newQuery()
+                            ->where('key', 'LIKE', ThemeOption::getOptionKey('%', $newLanguageCode))
+                            ->delete();
 
-                    if (!Setting::where('key', $currentLanguageKey)->count()) {
-                        $themeOption->replicate()->save();
+                        $themeOptions = Setting::newQuery()->where('key', 'LIKE', $themeOptionKey . '%')->get();
+
+                        foreach ($themeOptions as $themeOption) {
+                            $themeOption->key = str_replace(
+                                $themeOptionKey,
+                                ThemeOption::getOptionKey('', $currentLanguageCode),
+                                $themeOption->key
+                            );
+
+                            $themeOption->save();
+                        }
+
+                        foreach ($currentThemeOptions as $themeOption) {
+                            $themeOption = $themeOption->replicate();
+
+                            $themeOption->key = str_replace(
+                                ThemeOption::getOptionKey('', $newLanguageCode),
+                                $themeOptionKey,
+                                $themeOption->key
+                            );
+
+                            $themeOption->save();
+                        }
                     }
-
-                    $themeOption->key = str_replace('theme-' . $themeName . '-', 'theme-' . $themeName . '-' . $defaultLanguage->lang_code . '-', $themeOption->key);
-                    if (!Setting::where('key', $themeOption->key)->count()) {
-                        $themeOption->save();
-                    }
                 }
-
-                $themeOptions = Setting::where('key', 'LIKE', 'theme-' . $themeName . '-' . $language->lang_code . '-%')->get();
-
-                foreach ($themeOptions as $themeOption) {
-                    $themeOption->key = str_replace('theme-' . $themeName . '-' . $language->lang_code . '-', 'theme-' . $themeName . '-', $themeOption->key);
-
-                    if (!Setting::where('key', $themeOption->key)->count()) {
-                        $themeOption->save();
-                    }
-                }
+            } catch (Throwable $exception) {
+                BaseHelper::logError($exception);
             }
-        } catch (Exception $exception) {
-            info($exception->getMessage());
         }
+
+        LanguageModel::query()->where('lang_is_default', 1)->update(['lang_is_default' => 0]);
+
+        $newLanguage->lang_is_default = 1;
+        $newLanguage->save();
 
         $this->clearRoutesCache();
 
-        event(new UpdatedContentEvent(LANGUAGE_MODULE_SCREEN_NAME, $request, $language));
+        event(new UpdatedContentEvent(LANGUAGE_MODULE_SCREEN_NAME, $request, $newLanguage));
 
-        return $response->setMessage(trans('core/base::notices.update_success_message'));
+        return $this
+            ->httpResponse()
+            ->withUpdatedSuccessMessage();
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function getLanguage(Request $request, BaseHttpResponse $response)
+    public function getLanguage(Request $request)
     {
-        $language = $this->languageRepository->getFirstBy(['lang_id' => $request->input('lang_id')]);
+        $language = LanguageModel::query()->where('lang_id', $request->input('lang_id'))->first();
 
-        return $response->setData($language);
+        return $this
+            ->httpResponse()
+            ->setData($language);
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @param SettingStore $settingStore
-     * @return BaseHttpResponse
-     */
-    public function postEditSettings(Request $request, BaseHttpResponse $response, SettingStore $settingStore)
-    {
-        $settingStore
-            ->set('language_hide_default', $request->input('language_hide_default', false))
-            ->set('language_display', $request->input('language_display'))
-            ->set('language_switcher_display', $request->input('language_switcher_display'))
-            ->set('language_hide_languages', json_encode($request->input('language_hide_languages', [])))
-            ->set('language_auto_detect_user_language', $request->input('language_auto_detect_user_language'))
-            ->set(
-                'language_show_default_item_if_current_version_not_existed',
-                $request->input('language_show_default_item_if_current_version_not_existed')
-            )
-            ->save();
-
-        return $response->setMessage(trans('core/base::notices.update_success_message'));
-    }
-
-    /**
-     * @param string $code
-     * @param LanguageManager $language
-     * @return RedirectResponse
-     * @since 2.2
-     */
     public function getChangeDataLanguage($code, LanguageManager $language)
     {
-        $previousUrl = strtok(app('url')->previous(), '?');
+        $previousUrl = strtok(URL::previous(), '?');
 
         $queryString = null;
         if ($code !== $language->getDefaultLocaleCode()) {
-            $queryString = '?' . http_build_query(['ref_lang' => $code]);
+            $queryString = '?' . http_build_query([LanguageFacade::refLangKey() => $code]);
         }
 
         return redirect()->to($previousUrl . $queryString);
     }
 
-    /**
-     * @param string $path
-     * @param string $locale
-     * @return int|void
-     */
-    protected function createLocaleInPath(string $path, $locale)
+    protected function createLocaleInPath(string $path, string $locale): int
     {
         $folders = File::directories($path);
 
@@ -454,15 +436,12 @@ class LanguageController extends BaseController
         return count($folders);
     }
 
-    /**
-     * @return bool
-     */
-    public function clearRoutesCache()
+    public function clearRoutesCache(): bool
     {
-        foreach (LanguageFacade::getSupportedLanguagesKeys() as $locale) {
-            $path = app()->getCachedRoutesPath();
+        $path = app()->getCachedRoutesPath();
 
-            if (!$locale) {
+        foreach (LanguageFacade::getSupportedLanguagesKeys() as $locale) {
+            if (! $locale) {
                 $locale = LanguageFacade::getDefaultLocale();
             }
 
@@ -474,5 +453,31 @@ class LanguageController extends BaseController
         }
 
         return true;
+    }
+
+    protected function copyThemeLangFiles(mixed $locale)
+    {
+        if (Theme::hasInheritTheme()) {
+            $this->copyThemeLangFilesFromTheme(Theme::getInheritTheme(), $locale);
+        }
+
+        $this->copyThemeLangFilesFromTheme(Theme::getThemeName(), $locale);
+    }
+
+    protected function copyThemeLangFilesFromTheme(string $theme, string $locale): void
+    {
+        $themeLangPath = theme_path($theme . '/lang');
+
+        if (! File::isDirectory($themeLangPath)) {
+            return;
+        }
+        $themeLocale = Arr::first(BaseHelper::scanFolder($themeLangPath));
+        $themeLocalePath = $themeLangPath . '/' . $themeLocale;
+
+        if (! $themeLocale) {
+            return;
+        }
+
+        File::copy($themeLocalePath, lang_path($locale . '.json'));
     }
 }

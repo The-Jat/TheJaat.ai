@@ -6,25 +6,20 @@ use Botble\Base\Models\MetaBox as MetaBoxModel;
 use Botble\Base\Supports\BaseSeeder;
 use Botble\Language\Models\LanguageMeta;
 use Botble\Page\Models\Page;
-use Botble\LanguageAdvanced\Models\PageTranslation;
 use Botble\Slug\Models\Slug;
 use Html;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use SlugHelper;
 
 class PageSeeder extends BaseSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         $pages = [
             [
-                'name'     => 'Homepage',
-                'content'  =>
+                'name' => 'Homepage',
+                'content' =>
                     Html::tag('div', '[posts-slider title="" filter_by="featured" limit="4" include="" style="1"][/posts-slider]') .
                     Html::tag('div', '[posts-slider title="Editor\'s picked" filter_by="posts-collection" posts_collection_id="1" limit=6 style="2" description="The featured articles are selected by experienced editors. It is also based on the reader\'s rating. These posts have a lot of interest."][/posts-slider]') .
                     Html::tag('div', '[recent-posts title="Recent posts" subtitle="Latest" limit="3" background_style="background-white" show_follow_us_section="1" tab_post_limit="4" ads_location="bottom-sidebar-ads"][/recent-posts]') .
@@ -37,8 +32,8 @@ class PageSeeder extends BaseSeeder
                 'template' => 'homepage',
             ],
             [
-                'name'     => 'Home 2',
-                'content'  =>
+                'name' => 'Home 2',
+                'content' =>
                     Html::tag('div', '[posts-slider filter_by="featured" limit="6" style="3"][/posts-slider]') .
                     Html::tag('div', '[categories-tab-posts title="Popular" subtitle="P" limit="5" categories_ids="1,2,3,4" show_follow_us_section="1" ads_location="top-sidebar-ads"][/categories-tab-posts]') .
                     Html::tag('div', '[most-comments title="Most comments" limit="8" subtitle="M"][/most-comments]') .
@@ -49,8 +44,8 @@ class PageSeeder extends BaseSeeder
                 'template' => 'homepage2',
             ],
             [
-                'name'     => 'Home 3',
-                'content'  =>
+                'name' => 'Home 3',
+                'content' =>
                     Html::tag('div', '[posts-slider filter_by="featured" limit="6" style="4"][/posts-slider]') .
                     Html::tag('div', '[posts-grid title="Featured Posts" subtitle="News" limit="6" order_by="views" order="desc"][/posts-grid]') .
                     Html::tag('div', '[most-comments title="Most comments" limit="8" subtitle="M"][/most-comments]') .
@@ -61,28 +56,28 @@ class PageSeeder extends BaseSeeder
                 'template' => 'homepage2',
             ],
             [
-                'name'     => 'Blog',
-                'content'  => Html::tag('div', '[posts-listing layout="list"][/posts-listing]'),
+                'name' => 'Blog',
+                'content' => Html::tag('div', '[posts-listing layout="list"][/posts-listing]'),
                 'template' => 'default',
             ],
             [
-                'name'     => 'Category List',
-                'content'  => Html::tag('div', '[posts-listing layout="list"][/posts-listing]'),
+                'name' => 'Category List',
+                'content' => Html::tag('div', '[posts-listing layout="list"][/posts-listing]'),
                 'template' => 'no-breadcrumbs',
             ],
             [
-                'name'     => 'Category grid',
-                'content'  => Html::tag('div', '[posts-listing layout="grid"][/posts-listing]'),
+                'name' => 'Category grid',
+                'content' => Html::tag('div', '[posts-listing layout="grid"][/posts-listing]'),
                 'template' => 'full',
             ],
             [
-                'name'     => 'Category metro',
-                'content'  => Html::tag('div', '[posts-listing layout="metro"][/posts-listing]'),
+                'name' => 'Category metro',
+                'content' => Html::tag('div', '[posts-listing layout="metro"][/posts-listing]'),
                 'template' => 'full',
             ],
             [
-                'name'     => 'Contact',
-                'content'  =>
+                'name' => 'Contact',
+                'content' =>
                     Html::tag('div', '[contact-form title="Get in Touch"][/contact-form]') .
                     Html::tag('h3', 'Directions') .
                     Html::tag('div', '[google-map]North Link Building, 10 Admiralty Street, 757695 Singapore[/google-map]')
@@ -90,8 +85,8 @@ class PageSeeder extends BaseSeeder
                 'template' => 'default',
             ],
             [
-                'name'     => 'About Us',
-                'content'  =>
+                'name' => 'About Us',
+                'content' =>
                     Html::tag('div', file_get_contents(database_path('seeders/stubs/contact.html')), ['class' => 'raw-html-embed']) .
                     Html::tag('h3', 'Address') .
                     Html::tag('div', '[google-map]North Link Building, 10 Admiralty Street, 757695 Singapore[/google-map]')
@@ -99,8 +94,8 @@ class PageSeeder extends BaseSeeder
                 'template' => 'default',
             ],
             [
-                'name'     => 'Cookie Policy',
-                'content'  => Html::tag('h3', 'EU Cookie Consent') .
+                'name' => 'Cookie Policy',
+                'content' => Html::tag('h3', 'EU Cookie Consent') .
                     Html::tag(
                         'p',
                         'To use this website we are using Cookies and collecting some Data. To be compliant with the EU GDPR we give you to choose if you allow us to use certain Cookies and to collect some Data.'
@@ -119,13 +114,13 @@ class PageSeeder extends BaseSeeder
                         '- XSRF-Token Cookie: Laravel automatically generates a CSRF "token" for each active user session managed by the application. This token is used to verify that the authenticated user is the one actually making the requests to the application.'
                     ),
                 'template' => 'default',
-            ]
+            ],
         ];
 
         $translationsPage = [
             [
-                'name'     => 'Trang chủ',
-                'content'  =>
+                'name' => 'Trang chủ',
+                'content' =>
                     Html::tag('div', '[posts-slider title="" filter_by="featured" limit="4" include="" style="1"][/posts-slider]') .
                     Html::tag('div', '[posts-slider title="Editor\'s picked" filter_by="posts-collection" posts_collection_id="1" limit=6 style="2" description="The featured articles are selected by experienced editors. It is also based on the reader\'s rating. These posts have a lot of interest."][/posts-slider]') .
                     Html::tag('div', '[recent-posts title="Bài viết mới" subtitle="Latest" limit="3" show_follow_us_section="1"][/recent-posts]') .
@@ -135,8 +130,8 @@ class PageSeeder extends BaseSeeder
                 ,
             ],
             [
-                'name'     => 'Trang chủ 2',
-                'content'  =>
+                'name' => 'Trang chủ 2',
+                'content' =>
                     Html::tag('div', '[posts-slider filter_by="featured" limit="6" style="3"][/posts-slider]') .
                     Html::tag('div', '[categories-tab-posts title="Popular" subtitle="P" limit="5" categories_ids="1,2,3,4" show_follow_us_section="1" ads_location="top-sidebar-ads"][/categories-tab-posts]') .
                     Html::tag('div', '[most-comments title="Most comments" limit="8" subtitle="M"][/most-comments]') .
@@ -146,8 +141,8 @@ class PageSeeder extends BaseSeeder
                 ,
             ],
             [
-                'name'     => 'Trang chủ 3',
-                'content'  =>
+                'name' => 'Trang chủ 3',
+                'content' =>
                     Html::tag('div', '[posts-slider filter_by="featured" limit="6" style="4"][/posts-slider]') .
                     Html::tag('div', '[posts-grid title="Featured Posts" subtitle="News" limit="6" order_by="views" order="desc"][/posts-grid]') .
                     Html::tag('div', '[most-comments title="Most comments" limit="8" subtitle="M"][/most-comments]') .
@@ -158,37 +153,37 @@ class PageSeeder extends BaseSeeder
             ],
 
             [
-                'name'     => 'Tin tức',
-                'content'  => Html::tag('div', '[categories-big limit="12"][/categories-big]'),
+                'name' => 'Tin tức',
+                'content' => Html::tag('div', '[categories-big limit="12"][/categories-big]'),
             ],
             [
-                'name'     => 'Tin tức danh sách',
-                'content'  => Html::tag('div', '[posts-listing layout="list"][/posts-listing]'),
+                'name' => 'Tin tức danh sách',
+                'content' => Html::tag('div', '[posts-listing layout="list"][/posts-listing]'),
             ],
             [
-                'name'     => 'Tin tức dạng cột',
-                'content'  => Html::tag('div', '[posts-listing layout="grid"][/posts-listing]'),
+                'name' => 'Tin tức dạng cột',
+                'content' => Html::tag('div', '[posts-listing layout="grid"][/posts-listing]'),
             ],
             [
-                'name'     => 'Tin tức metro',
-                'content'  => Html::tag('div', '[posts-listing layout="metro"][/posts-listing]'),
+                'name' => 'Tin tức metro',
+                'content' => Html::tag('div', '[posts-listing layout="metro"][/posts-listing]'),
             ],
             [
-                'name'    => 'Liên hệ',
+                'name' => 'Liên hệ',
                 'content' =>
                     Html::tag('div', '[contact-form title="Liên hệ"][/contact-form]') .
                     Html::tag('h3', 'Địa chỉ') .
-                    Html::tag('div', '[google-map]North Link Building, 10 Admiralty Street, 757695 Singapore[/google-map]')
+                    Html::tag('div', '[google-map]North Link Building, 10 Admiralty Street, 757695 Singapore[/google-map]'),
             ],
             [
-                'name'     => 'Về chúng tôi',
-                'content'  =>
+                'name' => 'Về chúng tôi',
+                'content' =>
                     Html::tag('div', file_get_contents(database_path('seeders/stubs/contact-vi.html')), ['class' => 'raw-html-embed'])
                 ,
             ],
             [
-                'name'     => 'Cookie Policy',
-                'content'  => Html::tag('h3', 'EU Cookie Consent') .
+                'name' => 'Cookie Policy',
+                'content' => Html::tag('h3', 'EU Cookie Consent') .
                     Html::tag(
                         'p',
                         'Để sử dụng trang web này, chúng tôi đang sử dụng Cookie và thu thập một số Dữ liệu. Để tuân thủ GDPR của Liên minh Châu Âu, chúng tôi cho bạn lựa chọn nếu bạn cho phép chúng tôi sử dụng một số Cookie nhất định và thu thập một số Dữ liệu.'
@@ -210,20 +205,20 @@ class PageSeeder extends BaseSeeder
         ];
 
         Page::truncate();
-        PageTranslation::truncate();
+        DB::table('pages_translations')->truncate();
         Slug::where('reference_type', Page::class)->delete();
         MetaBoxModel::where('reference_type', Page::class)->delete();
         LanguageMeta::where('reference_type', Page::class)->delete();
 
-        foreach ($pages as $index => $item) {
+        foreach ($pages as $item) {
             $item['user_id'] = 1;
             $page = Page::create($item);
 
             Slug::create([
                 'reference_type' => Page::class,
-                'reference_id'   => $page->id,
-                'key'            => Str::slug($page->name),
-                'prefix'         => SlugHelper::getPrefix(Page::class),
+                'reference_id' => $page->id,
+                'key' => Str::slug($page->name),
+                'prefix' => SlugHelper::getPrefix(Page::class),
             ]);
         }
 
@@ -231,7 +226,7 @@ class PageSeeder extends BaseSeeder
             $item['lang_code'] = 'vi';
             $item['pages_id'] = $index + 1;
 
-            PageTranslation::insert($item);
+            DB::table('pages_translations')->insert($item);
         }
     }
 }

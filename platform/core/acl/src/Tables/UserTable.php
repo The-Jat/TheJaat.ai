@@ -2,288 +2,176 @@
 
 namespace Botble\ACL\Tables;
 
-use BaseHelper;
-use Illuminate\Support\Facades\Auth;
 use Botble\ACL\Enums\UserStatusEnum;
-use Botble\ACL\Repositories\Interfaces\ActivationInterface;
-use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Botble\ACL\Models\User;
 use Botble\ACL\Services\ActivateUserService;
 use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Exceptions\DisabledInDemoModeException;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Models\BaseQueryBuilder;
 use Botble\Table\Abstracts\TableAbstract;
+use Botble\Table\Actions\Action;
+use Botble\Table\Actions\DeleteAction;
+use Botble\Table\Actions\EditAction;
+use Botble\Table\BulkActions\DeleteBulkAction;
+use Botble\Table\BulkChanges\CreatedAtBulkChange;
+use Botble\Table\BulkChanges\EmailBulkChange;
+use Botble\Table\BulkChanges\NameBulkChange;
+use Botble\Table\BulkChanges\StatusBulkChange;
+use Botble\Table\Columns\CreatedAtColumn;
+use Botble\Table\Columns\EmailColumn;
+use Botble\Table\Columns\FormattedColumn;
+use Botble\Table\Columns\LinkableColumn;
+use Botble\Table\Columns\YesNoColumn;
+use Botble\Table\HeaderActions\CreateHeaderAction;
 use Exception;
-use Html;
-use Illuminate\Contracts\Routing\UrlGenerator;
-use Illuminate\Support\Arr;
-use Yajra\DataTables\DataTables;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Relations\Relation as EloquentRelation;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Auth;
 
 class UserTable extends TableAbstract
 {
-    /**
-     * @var bool
-     */
-    protected $hasActions = true;
-
-    /**
-     * @var bool
-     */
-    protected $hasFilter = true;
-
-    /**
-     * @var ActivateUserService
-     */
-    protected $service;
-
-    /**
-     * UserTable constructor.
-     * @param DataTables $table
-     * @param UrlGenerator $urlGenerator
-     * @param UserInterface $userRepository
-     * @param ActivateUserService $service
-     */
-    public function __construct(
-        DataTables $table,
-        UrlGenerator $urlGenerator,
-        UserInterface $userRepository,
-        ActivateUserService $service
-    ) {
-        parent::__construct($table, $urlGenerator);
-
-        $this->repository = $userRepository;
-        $this->service = $service;
-
-        if (!Auth::user()->hasAnyPermission(['users.edit', 'users.destroy'])) {
-            $this->hasOperations = false;
-            $this->hasActions = false;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function ajax()
+    public function setup(): void
     {
-        $data = $this->table
-            ->eloquent($this->query())
-            ->editColumn('checkbox', function ($item) {
-                return $this->getCheckbox($item->id);
-            })
-            ->editColumn('username', function ($item) {
-                if (!Auth::user()->hasPermission('users.edit')) {
-                    return $item->username;
-                }
+        Assets::addScripts(['bootstrap-editable', 'jquery-ui'])
+            ->addStyles(['bootstrap-editable']);
 
-                return Html::link(route('users.profile.view', $item->id), $item->username);
-            })
-            ->editColumn('created_at', function ($item) {
-                return BaseHelper::formatDate($item->created_at);
-            })
-            ->editColumn('role_name', function ($item) {
-                if (!Auth::user()->hasPermission('users.edit')) {
-                    return $item->role_name;
-                }
+        $this
+            ->model(User::class)
+            ->displayActionsAsDropdown(false)
+            ->addColumns([
+                LinkableColumn::make('username')
+                    ->urlUsing(fn (LinkableColumn $column) => $column->getItem()->url)
+                    ->title(trans('core/acl::users.username'))
+                    ->alignStart(),
+                EmailColumn::make()->linkable(),
+                FormattedColumn::make('role_name')
+                    ->title(trans('core/acl::users.role'))
+                    ->searchable(false)
+                    ->orderable(false)
+                    ->getValueUsing(function (FormattedColumn $column) {
+                        $item = $column->getItem();
 
-                return view('core/acl::users.partials.role', ['item' => $item])->render();
-            })
-            ->editColumn('super_user', function ($item) {
-                return $item->super_user ? trans('core/base::base.yes') : trans('core/base::base.no');
-            })
-            ->editColumn('status', function ($item) {
-                if (app(ActivationInterface::class)->completed($item)) {
-                    return UserStatusEnum::ACTIVATED()->toHtml();
-                }
+                        $role = $item->roles->first();
 
-                return UserStatusEnum::DEACTIVATED()->toHtml();
+                        if (! $this->hasPermission('users.edit')) {
+                            return $role?->name ?: trans('core/acl::users.no_role_assigned');
+                        }
+
+                        return view('core/acl::users.partials.role', compact('item', 'role'))->render();
+                    }),
+                CreatedAtColumn::make(),
+                FormattedColumn::make('status_name')
+                    ->title(trans('core/base::tables.status'))
+                    ->width(100)
+                    ->searchable(false)
+                    ->orderable(false)
+                    ->getValueUsing(function (FormattedColumn $column) {
+                        if ($column->getItem()->activations()->where('completed', true)->exists()) {
+                            return UserStatusEnum::ACTIVATED()->toHtml();
+                        }
+
+                        return UserStatusEnum::DEACTIVATED()->toHtml();
+                    }),
+                YesNoColumn::make('super_user')
+                    ->title(trans('core/acl::users.is_super'))
+                    ->width(100),
+            ])
+            ->addHeaderAction(CreateHeaderAction::make()->route('users.create'))
+            ->when(Auth::guard()->user()->isSuperUser(), function (): void {
+                $this->addActions([
+                    Action::make('make-super')
+                        ->route('users.make-super')
+                        ->color('success')
+                        ->label(trans('core/acl::users.make_super'))
+                        ->renderUsing(fn (Action $action) => $action->getItem()->isSuperUser() ? '' : null),
+                    Action::make('remove-super')
+                        ->route('users.remove-super')
+                        ->label(trans('core/acl::users.remove_super'))
+                        ->color('warning')
+                        ->renderUsing(fn (Action $action) => ! $action->getItem()->isSuperUser() ? '' : null),
+                ]);
             })
-            ->removeColumn('role_id')
-            ->addColumn('operations', function ($item) {
-                $action = null;
-                if (Auth::user()->isSuperUser()) {
-                    $action = Html::link(
-                        route('users.make-super', $item->id),
-                        trans('core/acl::users.make_super'),
-                        ['class' => 'btn btn-info']
-                    )->toHtml();
+            ->addActions([
+                Action::make('extra')->renderUsing(function (Action $action) {
+                    return apply_filters(ACL_FILTER_USER_TABLE_ACTIONS, '', $action->getItem());
+                }),
+                EditAction::make()
+                    ->url(fn (Action $action) => $action->getItem()->url)
+                    ->permission('users.edit'),
+                DeleteAction::make()->route('users.destroy')->permission('users.destroy'),
+            ])
+            ->addBulkActions([
+                DeleteBulkAction::make()
+                    ->permission('users.destroy')
+                    ->beforeDispatch(function (User $user, array $ids): void {
+                        foreach ($ids as $id) {
+                            abort_if(Auth::guard()->id() == $id, 403, trans('core/acl::users.delete_user_logged_in'));
 
-                    if ($item->super_user) {
-                        $action = Html::link(
-                            route('users.remove-super', $item->id),
-                            trans('core/acl::users.remove_super'),
-                            ['class' => 'btn btn-danger']
-                        )->toHtml();
-                    }
-                }
-
-                return apply_filters(
-                    ACL_FILTER_USER_TABLE_ACTIONS,
-                    $action . view('core/acl::users.partials.actions', ['item' => $item])->render(),
-                    $item
-                );
+                            /**
+                             * @var User $user
+                             */
+                            $user = User::query()->findOrFail($id);
+                            abort_if(! Auth::guard()->user()->isSuperUser() && $user->isSuperUser(), 403, trans('core/acl::users.cannot_delete_super_user'));
+                        }
+                    }),
+            ])
+            ->addBulkChanges([
+                NameBulkChange::make()
+                    ->name('username')
+                    ->title(trans('core/acl::users.username')),
+                EmailBulkChange::make(),
+                StatusBulkChange::make()->choices(UserStatusEnum::labels()),
+                CreatedAtBulkChange::make(),
+            ])
+            ->queryUsing(function (Builder $query) {
+                return $query
+                    ->select([
+                        'id',
+                        'username',
+                        'email',
+                        'updated_at',
+                        'created_at',
+                        'super_user',
+                    ])
+                    ->with(['roles']);
             });
-
-        return $this->toJson($data);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function query()
-    {
-        $query = $this->repository->getModel()
-            ->leftJoin('role_users', 'users.id', '=', 'role_users.user_id')
-            ->leftJoin('roles', 'roles.id', '=', 'role_users.role_id')
-            ->select([
-                'users.id as id',
-                'username',
-                'email',
-                'roles.name as role_name',
-                'roles.id as role_id',
-                'users.updated_at as updated_at',
-                'users.created_at as created_at',
-                'super_user',
-            ]);
-
-        return $this->applyScopes($query);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function columns()
-    {
-        return [
-            'username'   => [
-                'title' => trans('core/acl::users.username'),
-                'class' => 'text-start',
-            ],
-            'email'      => [
-                'title' => trans('core/acl::users.email'),
-                'class' => 'text-start',
-            ],
-            'role_name'  => [
-                'title'      => trans('core/acl::users.role'),
-                'searchable' => false,
-            ],
-            'created_at' => [
-                'title' => trans('core/base::tables.created_at'),
-                'width' => '100px',
-            ],
-            'status'     => [
-                'name'  => 'users.updated_at',
-                'title' => trans('core/base::tables.status'),
-                'width' => '100px',
-            ],
-            'super_user' => [
-                'title' => trans('core/acl::users.is_super'),
-                'width' => '100px',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function buttons()
-    {
-        return $this->addCreateButton(route('users.create'), 'users.create');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function htmlDrawCallbackFunction(): ?string
     {
-        return parent::htmlDrawCallbackFunction() . '$(".editable").editable({mode: "inline"});';
+        return parent::htmlDrawCallbackFunction() . 'Botble.initEditable()';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function bulkActions(): array
-    {
-        return $this->addDeleteAction(route('users.deletes'), 'users.destroy', parent::bulkActions());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getFilters(): array
-    {
-        $filters = $this->getBulkChanges();
-        Arr::forget($filters, 'status');
-
-        return $filters;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBulkChanges(): array
-    {
-        return [
-            'username'   => [
-                'title'    => trans('core/acl::users.username'),
-                'type'     => 'text',
-                'validate' => 'required|max:120',
-            ],
-            'email'      => [
-                'title'    => trans('core/base::tables.email'),
-                'type'     => 'text',
-                'validate' => 'required|max:120|email',
-            ],
-            'status'     => [
-                'title'    => trans('core/base::tables.status'),
-                'type'     => 'customSelect',
-                'choices'  => UserStatusEnum::labels(),
-                'validate' => 'required|in:' . implode(',', UserStatusEnum::values()),
-            ],
-            'created_at' => [
-                'title' => trans('core/base::tables.created_at'),
-                'type'  => 'date',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getOperationsHeading()
-    {
-        return [
-            'operations' => [
-                'title'      => trans('core/base::tables.operations'),
-                'width'      => '350px',
-                'class'      => 'text-end',
-                'orderable'  => false,
-                'searchable' => false,
-                'exportable' => false,
-                'printable'  => false,
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function saveBulkChanges(array $ids, string $inputKey, ?string $inputValue): bool
     {
-        if (app()->environment('demo')) {
-            throw new Exception(trans('core/base::system.disabled_in_demo_mode'));
+        if (BaseHelper::hasDemoModeEnabled()) {
+            throw new DisabledInDemoModeException();
         }
 
         if ($inputKey === 'status') {
             $hasWarning = false;
 
+            $service = app(ActivateUserService::class);
+
             foreach ($ids as $id) {
-                if ($inputValue == UserStatusEnum::DEACTIVATED && Auth::id() == $id) {
+                if ($inputValue == UserStatusEnum::DEACTIVATED && Auth::guard()->id() == $id) {
                     $hasWarning = true;
                 }
 
-                $user = $this->repository->findOrFail($id);
+                $user = $this->getModel()->query()->findOrFail($id);
+
+                if (! $user instanceof User) {
+                    continue;
+                }
 
                 if ($inputValue == UserStatusEnum::ACTIVATED) {
-                    $this->service->activate($user);
+                    $service->activate($user);
                 } else {
-                    app(ActivationInterface::class)->remove($user);
+                    $service->remove($user);
                 }
 
                 event(new UpdatedContentEvent(USER_MODULE_SCREEN_NAME, request(), $user));
@@ -297,5 +185,23 @@ class UserTable extends TableAbstract
         }
 
         return parent::saveBulkChanges($ids, $inputKey, $inputValue);
+    }
+
+    public function applyFilterCondition(
+        EloquentBuilder|QueryBuilder|EloquentRelation $query,
+        string $key,
+        string $operator,
+        ?string $value
+    ): EloquentRelation|EloquentBuilder|QueryBuilder {
+        if ($key === 'status' && $value) {
+
+            if ($value == UserStatusEnum::ACTIVATED) {
+                return $query->whereHas('activations', fn (BaseQueryBuilder $query) => $query->where('completed', true));
+            }
+
+            return $query->whereDoesntHave('activations');
+        }
+
+        return parent::applyFilterCondition($query, $key, $operator, $value);
     }
 }

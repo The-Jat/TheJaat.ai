@@ -2,32 +2,11 @@
 
 namespace Botble\Gallery\Repositories\Caches;
 
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
-use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
+use Botble\Gallery\Repositories\Eloquent\GalleryRepository;
 
-class GalleryCacheDecorator extends CacheAbstractDecorator implements GalleryInterface
+/**
+ * @deprecated
+ */
+class GalleryCacheDecorator extends GalleryRepository
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getAll(array $with = ['slugable', 'user'])
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getDataSiteMap()
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getFeaturedGalleries($limit, array $with = ['slugable', 'user'])
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
 }

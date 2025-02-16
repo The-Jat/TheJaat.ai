@@ -2,33 +2,30 @@
 
 namespace Botble\AuditLog\Listeners;
 
+use Botble\AuditLog\AuditLog;
 use Botble\AuditLog\Events\AuditHandlerEvent;
 use Botble\Base\Events\DeletedContentEvent;
+use Botble\Base\Facades\BaseHelper;
 use Exception;
-use AuditLog;
 
 class DeletedContentListener
 {
-    /**
-     * Handle the event.
-     *
-     * @param DeletedContentEvent $event
-     * @return void
-     */
-    public function handle(DeletedContentEvent $event)
+    public function handle(DeletedContentEvent $event): void
     {
         try {
-            if ($event->data->id) {
+            if ($event->data->getKey()) {
+                $model = $event->screen;
+
                 event(new AuditHandlerEvent(
-                    $event->screen,
+                    $model,
                     'deleted',
-                    $event->data->id,
-                    AuditLog::getReferenceName($event->screen, $event->data),
+                    $event->data->getKey(),
+                    AuditLog::getReferenceName($model, $event->data),
                     'danger'
                 ));
             }
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

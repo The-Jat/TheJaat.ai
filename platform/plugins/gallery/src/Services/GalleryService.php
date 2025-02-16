@@ -3,35 +3,31 @@
 namespace Botble\Gallery\Services;
 
 use Botble\Base\Enums\BaseStatusEnum;
+use Botble\Gallery\Facades\Gallery;
 use Botble\Gallery\Models\Gallery as GalleryModel;
-use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
+use Botble\Media\Facades\RvMedia;
+use Botble\SeoHelper\Facades\SeoHelper;
 use Botble\SeoHelper\SeoOpenGraph;
-use Eloquent;
-use Gallery;
+use Botble\Slug\Models\Slug;
+use Botble\Theme\Facades\Theme;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
-use RvMedia;
-use SeoHelper;
-use Theme;
 
 class GalleryService
 {
-    /**
-     * @param Eloquent $slug
-     * @return array|Eloquent
-     */
-    public function handleFrontRoutes($slug)
+    public function handleFrontRoutes(Slug|array $slug): Slug|array|Builder
     {
-        if (!$slug instanceof Eloquent) {
+        if (! $slug instanceof Slug) {
             return $slug;
         }
 
         $condition = [
-            'id'     => $slug->reference_id,
+            'id' => $slug->reference_id,
             'status' => BaseStatusEnum::PUBLISHED,
         ];
 
-        if (Auth::check() && request()->input('preview')) {
+        if (Auth::guard()->check() && request()->input('preview')) {
             Arr::forget($condition, 'status');
         }
 
@@ -39,11 +35,10 @@ class GalleryService
             return $slug;
         }
 
-        $gallery = app(GalleryInterface::class)->getFirstBy($condition, ['*'], ['slugable']);
-
-        if (!$gallery) {
-            abort(404);
-        }
+        $gallery = GalleryModel::query()
+            ->where($condition)
+            ->with(['slugable'])
+            ->firstOrFail();
 
         SeoHelper::setTitle($gallery->name)
             ->setDescription($gallery->description);
@@ -54,6 +49,10 @@ class GalleryService
         $meta->setTitle($gallery->name);
         $meta->setType('article');
 
+        SeoHelper::setSeoOpenGraph($meta);
+
+        SeoHelper::meta()->setUrl($gallery->url);
+
         if ($gallery->image) {
             $meta->setImage(RvMedia::getImageUrl($gallery->image));
         }
@@ -63,15 +62,19 @@ class GalleryService
         do_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, GALLERY_MODULE_SCREEN_NAME, $gallery);
 
         Theme::breadcrumb()
-            ->add(__('Home'), route('public.index'))
-            ->add(__('Galleries'), route('public.galleries'))
-            ->add(SeoHelper::getTitle(), $gallery->url);
+            ->add(__('Galleries'), Gallery::getGalleriesPageUrl())
+            ->add($gallery->name, $gallery->url);
+
+        if (function_exists('admin_bar')) {
+            admin_bar()
+                ->registerLink(trans('plugins/gallery::gallery.edit_this_gallery'), route('galleries.edit', $gallery->getKey()), null, 'galleries.edit');
+        }
 
         return [
-            'view'         => 'gallery',
+            'view' => 'gallery',
             'default_view' => 'plugins/gallery::themes.gallery',
-            'data'         => compact('gallery'),
-            'slug'         => $gallery->slug,
+            'data' => compact('gallery'),
+            'slug' => $gallery->slug,
         ];
     }
 }

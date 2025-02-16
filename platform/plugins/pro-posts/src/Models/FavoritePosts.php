@@ -2,8 +2,8 @@
 
 namespace TheSky\ProPosts\Models;
 
-use Botble\Base\Traits\EnumCastable;
 use Botble\Base\Models\BaseModel;
+use Botble\Base\Traits\EnumCastable;
 use Botble\Blog\Models\Post;
 use Botble\Member\Models\Member;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -25,7 +25,7 @@ class FavoritePosts extends BaseModel
     protected $fillable = [
         'post_id',
         'user_id',
-        'type'
+        'type',
     ];
 
     /**

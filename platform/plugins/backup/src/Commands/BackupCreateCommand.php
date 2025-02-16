@@ -5,56 +5,48 @@ namespace Botble\Backup\Commands;
 use Botble\Backup\Supports\Backup;
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\PromptsForMissingInput;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 
-class BackupCreateCommand extends Command
+#[AsCommand('cms:backup:create', 'Create a backup')]
+class BackupCreateCommand extends Command implements PromptsForMissingInput
 {
-    /**
-     * @var Backup
-     */
-    public $backup;
-
-    /**
-     * The console command signature.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:backup:create {name : The name of backup} {--description= : The description}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a backup';
-
-    /**
-     * BackupCommand constructor.
-     * @param Backup $backup
-     */
-    public function __construct(Backup $backup)
+    public function handle(Backup $backupService): int
     {
-        parent::__construct();
-        $this->backup = $backup;
-    }
+        $driver = DB::getConfig('driver');
 
-    /**
-     * Execute the console command.
-     * @throws Exception
-     */
-    public function handle()
-    {
-        try {
-            $this->info('Generating backup...');
-            $data = $this->backup->createBackupFolder($this->argument('name'), $this->option('description'));
-            $this->backup->backupDb();
-            $this->backup->backupFolder(config('filesystems.disks.public.root'));
-            do_action(BACKUP_ACTION_AFTER_BACKUP, BACKUP_MODULE_SCREEN_NAME, request());
+        if (! in_array($driver, ['mysql', 'pgsql'], true)) {
+            $this->components->error(sprintf('Driver [%s] is not supported to create the backup!', $driver));
 
-            $this->info('Done! The backup folder is located in ' . $this->backup->getBackupPath($data['key']) . '!');
-        } catch (Exception $exception) {
-            $this->error($exception->getMessage());
+            return self::FAILURE;
         }
 
-        return 0;
+        try {
+            $this->components->info('Generating backup...');
+
+            $data = $backupService->createBackupFolder($this->argument('name'), $this->option('description'));
+            $backupService->backupDb();
+            $backupService->backupFolder(Storage::path(''));
+            do_action(BACKUP_ACTION_AFTER_BACKUP, BACKUP_MODULE_SCREEN_NAME, request());
+
+            $this->components->info(sprintf(
+                'Done! The backup folder is located in %s!',
+                $backupService->getBackupPath($data['key'])
+            ));
+        } catch (Exception $exception) {
+            $this->components->error($exception->getMessage());
+        }
+
+        return self::SUCCESS;
+    }
+
+    protected function configure(): void
+    {
+        $this->addArgument('name', InputArgument::REQUIRED, 'The name of backup');
+        $this->addOption('description', null, InputOption::VALUE_REQUIRED, 'The description');
     }
 }

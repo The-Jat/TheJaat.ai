@@ -2,95 +2,74 @@
 
 namespace Botble\Menu\Providers;
 
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Supports\DashboardMenuItem;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Menu\Models\Menu as MenuModel;
 use Botble\Menu\Models\MenuLocation;
 use Botble\Menu\Models\MenuNode;
-use Botble\Menu\Repositories\Caches\MenuCacheDecorator;
-use Botble\Menu\Repositories\Caches\MenuLocationCacheDecorator;
-use Botble\Menu\Repositories\Caches\MenuNodeCacheDecorator;
 use Botble\Menu\Repositories\Eloquent\MenuLocationRepository;
 use Botble\Menu\Repositories\Eloquent\MenuNodeRepository;
 use Botble\Menu\Repositories\Eloquent\MenuRepository;
 use Botble\Menu\Repositories\Interfaces\MenuInterface;
 use Botble\Menu\Repositories\Interfaces\MenuLocationInterface;
 use Botble\Menu\Repositories\Interfaces\MenuNodeInterface;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\ServiceProvider;
+use Botble\Theme\Events\RenderingAdminBar;
+use Botble\Theme\Facades\AdminBar;
 
 class MenuServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function register()
-    {
-        $this->setNamespace('packages/menu')
-            ->loadHelpers();
-    }
-
-    public function boot()
+    public function register(): void
     {
         $this->app->bind(MenuInterface::class, function () {
-            return new MenuCacheDecorator(
-                new MenuRepository(new MenuModel())
-            );
+            return new MenuRepository(new MenuModel());
         });
 
         $this->app->bind(MenuNodeInterface::class, function () {
-            return new MenuNodeCacheDecorator(
-                new MenuNodeRepository(new MenuNode())
-            );
+            return new MenuNodeRepository(new MenuNode());
         });
 
         $this->app->bind(MenuLocationInterface::class, function () {
-            return new MenuLocationCacheDecorator(
-                new MenuLocationRepository(new MenuLocation())
-            );
+            return new MenuLocationRepository(new MenuLocation());
         });
+    }
 
+    public function boot(): void
+    {
         $this
+            ->setNamespace('packages/menu')
             ->loadAndPublishConfigurations(['permissions', 'general'])
-            ->loadRoutes(['web'])
+            ->loadHelpers()
+            ->loadRoutes()
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
             ->loadMigrations()
             ->publishAssets();
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()
-                ->registerItem([
-                    'id'          => 'cms-core-menu',
-                    'priority'    => 2,
-                    'parent_id'   => 'cms-core-appearance',
-                    'name'        => 'packages/menu::menu.name',
-                    'icon'        => null,
-                    'url'         => route('menus.index'),
-                    'permissions' => ['menus.index'],
-                ]);
+        DashboardMenu::default()->beforeRetrieving(function (): void {
+            DashboardMenu::make()
+                ->registerItem(
+                    DashboardMenuItem::make()
+                        ->id('cms-core-menu')
+                        ->parentId('cms-core-appearance')
+                        ->priority(2)
+                        ->name('packages/menu::menu.name')
+                        ->icon('ti ti-tournament')
+                        ->route('menus.index')
+                        ->permissions('menus.index')
+                );
+        });
 
-            if (!defined('THEME_MODULE_SCREEN_NAME')) {
-                dashboard_menu()
-                    ->registerItem([
-                        'id'          => 'cms-core-appearance',
-                        'priority'    => 996,
-                        'parent_id'   => null,
-                        'name'        => 'packages/theme::theme.appearance',
-                        'icon'        => 'fa fa-paint-brush',
-                        'url'         => '#',
-                        'permissions' => [],
-                    ]);
-            }
-
-            if (function_exists('admin_bar')) {
-                View::composer('*', function () {
-                    if (Auth::check() && Auth::user()->hasPermission('menus.index')) {
-                        admin_bar()->registerLink(trans('packages/menu::menu.name'), route('menus.index'), 'appearance');
-                    }
-                });
-            }
+        $this->app['events']->listen(RenderingAdminBar::class, function (): void {
+            AdminBar::registerLink(
+                trans('packages/menu::menu.name'),
+                route('menus.index'),
+                'appearance',
+                'menus.index'
+            );
         });
 
         $this->app->register(EventServiceProvider::class);

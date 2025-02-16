@@ -3,36 +3,16 @@
 namespace Botble\Page\Repositories\Interfaces;
 
 use Botble\Support\Repositories\Interfaces\RepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 interface PageInterface extends RepositoryInterface
 {
-    /**
-     * @return mixed
-     */
-    public function getDataSiteMap();
+    public function getDataSiteMap(): Collection;
 
-    /**
-     * @param int $limit
-     */
-    public function getFeaturedPages($limit);
+    public function whereIn(array $array, array $select = []): Collection;
 
-    /**
-     * @param array $array
-     * @param array $select
-     * @return mixed
-     */
-    public function whereIn($array, $select = []);
+    public function getSearch(?string $query, int $limit = 10): Collection|LengthAwarePaginator;
 
-    /**
-     * @param $query
-     * @param int $limit
-     * @return mixed
-     */
-    public function getSearch($query, $limit = 10);
-
-    /**
-     * @param bool $active
-     * @return mixed
-     */
-    public function getAllPages($active = true);
+    public function getAllPages(bool $active = true): Collection;
 }

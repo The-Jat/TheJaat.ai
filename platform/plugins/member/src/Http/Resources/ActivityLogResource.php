@@ -3,7 +3,6 @@
 namespace Botble\Member\Http\Resources;
 
 use Botble\Member\Models\MemberActivityLog;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -11,18 +10,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class ActivityLogResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @param Request $request
-     *
-     * @return array
-     */
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
-            'id'          => $this->id,
-            'ip_address'  => $this->ip_address,
+            'id' => $this->getKey(),
+            'ip_address' => $this->ip_address,
             'description' => $this->getDescription(),
         ];
     }

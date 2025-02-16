@@ -13,7 +13,7 @@ class ChangeColumnTableMembers extends Migration
      */
     public function up()
     {
-        Schema::table('members', function (Blueprint $table) {
+        Schema::table('members', function (Blueprint $table): void {
             $table->text('favorite_posts')->nullable()->change();
             $table->text('bookmark_posts')->nullable()->change();
         });
@@ -26,7 +26,7 @@ class ChangeColumnTableMembers extends Migration
      */
     public function down()
     {
-        Schema::table('members', function (Blueprint $table) {
+        Schema::table('members', function (Blueprint $table): void {
             $table->json('favorite_posts')->nullable()->change();
             $table->json('bookmark_posts')->nullable()->change();
         });

@@ -2,17 +2,17 @@
 
 namespace Botble\Page\Providers;
 
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Supports\DashboardMenuItem;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Page\Models\Page;
-use Botble\Page\Repositories\Caches\PageCacheDecorator;
 use Botble\Page\Repositories\Eloquent\PageRepository;
 use Botble\Page\Repositories\Interfaces\PageInterface;
 use Botble\Shortcode\View\View;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Event;
+use Botble\Theme\Events\RenderingAdminBar;
+use Botble\Theme\Facades\AdminBar;
 use Illuminate\Support\Facades\View as ViewFacade;
-use Illuminate\Support\ServiceProvider;
 
 /**
  * @since 02/07/2016 09:50 AM
@@ -21,53 +21,51 @@ class PageServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function register()
-    {
-        $this->setNamespace('packages/page')
-            ->loadHelpers();
-    }
-
-    public function boot()
+    public function boot(): void
     {
         $this->app->bind(PageInterface::class, function () {
-            return new PageCacheDecorator(new PageRepository(new Page()));
+            return new PageRepository(new Page());
         });
 
         $this
+            ->setNamespace('packages/page')
             ->loadAndPublishConfigurations(['permissions', 'general'])
+            ->loadHelpers()
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
+            ->loadRoutes()
             ->loadMigrations();
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()->registerItem([
-                'id'          => 'cms-core-page',
-                'priority'    => 2,
-                'parent_id'   => null,
-                'name'        => 'packages/page::pages.menu_name',
-                'icon'        => 'fa fa-book',
-                'url'         => route('pages.index'),
-                'permissions' => ['pages.index'],
-            ]);
+        DashboardMenu::default()->beforeRetrieving(function (): void {
+            DashboardMenu::make()
+                ->registerItem(
+                    DashboardMenuItem::make()
+                        ->id('cms-core-page')
+                        ->priority(2)
+                        ->name('packages/page::pages.menu_name')
+                        ->icon('ti ti-notebook')
+                        ->route('pages.index')
+                        ->permissions('pages.index')
+                );
+        });
 
-            if (function_exists('admin_bar')) {
-                ViewFacade::composer('*', function () {
-                    if (Auth::check() && Auth::user()->hasPermission('pages.create')) {
-                        admin_bar()->registerLink(trans('packages/page::pages.menu_name'), route('pages.create'), 'add-new');
-                    }
-                });
-            }
+        $this->app['events']->listen(RenderingAdminBar::class, function (): void {
+            AdminBar::registerLink(
+                trans('packages/page::pages.menu_name'),
+                route('pages.create'),
+                'add-new',
+                'pages.create'
+            );
         });
 
         if (function_exists('shortcode')) {
-            view()->composer(['packages/page::themes.page'], function (View $view) {
+            ViewFacade::composer(['packages/page::themes.page'], function (View $view): void {
                 $view->withShortcodes();
             });
         }
 
-        $this->app->booted(function () {
+        $this->app->booted(function (): void {
             $this->app->register(HookServiceProvider::class);
-            $this->app->register(RouteServiceProvider::class);
         });
 
         $this->app->register(EventServiceProvider::class);

@@ -1,15 +1,15 @@
 <div class="tabbable-custom">
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-toggle="tab" data-target="#tab_metabox_video_link" type="button"
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab_metabox_video_link" type="button"
                     role="tab" aria-controls="home" aria-selected="true">
                 {{ __('Get Video from URL') }}
             </button>
         </li>
         @if (auth()->user())
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="profile-tab" data-toggle="tab"
-                        data-target="#tab_metabox_video_upload" type="button" role="tab" aria-controls="profile"
+                <button class="nav-link" id="profile-tab" data-bs-toggle="tab"
+                        data-bs-target="#tab_metabox_video_upload" type="button" role="tab" aria-controls="profile"
                         aria-selected="false">
                     {{ __('Upload Video') }} (.mp4)
                 </button>

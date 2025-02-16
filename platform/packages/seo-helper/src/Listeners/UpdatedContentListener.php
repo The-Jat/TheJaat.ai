@@ -3,23 +3,18 @@
 namespace Botble\SeoHelper\Listeners;
 
 use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Facades\BaseHelper;
+use Botble\SeoHelper\Facades\SeoHelper;
 use Exception;
-use SeoHelper;
 
 class UpdatedContentListener
 {
-    /**
-     * Handle the event.
-     *
-     * @param UpdatedContentEvent $event
-     * @return void
-     */
-    public function handle(UpdatedContentEvent $event)
+    public function handle(UpdatedContentEvent $event): void
     {
         try {
             SeoHelper::saveMetaData($event->screen, $event->request, $event->data);
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

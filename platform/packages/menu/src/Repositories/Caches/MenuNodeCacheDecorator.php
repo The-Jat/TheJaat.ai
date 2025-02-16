@@ -2,16 +2,11 @@
 
 namespace Botble\Menu\Repositories\Caches;
 
-use Botble\Menu\Repositories\Interfaces\MenuNodeInterface;
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
+use Botble\Menu\Repositories\Eloquent\MenuNodeRepository;
 
-class MenuNodeCacheDecorator extends CacheAbstractDecorator implements MenuNodeInterface
+/**
+ * @deprecated
+ */
+class MenuNodeCacheDecorator extends MenuNodeRepository
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getByMenuId($menuId, $parentId, $select = ['*'], array $with = ['child'])
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
 }

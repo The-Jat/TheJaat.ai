@@ -10,13 +10,11 @@ class LoginController extends MemberLoginController
 {
     public function showLoginForm()
     {
-        if (theme_option('allow_account_login', '') != 'yes') {
-            abort(404);
-        }
+        abort_if(theme_option('allow_account_login', '') != 'yes', 404);
 
         SeoHelper::setTitle(trans('plugins/member::member.login'));
 
-        if (!session()->has('url.intended')) {
+        if (! session()->has('url.intended')) {
             session(['url.intended' => url()->previous()]);
         }
 

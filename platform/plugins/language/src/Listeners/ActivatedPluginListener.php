@@ -2,22 +2,18 @@
 
 namespace Botble\Language\Listeners;
 
+use Botble\Base\Facades\BaseHelper;
 use Botble\Language\Plugin;
 use Exception;
 
 class ActivatedPluginListener
 {
-    /**
-     * Handle the event.
-     *
-     * @return void
-     */
-    public function handle()
+    public function handle(): void
     {
         try {
             Plugin::activated();
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

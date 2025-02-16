@@ -2,39 +2,25 @@
 
 namespace Botble\Support\Services\Cache;
 
+use Closure;
+use DateInterval;
+use DateTimeInterface;
+
 interface CacheInterface
 {
-    /**
-     * Retrieve data from cache.
-     *
-     * @param string $key
-     * @return mixed PHP data result of cache
-     */
-    public function get($key);
+    public function get(string $key): mixed;
 
-    /**
-     * Add data to the cache.
-     *
-     * @param string $key
-     * @param $value
-     * @param bool $minutes
-     * @return mixed $value variable returned for convenience
-     */
-    public function put($key, $value, $minutes = false);
+    public function put(string $key, mixed $value, Closure|DateTimeInterface|DateInterval|int|null $ttl = null): bool;
 
-    /**
-     * Test if item exists in cache
-     * Only returns true if exists && is not expired.
-     *
-     * @param string $key
-     * @return bool If cache item exists
-     */
-    public function has($key);
+    public function forever(string $key, mixed $value): bool;
 
-    /**
-     * Flush cache
-     *
-     * @return bool If cache is flushed
-     */
-    public function flush();
+    public function remember(string $key, Closure|DateTimeInterface|DateInterval|int|null $ttl, Closure $callback): mixed;
+
+    public function rememberForever(string $key, Closure $callback): mixed;
+
+    public function has(string $key): bool;
+
+    public function forget(string $key): bool;
+
+    public function flush(): bool;
 }

@@ -2,64 +2,49 @@
 
 namespace Botble\Revision\Providers;
 
-use Assets;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Forms\FormAbstract;
+use Botble\Base\Forms\FormTab;
 use Botble\Base\Models\BaseModel;
-use Illuminate\Support\ServiceProvider;
+use Botble\Base\Supports\ServiceProvider;
+use Illuminate\Database\Eloquent\Model;
 
 class HookServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
-        add_filter(BASE_FILTER_REGISTER_CONTENT_TABS, [$this, 'addHistoryTab'], 55, 3);
-        add_filter(BASE_FILTER_REGISTER_CONTENT_TAB_INSIDE, [$this, 'addHistoryContent'], 55, 3);
+        FormAbstract::extend(function (FormAbstract $form): void {
+            $model = $form->getModel();
+
+            if (
+                ! $model instanceof BaseModel
+                || ! $model->exists
+                || ! $this->isSupported($model)
+            ) {
+                return;
+            }
+
+            Assets::addStylesDirectly('vendor/core/packages/revision/css/revision.css')
+                ->addScriptsDirectly([
+                    'vendor/core/packages/revision/js/html-diff.js',
+                    'vendor/core/packages/revision/js/revision.js',
+                ]);
+
+            $form->addTab(
+                FormTab::make()
+                    ->id('revisions')
+                    ->label(trans('core/base::tabs.revision'))
+                    ->content(view('packages/revision::history-content', compact('model')))
+            );
+        }, 999);
     }
 
-    /**
-     * @param string|null $tabs
-     * @param BaseModel|null|mixed $data
-     * @return string
-     * @since 2.0
-     */
-    public function addHistoryTab(?string $tabs, $data = null): string
-    {
-        if (!empty($data) && $this->isSupported($data)) {
-            Assets::addScriptsDirectly([
-                '/vendor/core/packages/revision/js/html-diff.js',
-                '/vendor/core/packages/revision/js/revision.js',
-            ])
-                ->addStylesDirectly('/vendor/core/packages/revision/css/revision.css');
-
-            return $tabs . view('packages/revision::history-tab')->render();
-        }
-
-        return $tabs;
-    }
-
-    /**
-     * @param string|BaseModel $model
-     * @return bool
-     */
-    protected function isSupported($model): bool
+    protected function isSupported(string|Model $model): bool
     {
         if (is_object($model)) {
-            $model = get_class($model);
+            $model = $model::class;
         }
 
         return in_array($model, config('packages.revision.general.supported', []));
-    }
-
-    /**
-     * @param string|null $tabs
-     * @param BaseModel|mixed|null $data
-     * @return string
-     * @since 2.0
-     */
-    public function addHistoryContent(?string $tabs, $data = null): string
-    {
-        if (!empty($data) && $this->isSupported($data)) {
-            return $tabs . view('packages/revision::history-content', ['model' => $data])->render();
-        }
-
-        return $tabs;
     }
 }

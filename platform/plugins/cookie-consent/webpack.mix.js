@@ -1,15 +1,16 @@
-let mix = require('laravel-mix');
+const mix = require('laravel-mix')
+const path = require('path')
 
-const path = require('path');
-let directory = path.basename(path.resolve(__dirname));
-
-const source = 'platform/plugins/' + directory;
-const dist = 'public/vendor/core/plugins/' + directory;
+const directory = path.basename(path.resolve(__dirname))
+const source = `platform/plugins/${directory}`
+const dist = `public/vendor/core/plugins/${directory}`
 
 mix
-    .sass(source + '/resources/assets/sass/cookie-consent.scss', dist + '/css')
+    .sass(`${source}/resources/sass/cookie-consent.scss`, `${dist}/css`)
+    .js(`${source}/resources/js/cookie-consent.js`, `${dist}/js`)
 
-    .js(source + '/resources/assets/js/cookie-consent.js', dist + '/js')
-
-    .copyDirectory(dist + '/css', source + '/public/css')
-    .copyDirectory(dist + '/js', source + '/public/js');
+if (mix.inProduction()) {
+    mix
+        .copy(`${dist}/css/cookie-consent.css`, `${source}/public/css`)
+        .copy(`${dist}/js/cookie-consent.js`, `${source}/public/js`)
+}

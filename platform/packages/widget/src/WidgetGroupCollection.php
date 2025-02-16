@@ -2,69 +2,36 @@
 
 namespace Botble\Widget;
 
-use Botble\Widget\Contracts\ApplicationWrapperContract;
-use Botble\Widget\Repositories\Interfaces\WidgetInterface;
+use Botble\Language\Facades\Language;
+use Botble\Theme\Facades\Theme;
+use Botble\Widget\Models\Widget;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Language;
-use Theme;
 
 class WidgetGroupCollection
 {
-    /**
-     * The array of widget groups.
-     *
-     * @var array
-     */
-    protected $groups;
+    protected array $groups;
 
-    /**
-     * @var ApplicationWrapperContract
-     */
-    protected $app;
+    protected Collection|array $data = [];
 
-    /**
-     * @var Collection
-     */
-    protected $data = [];
+    protected bool $loaded = false;
 
-    /**
-     * Whether the settings data are loaded.
-     *
-     * @var boolean
-     */
-    protected $loaded = false;
-
-    /**
-     * Constructor.
-     *
-     * @param ApplicationWrapperContract $app
-     */
-    public function __construct(ApplicationWrapperContract $app)
+    public function __construct(protected Application $app)
     {
-        $this->app = $app;
     }
 
-    /**
-     * Get the widget group object.
-     *
-     * @param string $sidebarId
-     * @return WidgetGroup
-     */
     public function group(string $sidebarId): WidgetGroup
     {
         if (isset($this->groups[$sidebarId])) {
             return $this->groups[$sidebarId];
         }
+
         $this->groups[$sidebarId] = new WidgetGroup(['id' => $sidebarId, 'name' => $sidebarId], $this->app);
 
         return $this->groups[$sidebarId];
     }
 
-    /**
-     * @param array $args
-     * @return $this
-     */
     public function setGroup(array $args): WidgetGroupCollection
     {
         if (isset($this->groups[$args['id']])) {
@@ -79,10 +46,6 @@ class WidgetGroupCollection
         return $this;
     }
 
-    /**
-     * @param string $groupId
-     * @return $this
-     */
     public function removeGroup(string $groupId): WidgetGroupCollection
     {
         if (isset($this->groups[$groupId])) {
@@ -92,18 +55,11 @@ class WidgetGroupCollection
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getGroups(): array
     {
         return $this->groups;
     }
 
-    /**
-     * @param string $sidebarId
-     * @return string
-     */
     public function render(string $sidebarId): string
     {
         $this->load();
@@ -117,22 +73,14 @@ class WidgetGroupCollection
         return $this->group($sidebarId)->display();
     }
 
-    /**
-     * Make sure data is loaded.
-     *
-     * @param boolean $force Force a reload of data. Default false.
-     */
-    public function load(bool $force = false)
+    public function load(bool $force = false): void
     {
-        if (!$this->loaded || $force) {
+        if (! $this->loaded || $force) {
             $this->data = $this->read();
             $this->loaded = true;
         }
     }
 
-    /**
-     * @return Collection
-     */
     protected function read(): Collection
     {
         $languageCode = null;
@@ -141,12 +89,9 @@ class WidgetGroupCollection
             $languageCode = $currentLocale && $currentLocale != Language::getDefaultLocaleCode() ? '-' . $currentLocale : null;
         }
 
-        return app(WidgetInterface::class)->allBy(['theme' => Theme::getThemeName() . $languageCode]);
+        return Widget::query()->where(['theme' => Theme::getThemeName() . $languageCode])->get();
     }
 
-    /**
-     * @return Collection
-     */
     public function getData(): Collection
     {
         return $this->data;

@@ -2,56 +2,33 @@
 
 namespace Botble\Blog\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\Base\Http\Controllers\BaseController;
 use Botble\Blog\Http\Resources\CategoryResource;
 use Botble\Blog\Http\Resources\ListCategoryResource;
 use Botble\Blog\Models\Category;
 use Botble\Blog\Repositories\Interfaces\CategoryInterface;
 use Botble\Blog\Supports\FilterCategory;
-use Illuminate\Http\JsonResponse;
+use Botble\Slug\Facades\SlugHelper;
 use Illuminate\Http\Request;
-use SlugHelper;
 
-class CategoryController extends Controller
+class CategoryController extends BaseController
 {
-    /**
-     * @var CategoryInterface
-     */
-    protected $categoryRepository;
-
-    /**
-     * CategoryController constructor.
-     * @param CategoryInterface $categoryRepository
-     */
-    public function __construct(CategoryInterface $categoryRepository)
-    {
-        $this->categoryRepository = $categoryRepository;
-    }
-
     /**
      * List categories
      *
      * @group Blog
-     *
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
      */
-    public function index(Request $request, BaseHttpResponse $response)
+    public function index(Request $request)
     {
-        $data = $this->categoryRepository
-            ->advancedGet([
-                'with'      => ['slugable'],
-                'condition' => ['status' => BaseStatusEnum::PUBLISHED],
-                'paginate'  => [
-                    'per_page'      => (int)$request->input('per_page', 10),
-                    'current_paged' => (int)$request->input('page', 1),
-                ],
-            ]);
+        $data = Category::query()
+            ->wherePublished()
+            ->orderByDesc('created_at')
+            ->with(['slugable'])
+            ->paginate($request->integer('per_page', 10) ?: 10);
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(ListCategoryResource::collection($data))
             ->toApiResponse();
     }
@@ -60,17 +37,14 @@ class CategoryController extends Controller
      * Filters categories
      *
      * @group Blog
-     *
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
      */
-    public function getFilters(Request $request, BaseHttpResponse $response)
+    public function getFilters(Request $request, CategoryInterface $categoryRepository)
     {
         $filters = FilterCategory::setFilters($request->input());
-        $data = $this->categoryRepository->getFilters($filters);
+        $data = $categoryRepository->getFilters($filters);
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(CategoryResource::collection($data))
             ->toApiResponse();
     }
@@ -80,25 +54,37 @@ class CategoryController extends Controller
      *
      * @group Blog
      * @queryParam slug Find by slug of category.
-     * @param string $slug
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse|JsonResponse
      */
-    public function findBySlug(string $slug, BaseHttpResponse $response)
+    public function findBySlug(string $slug)
     {
-        $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Category::class), Category::class);
+        $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Category::class));
 
-        if (!$slug) {
-            return $response->setError()->setCode(404)->setMessage('Not found');
+        if (! $slug) {
+            return $this
+                ->httpResponse()
+                ->setError()
+                ->setCode(404)
+                ->setMessage('Not found');
         }
 
-        $category = $this->categoryRepository->getCategoryById($slug->reference_id);
+        $category = Category::query()
+            ->with('slugable')
+            ->where([
+                'id' => $slug->reference_id,
+                'status' => BaseStatusEnum::PUBLISHED,
+            ])
+            ->first();
 
-        if (!$category) {
-            return $response->setError()->setCode(404)->setMessage('Not found');
+        if (! $category) {
+            return $this
+                ->httpResponse()
+                ->setError()
+                ->setCode(404)
+                ->setMessage('Not found');
         }
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(new ListCategoryResource($category))
             ->toApiResponse();
     }

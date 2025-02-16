@@ -12,4 +12,4 @@
     <div class="container">
         {!! Theme::partial('posts', compact('posts', 'postsLayout')) !!}
     </div>
-</div>>
+</div>

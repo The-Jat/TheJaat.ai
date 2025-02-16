@@ -2,56 +2,48 @@
 
 namespace Botble\Gallery\Providers;
 
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Supports\DashboardMenuItem;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Botble\Gallery\Facades\GalleryFacade;
+use Botble\Gallery\Facades\Gallery as GalleryFacade;
 use Botble\Gallery\Models\Gallery;
 use Botble\Gallery\Models\GalleryMeta;
-use Botble\Gallery\Repositories\Caches\GalleryCacheDecorator;
-use Botble\Gallery\Repositories\Caches\GalleryMetaCacheDecorator;
 use Botble\Gallery\Repositories\Eloquent\GalleryMetaRepository;
 use Botble\Gallery\Repositories\Eloquent\GalleryRepository;
 use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
 use Botble\Gallery\Repositories\Interfaces\GalleryMetaInterface;
 use Botble\LanguageAdvanced\Supports\LanguageAdvancedManager;
+use Botble\SeoHelper\Facades\SeoHelper;
+use Botble\Slug\Facades\SlugHelper;
+use Botble\Theme\Events\ThemeRoutingBeforeEvent;
+use Botble\Theme\Facades\SiteMapManager;
 use Illuminate\Foundation\AliasLoader;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\ServiceProvider;
-use Language;
-use SeoHelper;
-use SlugHelper;
 
 class GalleryServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function register()
+    public function register(): void
     {
         $this->app->bind(GalleryInterface::class, function () {
-            return new GalleryCacheDecorator(
-                new GalleryRepository(new Gallery())
-            );
+            return new GalleryRepository(new Gallery());
         });
 
         $this->app->bind(GalleryMetaInterface::class, function () {
-            return new GalleryMetaCacheDecorator(
-                new GalleryMetaRepository(new GalleryMeta())
-            );
+            return new GalleryMetaRepository(new GalleryMeta());
         });
 
         AliasLoader::getInstance()->alias('Gallery', GalleryFacade::class);
     }
 
-    public function boot()
+    public function boot(): void
     {
-        SlugHelper::registerModule(Gallery::class, 'Galleries');
-        SlugHelper::setPrefix(Gallery::class, 'galleries', true);
-
         $this
             ->setNamespace('plugins/gallery')
             ->loadHelpers()
             ->loadAndPublishConfigurations(['general', 'permissions'])
-            ->loadRoutes(['web'])
+            ->loadRoutes()
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
             ->loadMigrations()
@@ -59,50 +51,47 @@ class GalleryServiceProvider extends ServiceProvider
 
         $this->app->register(EventServiceProvider::class);
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()->registerItem([
-                'id'          => 'cms-plugins-gallery',
-                'priority'    => 5,
-                'parent_id'   => null,
-                'name'        => 'plugins/gallery::gallery.menu_name',
-                'icon'        => 'fa fa-camera',
-                'url'         => route('galleries.index'),
-                'permissions' => ['galleries.index'],
-            ]);
+        $this->app['events']->listen(ThemeRoutingBeforeEvent::class, function (): void {
+            SiteMapManager::registerKey(['galleries']);
         });
 
-        $useLanguageV2 = $this->app['config']->get('plugins.gallery.general.use_language_v2', false) &&
-            defined('LANGUAGE_ADVANCED_MODULE_SCREEN_NAME');
+        SlugHelper::registering(function (): void {
+            SlugHelper::registerModule(Gallery::class, fn () => trans('plugins/gallery::gallery.galleries'));
+            SlugHelper::setPrefix(Gallery::class, 'galleries', true);
+        });
 
-        if (defined('LANGUAGE_MODULE_SCREEN_NAME')) {
-            if ($useLanguageV2) {
-                LanguageAdvancedManager::registerModule(Gallery::class, [
-                    'name',
-                    'description',
-                ]);
+        DashboardMenu::default()->beforeRetrieving(function (): void {
+            DashboardMenu::make()
+                ->registerItem(
+                    DashboardMenuItem::make()
+                        ->id('cms-plugins-gallery')
+                        ->priority(5)
+                        ->name('plugins/gallery::gallery.menu_name')
+                        ->icon('ti ti-camera')
+                        ->route('galleries.index')
+                );
+        });
 
-                LanguageAdvancedManager::registerModule(GalleryMeta::class, [
-                    'images',
-                ]);
+        if (defined('LANGUAGE_MODULE_SCREEN_NAME') && defined('LANGUAGE_ADVANCED_MODULE_SCREEN_NAME')) {
+            LanguageAdvancedManager::registerModule(Gallery::class, [
+                'name',
+                'description',
+            ]);
 
-                LanguageAdvancedManager::addTranslatableMetaBox('gallery_wrap');
+            LanguageAdvancedManager::registerModule(GalleryMeta::class, [
+                'images',
+            ]);
 
-                foreach (\Gallery::getSupportedModules() as $item) {
-                    $translatableColumns = array_merge(
-                        LanguageAdvancedManager::getTranslatableColumns($item),
-                        ['gallery']
-                    );
+            LanguageAdvancedManager::addTranslatableMetaBox('gallery_wrap');
 
-                    LanguageAdvancedManager::registerModule($item, $translatableColumns);
-                }
-            } else {
-                $this->app->booted(function () {
-                    Language::registerModule([Gallery::class]);
-                });
+            foreach (GalleryFacade::getSupportedModules() as $item) {
+                $translatableColumns = array_merge(LanguageAdvancedManager::getTranslatableColumns($item), ['gallery']);
+
+                LanguageAdvancedManager::registerModule($item, $translatableColumns);
             }
         }
 
-        $this->app->booted(function () {
+        $this->app->booted(function (): void {
             SeoHelper::registerModule([Gallery::class]);
 
             $this->app->register(HookServiceProvider::class);

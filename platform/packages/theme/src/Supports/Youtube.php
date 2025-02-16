@@ -2,26 +2,27 @@
 
 namespace Botble\Theme\Supports;
 
+use Botble\Media\Facades\RvMedia;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class Youtube
 {
-    /**
-     * @param string $url
-     * @return string
-     */
-    public static function getYoutubeVideoEmbedURL(string $url): string
+    public static function getYoutubeVideoEmbedURL(?string $url): string
     {
-        $url = rtrim($url, '/');
+        $url = rtrim((string) $url, '/');
 
-        if (Str::contains($url, 'watch?v=')) {
-            $url = str_replace('watch?v=', 'embed/', $url);
+        if (! $url) {
+            return $url;
+        }
+
+        if (Str::contains($url, ['watch?v=', 'shorts/'])) {
+            $url = str_replace(['watch?v=', 'shorts/'], 'embed/', $url);
         } else {
             $exploded = explode('/', $url);
 
             if (count($exploded) > 1) {
-                $videoID = str_replace('embed', '', str_replace('watch?v=', '', Arr::last($exploded)));
+                $videoID = str_replace(['embed', 'watch?v=', 'shorts'], '', Arr::last($exploded));
 
                 $url = 'https://www.youtube.com/embed/' . $videoID;
             }
@@ -30,13 +31,13 @@ class Youtube
         return $url;
     }
 
-    /**
-     * @param string $url
-     * @return string
-     */
-    public static function getYoutubeWatchURL(string $url): string
+    public static function getYoutubeWatchURL(?string $url): string
     {
-        $url = rtrim($url, '/');
+        $url = rtrim((string) $url, '/');
+
+        if (! $url) {
+            return $url;
+        }
 
         if (Str::contains($url, 'embed/')) {
             $url = str_replace('embed/', 'watch?v=', $url);
@@ -53,31 +54,42 @@ class Youtube
         return $url;
     }
 
-    /**
-     * @param string $url
-     * @return null|string
-     */
-    public static function getYoutubeVideoID(string $url): ?string
+    public static function getYoutubeVideoID(?string $url): ?string
     {
-        $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/';
+        $url = rtrim((string) $url, '/');
+
+        if (! $url) {
+            return $url;
+        }
+
+        $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(shorts\/)|(watch\?))\??v?=?([^#&?]*).*/';
 
         preg_match($regExp, $url, $matches);
 
-        if ($matches && strlen($matches[7]) == 11) {
-            return $matches[7];
+        if ($matches && strlen($matches[8]) == 11) {
+            return $matches[8];
         }
 
         return null;
     }
 
-    /**
-     * @param string $url
-     * @return bool
-     */
-    public static function isYoutubeURL(string $url): bool
+    public static function isYoutubeURL(?string $url): bool
     {
-        $regExp = '/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/';
+        $url = rtrim((string) $url, '/');
+
+        if (! $url) {
+            return false;
+        }
+
+        $regExp = '/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|shorts\/|v\/)?)([\w\-]+)(\S+)?$/';
 
         return preg_match($regExp, $url);
+    }
+
+    public static function getThumbnail(?string $url): string
+    {
+        $id = self::getYoutubeVideoID($url);
+
+        return $id ? "https://i.ytimg.com/vi_webp/$id/maxresdefault.webp" : RvMedia::getDefaultImage();
     }
 }

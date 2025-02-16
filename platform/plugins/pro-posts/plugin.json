@@ -1,4 +1,5 @@
 {
+    "id": "thesky9/pro-posts",
     "name": "Pro Posts",
     "namespace": "TheSky\\ProPosts\\",
     "provider": "TheSky\\ProPosts\\Providers\\ProPostsServiceProvider",

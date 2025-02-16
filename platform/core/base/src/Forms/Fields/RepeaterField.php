@@ -2,14 +2,11 @@
 
 namespace Botble\Base\Forms\Fields;
 
-use Kris\LaravelFormBuilder\Fields\SelectType;
+use Botble\Base\Forms\FormField;
 
-class RepeaterField extends SelectType
+class RepeaterField extends FormField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
         return 'core/base::forms.fields.repeater';
     }

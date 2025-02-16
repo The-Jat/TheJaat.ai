@@ -2,30 +2,28 @@
 
 namespace Botble\SocialLogin\Providers;
 
+use Botble\Base\Supports\ServiceProvider;
+use Botble\SocialLogin\Facades\SocialService;
+use Botble\Theme\Facades\Theme;
+use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Arr;
-use Illuminate\Support\ServiceProvider;
-use SocialService;
-use Theme;
-use Throwable;
 
 class HookServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
-        if (SocialService::setting('enable')) {
+        $this->app['events']->listen(RouteMatched::class, function (): void {
             add_filter(BASE_FILTER_AFTER_LOGIN_OR_REGISTER_FORM, [$this, 'addLoginOptions'], 25, 2);
-        }
+        });
     }
 
-    /**
-     * @param string|null $html
-     * @param string $module
-     * @return null|string
-     * @throws Throwable
-     */
     public function addLoginOptions(?string $html, string $module): ?string
     {
-        if (!SocialService::isSupportedModule($module)) {
+        if (
+            ! SocialService::setting('enable')
+            || ! SocialService::isSupportedModule($module)
+            || ! SocialService::hasAnyProviderEnable()
+        ) {
             return $html;
         }
 
@@ -45,8 +43,10 @@ class HookServiceProvider extends ServiceProvider
                         asset('vendor/core/plugins/social-login/css/social-login.css'),
                         [],
                         [],
-                        '1.1.0'
+                        '1.2.1'
                     );
+
+                do_action('social_login_assets_register');
             }
 
             $view = Arr::get($data, 'view', 'plugins/social-login::login-options');

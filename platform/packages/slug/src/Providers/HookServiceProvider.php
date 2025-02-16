@@ -2,84 +2,56 @@
 
 namespace Botble\Slug\Providers;
 
-use Assets;
-use Botble\Base\Models\BaseModel;
-use Eloquent;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder;
-use Illuminate\Database\Query\JoinClause;
-use Illuminate\Support\ServiceProvider;
-use SlugHelper;
+use Botble\Base\Contracts\BaseModel;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Forms\FormAbstract;
+use Botble\Base\Supports\ServiceProvider;
+use Botble\Slug\Facades\SlugHelper;
+use Botble\Slug\Forms\Fields\PermalinkField;
+use Botble\Theme\Facades\Theme;
+use Botble\Theme\FormFront;
 
 class HookServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function boot(): void
     {
-        add_filter(BASE_FILTER_SLUG_AREA, [$this, 'addSlugBox'], 17, 2);
+        add_filter(BASE_FILTER_BEFORE_RENDER_FORM, [$this, 'addSlugBox'], 1712);
 
-        add_filter(BASE_FILTER_BEFORE_GET_FRONT_PAGE_ITEM, [$this, 'getItemSlug'], 3, 2);
+        add_filter('core_slug_language', [$this, 'setSlugLanguageForGenerator'], 17);
     }
 
-    /**
-     * @param string|null $html
-     * @param BaseModel $object
-     * @return null|string
-     */
-    public function addSlugBox(?string $html = null, $object = null)
+    public function addSlugBox(FormAbstract $form): FormAbstract
     {
-        if ($object && SlugHelper::isSupportedModel(get_class($object))) {
-            Assets::addScriptsDirectly('vendor/core/packages/slug/js/slug.js')
-                ->addStylesDirectly('vendor/core/packages/slug/css/slug.css');
-
-            $prefix = SlugHelper::getPrefix(get_class($object));
-
-            return $html . view('packages/slug::partials.slug', compact('object', 'prefix'))->render();
+        if ($form->isDisabledPermalinkField()) {
+            return $form;
         }
 
-        return $html;
+        if ($form instanceof FormFront) {
+            Theme::asset()->container('footer')->usePath(false)->add('slug-js', 'vendor/core/packages/slug/js/front-slug.js', ['jquery']);
+            Theme::asset()->usePath(false)->add('slug-css', 'vendor/core/packages/slug/css/slug.css');
+        } else {
+            Assets::addScriptsDirectly('vendor/core/packages/slug/js/slug.js')->addStylesDirectly('vendor/core/packages/slug/css/slug.css');
+        }
+
+        $model = $form->getModel();
+
+        if (! $model instanceof BaseModel || ! SlugHelper::isSupportedModel($model::class)) {
+            return $form;
+        }
+
+        if (array_key_exists('slug', $form->getFields())) {
+            return $form;
+        }
+
+        return $form
+            ->addAfter(SlugHelper::getColumnNameToGenerateSlug($model), 'slug', PermalinkField::class, [
+                'model' => $model,
+                'colspan' => 'full',
+            ]);
     }
 
-    /**
-     * @param Builder $data
-     * @param Model $model
-     * @return Builder
-     */
-    public function getItemSlug($data, $model)
+    public function setSlugLanguageForGenerator(): bool|string
     {
-        if ($data && SlugHelper::isSupportedModel(get_class($data))) {
-            $table = $model->getTable();
-            $select = [$table . '.*'];
-            /**
-             * @var Eloquent $data
-             */
-            $rawBindings = $data->getRawBindings();
-            /**
-             * @var Eloquent $rawBindings
-             */
-            $query = $rawBindings->getQuery();
-            if ($query instanceof Builder) {
-                $querySelect = $data->getQuery()->columns;
-                if (!empty($querySelect)) {
-                    $select = $querySelect;
-                }
-            }
-
-            foreach ($select as &$column) {
-                if (strpos($column, '.') === false) {
-                    $column = $table . '.' . $column;
-                }
-            }
-
-            $select = array_merge($select, ['slugs.key']);
-
-            return $data
-                ->leftJoin('slugs', function (JoinClause $join) use ($table) {
-                    $join->on('slugs.reference_id', '=', $table . '.id');
-                })
-                ->select($select)
-                ->where('slugs.reference_type', get_class($model));
-        }
-
-        return $data;
+        return SlugHelper::turnOffAutomaticUrlTranslationIntoLatin() ? false : 'en';
     }
 }

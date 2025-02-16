@@ -2,119 +2,56 @@
 
 namespace Botble\SeoHelper;
 
-use Arr;
-use Botble\Base\Models\BaseModel;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Facades\MetaBox;
+use Botble\Media\Facades\RvMedia;
 use Botble\SeoHelper\Contracts\SeoHelperContract;
 use Botble\SeoHelper\Contracts\SeoMetaContract;
 use Botble\SeoHelper\Contracts\SeoOpenGraphContract;
 use Botble\SeoHelper\Contracts\SeoTwitterContract;
 use Exception;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use MetaBox;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class SeoHelper implements SeoHelperContract
 {
-    /**
-     * The SeoMeta instance.
-     *
-     * @var SeoMetaContract
-     */
-    protected $seoMeta;
-
-    /**
-     * The SeoOpenGraph instance.
-     *
-     * @var SeoOpenGraphContract
-     */
-    protected $seoOpenGraph;
-
-    /**
-     * The SeoTwitter instance.
-     *
-     * @var SeoTwitterContract
-     */
-    protected $seoTwitter;
-
-    /**
-     * Make SeoHelper instance.
-     *
-     * @param SeoMetaContract $seoMeta
-     * @param SeoOpenGraphContract $seoOpenGraph
-     * @param SeoTwitterContract $seoTwitter
-     */
     public function __construct(
-        SeoMetaContract $seoMeta,
-        SeoOpenGraphContract $seoOpenGraph,
-        SeoTwitterContract $seoTwitter
+        protected SeoMetaContract $seoMeta,
+        protected SeoOpenGraphContract $seoOpenGraph,
+        protected SeoTwitterContract $seoTwitter
     ) {
-        $this->setSeoMeta($seoMeta);
-        $this->setSeoOpenGraph($seoOpenGraph);
-        $this->setSeoTwitter($seoTwitter);
         $this->openGraph()->addProperty('type', 'website');
     }
 
-    /**
-     * Set SeoMeta instance.
-     *
-     * @param SeoMetaContract $seoMeta
-     *
-     * @return SeoHelper
-     */
-    public function setSeoMeta(SeoMetaContract $seoMeta)
+    public function setSeoMeta(SeoMetaContract $seoMeta): static
     {
         $this->seoMeta = $seoMeta;
 
         return $this;
     }
 
-    /**
-     * Get SeoOpenGraph instance.
-     *
-     * @param SeoOpenGraphContract $seoOpenGraph
-     *
-     * @return SeoHelper
-     */
-    public function setSeoOpenGraph(SeoOpenGraphContract $seoOpenGraph)
+    public function setSeoOpenGraph(SeoOpenGraphContract $seoOpenGraph): static
     {
         $this->seoOpenGraph = $seoOpenGraph;
 
         return $this;
     }
 
-    /**
-     * Set SeoTwitter instance.
-     *
-     * @param SeoTwitterContract $seoTwitter
-     *
-     * @return SeoHelper
-     */
-    public function setSeoTwitter(SeoTwitterContract $seoTwitter)
+    public function setSeoTwitter(SeoTwitterContract $seoTwitter): static
     {
         $this->seoTwitter = $seoTwitter;
 
         return $this;
     }
 
-    /**
-     * Get SeoOpenGraph instance.
-     *
-     * @return SeoOpenGraphContract
-     */
-    public function openGraph()
+    public function openGraph(): SeoOpenGraphContract
     {
         return $this->seoOpenGraph;
     }
 
-    /**
-     * Set title.
-     *
-     * @param string $title
-     * @param string|null $siteName
-     * @param string|null $separator
-     *
-     * @return SeoHelper
-     */
-    public function setTitle($title, $siteName = null, $separator = null)
+    public function setTitle(?string $title, ?string $siteName = null, ?string $separator = null): static
     {
         $this->meta()->setTitle($title, $siteName, $separator);
         $this->openGraph()->setTitle($title);
@@ -126,43 +63,44 @@ class SeoHelper implements SeoHelperContract
         return $this;
     }
 
-    /**
-     * Get SeoMeta instance.
-     *
-     * @return SeoMetaContract
-     */
-    public function meta()
+    public function setImage(?string $image): SeoHelperContract
+    {
+        $this->openGraph()->setImage($image);
+
+        return $this;
+    }
+
+    public function meta(): SeoMetaContract
     {
         return $this->seoMeta;
     }
 
-    /**
-     * Get SeoTwitter instance.
-     *
-     * @return SeoTwitterContract
-     */
-    public function twitter()
+    public function twitter(): SeoTwitterContract
     {
         return $this->seoTwitter;
     }
 
-    /**
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): ?string
     {
         return $this->meta()->getTitle();
     }
 
-    /**
-     * Set description.
-     *
-     * @param string $description
-     *
-     * @return SeoHelperContract
-     */
-    public function setDescription($description)
+    public function getTitleOnly(): ?string
     {
+        return $this->meta()->getTitleOnly();
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->meta()->getDescription();
+    }
+
+    public function setDescription($description): static
+    {
+        if ($description) {
+            $description = Str::limit(strip_tags(BaseHelper::cleanShortcodes($description)), 250);
+        }
+
         $this->meta()->setDescription($description);
         $this->openGraph()->setDescription($description);
         $this->twitter()->setDescription($description);
@@ -170,63 +108,73 @@ class SeoHelper implements SeoHelperContract
         return $this;
     }
 
-    /**
-     * Render the tag.
-     *
-     * @return string
-     */
     public function __toString()
     {
         return $this->render();
     }
 
-    /**
-     * Render all seo tags.
-     *
-     * @return string
-     */
     public function render()
     {
-        return implode(PHP_EOL, array_filter([
-            $this->meta()->render(),
-            $this->openGraph()->render(),
-            $this->twitter()->render(),
-        ]));
+        return implode(
+            PHP_EOL,
+            array_filter([
+                $this->meta()->render(),
+                $this->openGraph()->render(),
+                $this->twitter()->render(),
+            ])
+        );
     }
 
-    /**
-     * @param string $screen
-     * @param Request $request
-     * @param BaseModel $object
-     * @return bool
-     */
-    public function saveMetaData($screen, $request, $object)
+    public function saveMetaData(string $screen, Request $request, Model $object): bool
     {
-        if (in_array(get_class($object), config('packages.seo-helper.general.supported', [])) && $request->has('seo_meta')) {
+        if (
+            in_array(get_class($object), config('packages.seo-helper.general.supported', [])) &&
+            $request->has('seo_meta')
+        ) {
             try {
                 if (empty($request->input('seo_meta'))) {
                     MetaBox::deleteMetaData($object, 'seo_meta');
+
                     return false;
                 }
 
                 $seoMeta = $request->input('seo_meta', []);
 
-                if (!Arr::get($seoMeta, 'seo_title')) {
+                if ($request->hasFile('seo_meta_image_input')) {
+                    $uploadFolder = $object->upload_folder ?: Str::plural(Str::slug(class_basename($this)));
+
+                    $result = RvMedia::handleUpload($request->file('seo_meta_image_input'), 0, $uploadFolder);
+
+                    if (! $result['error']) {
+                        $request->merge(['seo_meta_image' => $result['data']->url]);
+                    }
+                }
+
+                $seoMeta['seo_image'] = $request->input('seo_meta_image');
+
+                Arr::forget($seoMeta, 'seo_meta_image');
+                Arr::forget($seoMeta, 'seo_meta_image_input');
+
+                if (! Arr::get($seoMeta, 'seo_title')) {
                     Arr::forget($seoMeta, 'seo_title');
                 }
 
-                if (!Arr::get($seoMeta, 'seo_description')) {
+                if (! Arr::get($seoMeta, 'seo_description')) {
                     Arr::forget($seoMeta, 'seo_description');
                 }
 
-                if (!empty($seoMeta)) {
+                if (! Arr::get($seoMeta, 'seo_image')) {
+                    Arr::forget($seoMeta, 'seo_image');
+                }
+
+                if (! empty($seoMeta)) {
                     MetaBox::saveMetaBoxData($object, 'seo_meta', $seoMeta);
                 } else {
                     MetaBox::deleteMetaData($object, 'seo_meta');
                 }
 
                 return true;
-            } catch (Exception $exception) {
+            } catch (Exception) {
                 return false;
             }
         }
@@ -234,12 +182,7 @@ class SeoHelper implements SeoHelperContract
         return false;
     }
 
-    /**
-     * @param string $screen
-     * @param BaseModel $object
-     * @return bool
-     */
-    public function deleteMetaData($screen, $object)
+    public function deleteMetaData(string $screen, Model $object): bool
     {
         try {
             if (in_array(get_class($object), config('packages.seo-helper.general.supported', []))) {
@@ -247,27 +190,38 @@ class SeoHelper implements SeoHelperContract
             }
 
             return true;
-        } catch (Exception $ex) {
+        } catch (Exception) {
             return false;
         }
     }
 
-    /**
-     * @param string | array $model
-     * @return $this
-     */
-    public function registerModule($model)
+    public function supportedModules(): array
     {
-        if (!is_array($model)) {
+        return config('packages.seo-helper.general.supported', []);
+    }
+
+    public function registerModule(array|string $model): static
+    {
+        if (! is_array($model)) {
             $model = [$model];
         }
 
         config([
-            'packages.seo-helper.general.supported' => array_merge(
-                config('packages.seo-helper.general.supported', []),
-                $model
-            ),
+            'packages.seo-helper.general.supported' => array_merge($this->supportedModules(), $model),
         ]);
+
+        return $this;
+    }
+
+    public function removeModule(array|string $model): static
+    {
+        if (! is_array($model)) {
+            $model = [$model];
+        }
+
+        $supported = collect($this->supportedModules())->reject(fn ($item) => in_array($item, $model))->toArray();
+
+        config()->set('packages.seo-helper.general.supported', $supported);
 
         return $this;
     }

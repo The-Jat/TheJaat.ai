@@ -2,43 +2,38 @@
 
 namespace Botble\RssFeed\Supports;
 
-use AdminBar;
+use Botble\Base\Facades\Html;
+use Botble\Language\Facades\Language;
+use Botble\RssFeed\Feed;
 use Exception;
-use Html;
 use Illuminate\Support\Collection;
-use Spatie\Feed\Feed;
 
 class RssFeed
 {
-    /**
-     * @param string $url
-     * @param string $title
-     * @return $this
-     */
     public function addFeedLink(string $url, string $title): self
     {
         add_filter(THEME_FRONT_HEADER, function ($html) use ($url, $title) {
             $html .= Html::style($url, [
-                    'rel'   => 'alternate',
-                    'type'  => 'application/atom+xml',
+                    'rel' => 'alternate',
+                    'type' => 'application/atom+xml',
                     'title' => $title,
                     'media' => null,
-                ])->toHtml() . "\n";
+                ])->toHtml() . PHP_EOL;
 
             if (is_plugin_active('language')) {
-                $supportedLocales = \Language::getSupportedLocales();
+                $supportedLocales = Language::getSupportedLocales();
 
                 foreach (array_keys($supportedLocales) as $supportedLocale) {
-                    if ($supportedLocale == \Language::getDefaultLocale()) {
+                    if ($supportedLocale == Language::getDefaultLocale()) {
                         continue;
                     }
 
-                    $html .= Html::style(\Language::getLocalizedURL($supportedLocale, $url), [
-                            'rel'   => 'alternate',
-                            'type'  => 'application/atom+xml',
+                    $html .= Html::style(Language::getLocalizedURL($supportedLocale, $url), [
+                            'rel' => 'alternate',
+                            'type' => 'application/atom+xml',
                             'title' => $title,
                             'media' => null,
-                        ])->toHtml() . "\n";
+                        ])->toHtml() . PHP_EOL;
                 }
             }
 
@@ -48,33 +43,14 @@ class RssFeed
         return $this;
     }
 
-    /**
-     * @param \Illuminate\Support\Collection $items
-     * @param string $title
-     * @param string $description
-     * @return \Spatie\Feed\Feed
-     */
-    public function renderFeedItems(Collection $items, string $title, string $description)
+    public function renderFeedItems(Collection $items, string $title, string $description): Feed
     {
-        AdminBar::setIsDisplay(false);
-
-        return new Feed(
-            $title,
-            $items,
-            request()->url(),
-            'plugins/rss-feed::rss',
-            $description,
-            'en-US'
-        );
+        return new Feed($title, $items, request()->url(), 'plugins/rss-feed::rss', $description, 'en-US');
     }
 
-    /**
-     * @param string $url
-     * @return int
-     */
-    public function remoteFilesize($url)
+    public function remoteFilesize(string $url): int
     {
-        if (!$url) {
+        if (! $url) {
             return 0;
         }
 
@@ -82,9 +58,9 @@ class RssFeed
             $data = get_headers($url, true);
 
             if (isset($data['Content-Length'])) {
-                return (int)$data['Content-Length'];
+                return (int) $data['Content-Length'];
             }
-        } catch (Exception $exception) {
+        } catch (Exception) {
             return 0;
         }
 

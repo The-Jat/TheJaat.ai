@@ -7,22 +7,15 @@ use Illuminate\Support\Arr;
 
 abstract class ActionHookEvent
 {
-    /**
-     * Holds the event listeners
-     * @var array
-     */
-    protected $listeners = [];
+    protected array $listeners = [];
 
-    /**
-     * Adds a listener
-     * @param string|array $hook Hook name
-     * @param mixed $callback Function to execute
-     * @param integer $priority Priority of the action
-     * @param integer $arguments Number of arguments to accept
-     */
-    public function addListener($hook, $callback, int $priority = 20, int $arguments = 1)
-    {
-        if (!is_array($hook)) {
+    public function addListener(
+        string|array|null $hook,
+        string|array|Closure $callback,
+        int $priority = 20,
+        int $arguments = 1
+    ): void {
+        if (! is_array($hook)) {
             $hook = [$hook];
         }
 
@@ -35,10 +28,6 @@ abstract class ActionHookEvent
         }
     }
 
-    /**
-     * @param string $hook
-     * @return $this
-     */
     public function removeListener(string $hook): self
     {
         Arr::forget($this->listeners, $hook);
@@ -46,10 +35,6 @@ abstract class ActionHookEvent
         return $this;
     }
 
-    /**
-     * Gets a sorted list of all listeners
-     * @return array
-     */
     public function getListeners(): array
     {
         foreach ($this->listeners as $listeners) {
@@ -61,16 +46,12 @@ abstract class ActionHookEvent
         return $this->listeners;
     }
 
-    /**
-     * Gets the function
-     * @param mixed $callback Callback
-     * @return array|Closure|false|string A closure, an array if "class@method" or a string if "function_name"
-     */
-    protected function getFunction($callback)
+    protected function getFunction(string|array|Closure|null $callback): bool|array|Closure|string
     {
         if (is_string($callback)) {
             if (strpos($callback, '@')) {
                 $callback = explode('@', $callback);
+
                 return [app('\\' . $callback[0]), $callback[1]];
             }
 
@@ -84,10 +65,5 @@ abstract class ActionHookEvent
         return false;
     }
 
-    /**
-     * Fires a new action
-     * @param string $action Name of action
-     * @param array $args Arguments passed to the action
-     */
     abstract public function fire(string $action, array $args);
 }

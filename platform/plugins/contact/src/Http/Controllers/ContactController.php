@@ -2,149 +2,74 @@
 
 namespace Botble\Contact\Http\Controllers;
 
-use Botble\Base\Events\BeforeEditContentEvent;
-use Botble\Base\Forms\FormBuilder;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Facades\EmailHandler;
+use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Base\Traits\HasDeleteManyItemsTrait;
 use Botble\Contact\Enums\ContactStatusEnum;
 use Botble\Contact\Forms\ContactForm;
 use Botble\Contact\Http\Requests\ContactReplyRequest;
 use Botble\Contact\Http\Requests\EditContactRequest;
-use Botble\Contact\Repositories\Interfaces\ContactReplyInterface;
+use Botble\Contact\Models\Contact;
+use Botble\Contact\Models\ContactReply;
 use Botble\Contact\Tables\ContactTable;
-use Botble\Contact\Repositories\Interfaces\ContactInterface;
-use EmailHandler;
-use Exception;
-use Illuminate\Http\Request;
-use Botble\Base\Events\DeletedContentEvent;
-use Botble\Base\Events\UpdatedContentEvent;
+use Illuminate\Validation\ValidationException;
 
 class ContactController extends BaseController
 {
-    use HasDeleteManyItemsTrait;
-
-    /**
-     * @var ContactInterface
-     */
-    protected $contactRepository;
-
-    /**
-     * @param ContactInterface $contactRepository
-     */
-    public function __construct(ContactInterface $contactRepository)
-    {
-        $this->contactRepository = $contactRepository;
-    }
-
-    /**
-     * @param ContactTable $dataTable
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     * @throws \Throwable
-     */
     public function index(ContactTable $dataTable)
     {
-        page_title()->setTitle(trans('plugins/contact::contact.menu'));
+        $this->pageTitle(trans('plugins/contact::contact.menu'));
 
         return $dataTable->renderTable();
     }
 
-    /**
-     * @param $id
-     * @param FormBuilder $formBuilder
-     * @param Request $request
-     * @return string
-     */
-    public function edit($id, FormBuilder $formBuilder, Request $request)
+    public function edit(Contact $contact)
     {
-        page_title()->setTitle(trans('plugins/contact::contact.edit'));
+        $this
+            ->breadcrumb()
+            ->add(trans('plugins/contact::contact.menu'), route('contacts.index'));
 
-        $contact = $this->contactRepository->findOrFail($id);
+        $this->pageTitle(trans('plugins/contact::contact.edit'));
 
-        event(new BeforeEditContentEvent($request, $contact));
-
-        return $formBuilder->create(ContactForm::class, ['model' => $contact])->renderForm();
+        return ContactForm::createFromModel($contact)->renderForm();
     }
 
-    /**
-     * @param $id
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function update($id, EditContactRequest $request, BaseHttpResponse $response)
+    public function update(Contact $contact, EditContactRequest $request)
     {
-        $contact = $this->contactRepository->findOrFail($id);
+        ContactForm::createFromModel($contact)->setRequest($request)->save();
 
-        $contact->fill($request->input());
-
-        $this->contactRepository->createOrUpdate($contact);
-
-        event(new UpdatedContentEvent(CONTACT_MODULE_SCREEN_NAME, $request, $contact));
-
-        return $response
-            ->setPreviousUrl(route('contacts.index'))
-            ->setMessage(trans('core/base::notices.update_success_message'));
+        return $this
+            ->httpResponse()
+            ->setPreviousRoute('contacts.index')
+            ->withUpdatedSuccessMessage();
     }
 
-    /**
-     * @param $id
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function destroy($id, Request $request, BaseHttpResponse $response)
+    public function destroy(Contact $contact)
     {
-        try {
-            $contact = $this->contactRepository->findOrFail($id);
-            $this->contactRepository->delete($contact);
-            event(new DeletedContentEvent(CONTACT_MODULE_SCREEN_NAME, $request, $contact));
+        return DeleteResourceAction::make($contact);
+    }
 
-            return $response->setMessage(trans('core/base::notices.delete_success_message'));
-        } catch (Exception $exception) {
-            return $response
-                ->setError()
-                ->setMessage($exception->getMessage());
+    public function postReply(Contact $contact, ContactReplyRequest $request)
+    {
+        $message = BaseHelper::clean($request->input('message'));
+
+        if (! $message) {
+            throw ValidationException::withMessages(['message' => trans('validation.required', ['attribute' => 'message'])]);
         }
-    }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Exception
-     */
-    public function deletes(Request $request, BaseHttpResponse $response)
-    {
-        return $this->executeDeleteItems($request, $response, $this->contactRepository, CONTACT_MODULE_SCREEN_NAME);
-    }
+        EmailHandler::send($message, sprintf('Re: %s', $contact->subject), $contact->email);
 
-    /**
-     * @param int $id
-     * @param ContactReplyRequest $request
-     * @param BaseHttpResponse $response
-     * @param ContactReplyInterface $contactReplyRepository
-     * @return BaseHttpResponse
-     */
-    public function postReply(
-        $id,
-        ContactReplyRequest $request,
-        BaseHttpResponse $response,
-        ContactReplyInterface $contactReplyRepository
-    ) {
-        $contact = $this->contactRepository->findOrFail($id);
-
-        EmailHandler::send($request->input('message'), 'Re: ' . $contact->subject, $contact->email);
-
-        $contactReplyRepository->create([
-            'message'    => $request->input('message'),
-            'contact_id' => $id,
+        ContactReply::query()->create([
+            'message' => $message,
+            'contact_id' => $contact->getKey(),
         ]);
 
         $contact->status = ContactStatusEnum::READ();
-        $this->contactRepository->createOrUpdate($contact);
+        $contact->save();
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setMessage(trans('plugins/contact::contact.message_sent_success'));
     }
 }

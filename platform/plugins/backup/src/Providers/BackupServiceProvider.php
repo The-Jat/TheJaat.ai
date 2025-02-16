@@ -2,40 +2,41 @@
 
 namespace Botble\Backup\Providers;
 
+use Botble\Base\Facades\PanelSectionManager;
+use Botble\Base\PanelSections\PanelSectionItem;
+use Botble\Base\PanelSections\System\SystemPanelSection;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\ServiceProvider;
 
 class BackupServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function boot()
+    public function boot(): void
     {
         $this->setNamespace('plugins/backup')
             ->loadHelpers()
             ->loadAndPublishConfigurations(['permissions', 'general'])
-            ->loadRoutes(['web'])
+            ->loadRoutes()
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
             ->publishAssets();
 
         $this->app->register(CommandServiceProvider::class);
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()->registerItem([
-                'id'          => 'cms-plugin-backup',
-                'priority'    => 8,
-                'parent_id'   => 'cms-core-platform-administration',
-                'name'        => 'plugins/backup::backup.menu_name',
-                'icon'        => null,
-                'url'         => route('backups.index'),
-                'permissions' => ['backups.index'],
-            ]);
+        PanelSectionManager::group('system')->beforeRendering(function (): void {
+            PanelSectionManager::registerItem(
+                SystemPanelSection::class,
+                fn () => PanelSectionItem::make('backup')
+                    ->setTitle(trans('plugins/backup::backup.name'))
+                    ->withIcon('ti ti-database-share')
+                    ->withDescription(trans('plugins/backup::backup.backup_description'))
+                    ->withPriority(30)
+                    ->withRoute('backups.index')
+            );
         });
 
-        $this->app->booted(function () {
+        $this->app->booted(function (): void {
             $this->app->register(HookServiceProvider::class);
         });
     }

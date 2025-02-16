@@ -2,46 +2,32 @@
 
 namespace Botble\Base\Supports;
 
-use Cache;
-use Illuminate\Support\Collection;
+use Botble\Media\Facades\RvMedia;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\AbstractFont;
-use Intervention\Image\AbstractShape;
-use Intervention\Image\Image;
-use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use Intervention\Image\Geometry\Factories\CircleFactory;
+use Intervention\Image\Geometry\Factories\RectangleFactory;
+use Intervention\Image\Interfaces\ImageInterface;
+use Intervention\Image\Typography\FontFactory;
 use InvalidArgumentException;
+use Throwable;
 
 class Avatar
 {
-    /**
-     * @var string
-     */
-    protected $name;
+    protected ?string $name = null;
 
-    /**
-     * @var int
-     */
-    protected $chars = 1;
+    protected int $chars = 1;
 
-    /**
-     * @var string
-     */
-    protected $shape = 'circle';
+    protected string $shape = 'square';
 
-    /**
-     * @var int
-     */
-    protected $width = 250;
+    protected int $width = 250;
 
-    /**
-     * @var int
-     */
-    protected $height = 250;
+    protected int $height = 250;
 
-    /**
-     * @var array
-     */
-    protected $availableBackgrounds = [
+    protected array $availableBackgrounds = [
         '#f44336',
         '#E91E63',
         '#9C27B0',
@@ -59,57 +45,27 @@ class Avatar
         '#FF5722',
     ];
 
-    /**
-     * @var array
-     */
-    protected $availableForegrounds = [
+    protected array $availableForegrounds = [
         '#FFFFFF',
     ];
 
-    /**
-     * @var int
-     */
-    protected $fontSize = 152;
+    protected int $fontSize = 152;
 
-    /**
-     * @var int
-     */
-    protected $borderSize = 1;
+    protected int $borderSize = 0;
 
-    /**
-     * @var string
-     */
-    protected $borderColor = 'foreground';
+    protected string $borderColor = 'foreground';
 
-    /**
-     * @var bool
-     */
-    protected $ascii = false;
+    protected bool $ascii = false;
 
-    /**
-     * @var bool
-     */
-    protected $uppercase = false;
+    protected bool $uppercase = false;
 
-    /**
-     * @var Image
-     */
-    protected $image;
+    protected ImageInterface $image;
 
-    /**
-     * @var string
-     */
-    protected $font;
+    protected string $font;
 
-    /**
-     * @var string
-     */
-    protected $background = '#CCCCCC';
+    protected string $background = '#CCCCCC';
 
-    /**
-     * @var string
-     */
-    protected $foreground = '#FFFFFF';
+    protected string $foreground = '#FFFFFF';
 
     public function __construct()
     {
@@ -118,10 +74,6 @@ class Avatar
         $this->font = core_path('base/public/fonts/Roboto-Bold.ttf');
     }
 
-    /**
-     * @param string $color
-     * @return $this
-     */
     public function setBackground(string $color): self
     {
         $this->background = $color;
@@ -129,10 +81,6 @@ class Avatar
         return $this;
     }
 
-    /**
-     * @param string $color
-     * @return $this
-     */
     public function setForeground(string $color): self
     {
         $this->foreground = $color;
@@ -140,10 +88,6 @@ class Avatar
         return $this;
     }
 
-    /**
-     * @param string $shape
-     * @return $this
-     */
     public function setShape(string $shape): self
     {
         $this->shape = $shape;
@@ -151,18 +95,13 @@ class Avatar
         return $this;
     }
 
-    /**
-     * @param array $array
-     * @param string $default
-     * @return mixed
-     */
     protected function getRandomElement(array $array, string $default)
     {
         // Make it work for associative array
         $array = array_values($array);
 
         $name = $this->name;
-        if ($name == null || strlen($name) === 0) {
+        if ($name == null) {
             $name = chr(rand(65, 90));
         }
 
@@ -181,36 +120,31 @@ class Avatar
         return $array[$number % count($array)];
     }
 
-    /**
-     * @return string
-     */
     public function __toString()
     {
-        return (string)$this->toBase64();
+        return $this->toBase64();
     }
 
-    /**
-     * @return string
-     */
     public function toBase64(): string
     {
+        $cacheEnabled = setting('cache_user_avatar_enabled', true);
+
         $key = $this->cacheKey();
-        if ($base64 = Cache::get($key)) {
+        if ($cacheEnabled && $base64 = Cache::get($key)) {
             return $base64;
         }
 
         $this->buildAvatar();
 
-        $base64 = (string)$this->image->encode('data-url');
+        $base64 = $this->image->toJpeg()->toDataUri();
 
-        Cache::forever($key, $base64);
+        if ($cacheEnabled) {
+            Cache::forever($key, $base64);
+        }
 
         return $base64;
     }
 
-    /**
-     * @return string
-     */
     protected function cacheKey(): string
     {
         $keys = [];
@@ -233,40 +167,48 @@ class Avatar
         return md5(implode('-', $keys));
     }
 
-    /**
-     * @return $this
-     */
     public function buildAvatar(): self
     {
-        $driver = 'gd';
-        if (extension_loaded('imagick')) {
-            $driver = 'imagick';
-        }
-
-        $manager = new ImageManager(['driver' => $driver]);
-        $this->image = $manager->canvas($this->width, $this->height);
+        $this->image = RvMedia::imageManager(extension_loaded('imagick') ? ImagickDriver::class : GdDriver::class)
+            ->create($this->width, $this->height);
 
         $this->createShape();
 
-        $this->image->text(
-            $this->make($this->name, $this->chars, $this->uppercase, $this->ascii),
-            $this->width / 2,
-            $this->height / 2,
-            function (AbstractFont $font) {
-                $font->file($this->font);
-                $font->size($this->fontSize);
-                $font->color($this->foreground);
-                $font->align('center');
-                $font->valign('middle');
+        if (extension_loaded('imagick') || app()->isLocal()) {
+            $this->image->text(
+                $this->make($this->name, $this->chars, $this->uppercase, $this->ascii),
+                (int) ($this->width / 2),
+                (int) ($this->height / 2),
+                function (FontFactory $font): void {
+                    $font->filename($this->font);
+                    $font->size($this->fontSize);
+                    $font->color($this->foreground);
+                    $font->align('center');
+                    $font->valign('middle');
+                }
+            );
+        } else {
+            try {
+                $favicon = setting('admin_favicon');
+
+                if ($favicon) {
+                    $favicon = Storage::path($favicon);
+                } else {
+                    $favicon = public_path(config('core.base.general.favicon'));
+                }
+
+                $watermark = RvMedia::imageManager()->read($favicon);
+                $watermark->resize((int) ($this->width * 0.75), (int) ($this->height * 0.75));
+
+                $this->image->place($watermark, 'center');
+            } catch (Throwable) {
+                // do nothing
             }
-        );
+        }
 
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
     protected function createShape()
     {
         $method = 'create' . ucfirst($this->shape) . 'Shape';
@@ -274,33 +216,30 @@ class Avatar
             return $this->$method();
         }
 
-        throw new InvalidArgumentException('Shape [' . $this->shape . '] currently not supported.');
+        throw new InvalidArgumentException(sprintf('Shape [%s] currently not supported.', $this->shape));
     }
 
-    /**
-     * @param string|array $name
-     * @param int $length
-     * @param bool $uppercase
-     * @param bool $ascii
-     * @return string
-     */
-    public function make($name, int $length = 1, bool $uppercase = false, bool $ascii = false): string
-    {
+    public function make(
+        string|array|null|object $name,
+        int $length = 1,
+        bool $uppercase = false,
+        bool $ascii = false
+    ): string {
         $this->setName($name, $ascii);
 
         $words = collect(explode(' ', $this->name));
 
         // if name contains single word, use first N character
         if ($words->count() === 1) {
-            $initial = (string)$words->first();
+            $initial = (string) $words->first();
 
             if (strlen($this->name) >= $length) {
                 $initial = Str::substr($this->name, 0, $length);
             }
         } else {
             // otherwise, use initial char from each word
-            $initials = new Collection();
-            $words->each(function ($word) use ($initials) {
+            $initials = collect();
+            $words->each(function ($word) use ($initials): void {
                 $initials->push(Str::substr($word, 0, 1));
             });
 
@@ -314,17 +253,13 @@ class Avatar
         return $initial;
     }
 
-    /**
-     * @param string|array $name
-     * @param bool $ascii
-     */
-    protected function setName($name, bool $ascii)
+    protected function setName(string|array|null|object $name, bool $ascii): void
     {
         if (is_array($name)) {
             throw new InvalidArgumentException(
                 'Passed value cannot be an array'
             );
-        } elseif (is_object($name) && !method_exists($name, '__toString')) {
+        } elseif (is_object($name) && ! method_exists($name, '__toString')) {
             throw new InvalidArgumentException(
                 'Passed object must have a __toString method'
             );
@@ -342,10 +277,6 @@ class Avatar
         $this->name = $name;
     }
 
-    /**
-     * @param string $name
-     * @return $this
-     */
     public function create(?string $name): self
     {
         $this->name = $name;
@@ -353,12 +284,7 @@ class Avatar
         return $this;
     }
 
-    /**
-     * @param string $path
-     * @param int $quality
-     * @return Image
-     */
-    public function save(string $path, int $quality = 90): Image
+    public function save(string $path, int $quality = 90): ImageInterface
     {
         $this->buildAvatar();
 
@@ -367,21 +293,18 @@ class Avatar
 
     protected function createCircleShape(): void
     {
-        $this->image->circle(
-            $this->width - $this->borderSize,
-            $this->width / 2,
-            $this->height / 2,
-            function (AbstractShape $draw) {
+        $this->image->drawCircle(
+            intval($this->width / 2),
+            intval($this->height / 2),
+            function (CircleFactory $draw): void {
+                $draw->radius($this->width - $this->borderSize);
                 $draw->background($this->background);
-                $draw->border($this->borderSize, $this->getBorderColor());
+                $draw->border($this->getBorderColor(), $this->borderSize);
             }
         );
     }
 
-    /**
-     * @return mixed|string
-     */
-    protected function getBorderColor()
+    protected function getBorderColor(): ?string
     {
         if ($this->borderColor == 'foreground') {
             return $this->foreground;
@@ -394,21 +317,29 @@ class Avatar
         return $this->borderColor;
     }
 
-    protected function createSquareShape()
+    protected function createSquareShape(): void
     {
-        $edge = ceil($this->borderSize / 2);
+        $edge = (int) ceil($this->borderSize / 2);
         $width = $this->width - $edge;
         $height = $this->height - $edge;
 
-        $this->image->rectangle(
+        $this->image->drawRectangle(
             $edge,
             $edge,
-            $width,
-            $height,
-            function (AbstractShape $draw) {
+            function (RectangleFactory $draw) use ($height, $width): void {
+                $draw->size($width, $height);
                 $draw->background($this->background);
-                $draw->border($this->borderSize, $this->getBorderColor());
+                $draw->border($this->getBorderColor(), $this->borderSize);
             }
         );
+    }
+
+    public static function createBase64Image(?string $name): string
+    {
+        try {
+            return (new self())->create($name)->toBase64();
+        } catch (Throwable) {
+            return RvMedia::getDefaultImage();
+        }
     }
 }

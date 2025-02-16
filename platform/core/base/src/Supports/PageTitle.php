@@ -4,35 +4,39 @@ namespace Botble\Base\Supports;
 
 class PageTitle
 {
-    /**
-     * @var string
-     */
-    protected $title;
+    protected string $title;
 
-    /**
-     * @param string $title
-     */
-    public function setTitle(string $title)
+    protected string $siteName;
+
+    protected string $separator = '|';
+
+    public function setSiteName(string $siteName): void
+    {
+        $this->siteName = $siteName;
+    }
+
+    public function setSeparator(string $separator): void
+    {
+        $this->separator = $separator;
+    }
+
+    public function setTitle(string $title): void
     {
         $this->title = $title;
     }
 
-    /**
-     * @param bool $full
-     * @return string
-     */
-    public function getTitle(bool $full = true): ?string
+    public function getTitle(bool $withSiteName = true): ?string
     {
-        $baseTitle = setting('admin_title', config('core.base.general.base_name'));
+        $siteName = $this->siteName ?? setting('admin_title', config('core.base.general.base_name'));
 
         if (empty($this->title)) {
-            return $baseTitle;
+            return $siteName;
         }
 
-        if (!$full) {
+        if (! $withSiteName) {
             return $this->title;
         }
 
-        return $this->title . ' | ' . $baseTitle;
+        return implode(' ', [$this->title, $this->separator, $siteName]);
     }
 }

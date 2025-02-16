@@ -3,31 +3,17 @@
 namespace Botble\Language\Models;
 
 use Botble\Base\Models\BaseModel;
+use Botble\Language\Facades\Language as LanguageFacade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Language as LanguageFacade;
 
 class LanguageMeta extends BaseModel
 {
-    /**
-     * @var string
-     */
     protected $primaryKey = 'lang_meta_id';
 
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'language_meta';
 
-    /**
-     * @var bool
-     */
     public $timestamps = false;
 
-    /**
-     * @var array
-     */
     protected $fillable = [
         'lang_meta_code',
         'lang_meta_origin',
@@ -35,33 +21,35 @@ class LanguageMeta extends BaseModel
         'reference_type',
     ];
 
-    /**
-     * @return BelongsTo
-     */
-    public function reference()
+    protected static function booted(): void
     {
-        return $this->morphTo()->withDefault();
+        self::deleted(function (LanguageMeta $languageMeta): void {
+            $languageMeta->reference()->delete();
+        });
     }
 
-    /**
-     * @param BaseModel $model
-     * @param string|null $locale
-     * @param string|null $originValue
-     */
-    public static function saveMetaData(BaseModel $model, ?string $locale = null, ?string $originValue = null)
+    public function reference(): BelongsTo
     {
-        if (!$locale) {
+        return $this->morphTo();
+    }
+
+    public static function saveMetaData(
+        BaseModel $model,
+        ?string $locale = null,
+        ?string $originValue = null
+    ): void {
+        if (! $locale) {
             $locale = LanguageFacade::getDefaultLocaleCode();
         }
 
-        if (!$originValue) {
-            $originValue = md5($model->id . get_class($model) . time());
+        if (! $originValue) {
+            $originValue = md5($model->getKey() . get_class($model) . time());
         }
 
-        LanguageMeta::insert([
-            'reference_id'     => $model->id,
-            'reference_type'   => get_class($model),
-            'lang_meta_code'   => $locale,
+        LanguageMeta::query()->create([
+            'reference_id' => $model->getKey(),
+            'reference_type' => get_class($model),
+            'lang_meta_code' => $locale,
             'lang_meta_origin' => $originValue,
         ]);
     }

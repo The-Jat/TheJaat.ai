@@ -2,19 +2,12 @@
 
 namespace Botble\Base\Forms\Fields;
 
-use Assets;
-use Kris\LaravelFormBuilder\Fields\FormField;
+use Botble\Base\Forms\FormField;
 
 class ColorField extends FormField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
-        Assets::addScripts(['colorpicker'])
-            ->addStyles(['colorpicker']);
-
         return 'core/base::forms.fields.color';
     }
 }

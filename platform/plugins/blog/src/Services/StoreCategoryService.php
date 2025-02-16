@@ -8,16 +8,8 @@ use Illuminate\Http\Request;
 
 class StoreCategoryService extends StoreCategoryServiceAbstract
 {
-    /**
-     * @param Request $request
-     * @param Post $post
-     * @return mixed|void
-     */
-    public function execute(Request $request, Post $post)
+    public function execute(Request $request, Post $post): void
     {
-        $categories = $request->input('categories');
-        if (!empty($categories) && is_array($categories)) {
-            $post->categories()->sync($categories);
-        }
+        $post->categories()->sync($request->input('categories', []));
     }
 }

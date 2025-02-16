@@ -1,33 +1,35 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
 if (defined('THEME_MODULE_SCREEN_NAME')) {
     Route::group([
-        'prefix'     => 'ajax/v1/comments',
-        'middleware' => ['web'],
-    ], function () {
+        'prefix' => 'ajax/v1/comments',
+        'middleware' => ['web', 'core'],
+    ], function (): void {
         Route::group([
             'namespace' => 'Botble\Comment\Http\Controllers\AJAX',
-        ], function () {
+        ], function (): void {
             Route::group([
                 'as' => 'public.comment.',
-            ], function () {
+            ], function (): void {
                 Route::post('login', 'LoginController@login')->name('login');
                 Route::post('register', 'RegisterController@register')->name('register');
             });
 
             Route::post('logout', [
-                'uses'       => 'LoginController@logout',
+                'uses' => 'LoginController@logout',
                 'middleware' => 'auth:' . COMMENT_GUARD,
             ])->name('comment.logout');
         });
 
         Route::group([
-            'as'        => 'comment.',
+            'as' => 'comment.',
             'namespace' => 'Botble\Comment\Http\Controllers\AJAX',
-        ], function () {
+        ], function (): void {
             Route::group([
                 'middleware' => ['auth:' . COMMENT_GUARD, 'throttle:comment'],
-            ], function () {
+            ], function (): void {
                 Route::post('postComment', 'CommentFrontController@postComment')->name('post');
                 Route::post('user', 'CommentFrontController@userInfo')->name('user');
                 Route::delete('delete', 'CommentFrontController@deleteComment')->name('delete');

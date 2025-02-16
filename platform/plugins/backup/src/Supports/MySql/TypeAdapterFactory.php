@@ -3,6 +3,7 @@
 namespace Botble\Backup\Supports\MySql;
 
 use Exception;
+use PDO;
 
 /**
  * TypeAdapter Factory.
@@ -21,7 +22,7 @@ abstract class TypeAdapterFactory
     public static function create($type, $dbHandler = null, $dumpSettings = [])
     {
         $type = ucfirst(strtolower($type));
-        if (!TypeAdapter::isValid($type)) {
+        if (! TypeAdapter::isValid($type)) {
             throw new Exception('Database type support for (' . $type . ') not yet available');
         }
         $method = __NAMESPACE__ . '\\' . 'TypeAdapter' . $type;

@@ -3,56 +3,41 @@
 namespace Botble\Blog\Http\Controllers\API;
 
 use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Base\Http\Controllers\BaseController;
 use Botble\Blog\Http\Resources\ListPostResource;
 use Botble\Blog\Http\Resources\PostResource;
 use Botble\Blog\Models\Post;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
 use Botble\Blog\Supports\FilterPost;
-use Illuminate\Http\JsonResponse;
+use Botble\Slug\Facades\SlugHelper;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
-use SlugHelper;
 
-class PostController extends Controller
+class PostController extends BaseController
 {
-    /**
-     * @var PostInterface
-     */
-    protected $postRepository;
-
-    /**
-     * AuthenticationController constructor.
-     *
-     * @param PostInterface $postRepository
-     */
-    public function __construct(PostInterface $postRepository)
+    public function __construct(protected PostInterface $postRepository)
     {
-        $this->postRepository = $postRepository;
     }
 
     /**
      * List posts
      *
      * @group Blog
-     *
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
      */
-    public function index(Request $request, BaseHttpResponse $response)
+    public function index(Request $request)
     {
         $data = $this->postRepository
             ->advancedGet([
-                'with'      => ['tags', 'categories', 'author', 'slugable'],
+                'with' => ['tags', 'categories', 'author', 'slugable'],
                 'condition' => ['status' => BaseStatusEnum::PUBLISHED],
-                'paginate'  => [
-                    'per_page'      => (int)$request->input('per_page', 10),
-                    'current_paged' => (int)$request->input('page', 1),
+                'paginate' => [
+                    'per_page' => $request->integer('per_page', 10),
+                    'current_paged' => $request->integer('page', 1),
                 ],
             ]);
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(ListPostResource::collection($data))
             ->toApiResponse();
     }
@@ -63,15 +48,10 @@ class PostController extends Controller
      * @bodyParam q string required The search keyword.
      *
      * @group Blog
-     *
-     * @param Request $request
-     * @param PostInterface $postRepository
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
      */
-    public function getSearch(Request $request, PostInterface $postRepository, BaseHttpResponse $response)
+    public function getSearch(Request $request, PostInterface $postRepository)
     {
-        $query = $request->input('q');
+        $query = BaseHelper::stringify($request->input('q'));
         $posts = $postRepository->getSearch($query);
 
         $data = [
@@ -81,10 +61,13 @@ class PostController extends Controller
         ];
 
         if ($data['count'] > 0) {
-            return $response->setData(apply_filters(BASE_FILTER_SET_DATA_SEARCH, $data));
+            return $this
+                ->httpResponse()
+                ->setData(apply_filters(BASE_FILTER_SET_DATA_SEARCH, $data));
         }
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setError()
             ->setMessage(trans('core/base::layouts.no_search_result'));
     }
@@ -109,17 +92,15 @@ class PostController extends Controller
      * @queryParam tags                 Limit result set to all items that have the specified term assigned in the tags taxonomy.
      * @queryParam tags_exclude         Limit result set to all items except those that have the specified term assigned in the tags taxonomy.
      * @queryParam featured             Limit result set to items that are sticky.
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
      */
-    public function getFilters(Request $request, BaseHttpResponse $response)
+    public function getFilters(Request $request)
     {
         $filters = FilterPost::setFilters($request->input());
 
         $data = $this->postRepository->getFilters($filters);
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(ListPostResource::collection($data))
             ->toApiResponse();
     }
@@ -129,28 +110,36 @@ class PostController extends Controller
      *
      * @group Blog
      * @queryParam slug Find by slug of post.
-     * @param string $slug
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse|JsonResponse
      */
-    public function findBySlug(string $slug, BaseHttpResponse $response)
+    public function findBySlug(string $slug)
     {
-        $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Post::class), Post::class);
+        $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Post::class));
 
-        if (!$slug) {
-            return $response->setError()->setCode(404)->setMessage('Not found');
+        if (! $slug) {
+            return $this
+                ->httpResponse()
+                ->setError()
+                ->setCode(404)
+                ->setMessage('Not found');
         }
 
-        $post = $this->postRepository->getFirstBy([
-            'id'     => $slug->reference_id,
-            'status' => BaseStatusEnum::PUBLISHED,
-        ]);
+        $post = Post::query()
+            ->where([
+                'id' => $slug->reference_id,
+                'status' => BaseStatusEnum::PUBLISHED,
+            ])
+            ->first();
 
-        if (!$post) {
-            return $response->setError()->setCode(404)->setMessage('Not found');
+        if (! $post) {
+            return $this
+                ->httpResponse()
+                ->setError()
+                ->setCode(404)
+                ->setMessage('Not found');
         }
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(new PostResource($post))
             ->toApiResponse();
     }

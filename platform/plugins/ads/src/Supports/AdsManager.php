@@ -2,154 +2,96 @@
 
 namespace Botble\Ads\Supports;
 
-use Botble\Ads\Repositories\Interfaces\AdsInterface;
+use Botble\Ads\Models\Ads;
 use Botble\Base\Enums\BaseStatusEnum;
 use Carbon\Carbon;
-use Html;
 use Illuminate\Support\Collection;
-use RvMedia;
 
 class AdsManager
 {
-    /**
-     * @var Collection
-     */
-    protected $data = [];
+    protected Collection $data;
 
-    /**
-     * Whether the settings data are loaded.
-     *
-     * @var boolean
-     */
-    protected $loaded = false;
+    protected bool $loaded = false;
 
-    /**
-     * @var array
-     */
-    protected $locations = [];
+    protected array $locations = [];
 
-    /**
-     * AdsManager constructor.
-     */
     public function __construct()
     {
         $this->locations = [
             'not_set' => trans('plugins/ads::ads.not_set'),
         ];
+
+        $this->data = collect();
     }
 
-    /**
-     * @param string $location
-     * @param array $attributes
-     * @return string
-     */
     public function display(string $location, array $attributes = []): string
     {
         $this->load();
 
-        $data = $this->data
+        $data = $this
+            ->filterExpired($this->data)
             ->where('location', $location)
             ->sortBy('order');
 
-        if ($data->count() > 1) {
+        if ($data->isNotEmpty()) {
             $data = $data->random(1);
         }
 
-        $html = '';
-        foreach ($data as $item) {
-            if (!$item->image) {
-                continue;
-            }
-
-            $image = Html::image(RvMedia::getImageUrl($item->image), $item->name, ['style' => 'max-width: 100%'])
-                ->toHtml();
-
-            if ($item->url) {
-                $image = Html::link(route('public.ads-click', $item->key), $image, ['target' => '_blank'], null, false)
-                    ->toHtml();
-            }
-
-            $html .= Html::tag('div', $image, $attributes)->toHtml();
-        }
-
-        return $html;
+        return view('plugins/ads::partials.ad-display', compact('data', 'attributes'))->render();
     }
 
-    /**
-     * Make sure data is loaded.
-     *
-     * @param boolean $force Force a reload of data. Default false.
-     * @return self
-     */
-    public function load(bool $force = false)
+    public function load(bool $force = false, array $with = []): self
     {
-        if (!$this->loaded || $force) {
-            $this->data = $this->read();
+        if (! $this->loaded || $force) {
+            $this->data = $this->read($with);
             $this->loaded = true;
         }
 
         return $this;
     }
 
-    /**
-     * @return Collection
-     */
-    protected function read()
+    protected function read(array $with): Collection
     {
-        return app(AdsInterface::class)->getAll();
+        return Ads::query()->with($with)->get();
     }
 
-    /**
-     * @param string $location
-     * @return bool
-     */
     public function locationHasAds(string $location): bool
     {
         $this->load();
 
-        return (bool)$this->data
+        return $this
+            ->filterExpired($this->data)
             ->where('location', $location)
             ->sortBy('order')
-            ->count();
+            ->isNotEmpty();
     }
 
-    /**
-     * @param string|null $key
-     * @param array $attributes
-     * @param array $linkAttributes
-     * @return string|null
-     */
-    public function displayAds(?string $key, array $attributes = [], array $linkAttributes = [])
+    public function displayAds(?string $key, array $attributes = []): ?string
     {
-        if (!$key) {
+        if (! $key) {
             return null;
         }
 
         $this->load();
 
-        $ads = $this->data
+        $ads = $this
+            ->filterExpired($this->data)
             ->where('key', $key)
             ->first();
 
-        if (!$ads || !$ads->image) {
+        if (! $ads) {
             return null;
         }
 
-        $image = Html::image(RvMedia::getImageUrl($ads->image), $ads->name, ['style' => 'max-width: 100%'])->toHtml();
+        $data = [$ads];
 
-        if ($ads->url) {
-            $image = Html::link(route('public.ads-click', $ads->key), $image, $linkAttributes + ['target' => '_blank'], null, false)
-                ->toHtml();
+        if (! isset($attributes['style'])) {
+            $attributes['style'] = 'text-align: center;';
         }
 
-        return Html::tag('div', $image, $attributes)->toHtml();
+        return view('plugins/ads::partials.ad-display', compact('data', 'attributes'))->render();
     }
 
-    /**
-     * @param bool $isLoad
-     * @param bool $isNotExpired
-     * @return Collection
-     */
     public function getData(bool $isLoad = false, bool $isNotExpired = false): Collection
     {
         if ($isLoad) {
@@ -157,24 +99,12 @@ class AdsManager
         }
 
         if ($isNotExpired) {
-            return $this->data
-                ->where('status', BaseStatusEnum::PUBLISHED)
-                ->filter(function ($item) {
-                    if ($expiredAt = $item->getRawOriginal('expired_at')) {
-                        return Carbon::parse($expiredAt)->gte(now());
-                    }
-                    return true;
-                });
+            return $this->filterExpired($this->data);
         }
 
         return $this->data;
     }
 
-    /**
-     * @param string $key
-     * @param string $name
-     * @return $this
-     */
     public function registerLocation(string $key, string $name): self
     {
         $this->locations[$key] = $name;
@@ -182,11 +112,30 @@ class AdsManager
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getLocations(): array
     {
-        return $this->locations;
+        return apply_filters('ads_locations', $this->locations);
+    }
+
+    public function getAds(string $key): ?Ads
+    {
+        if (! $key) {
+            return null;
+        }
+
+        $ads = $this->getData(true)->firstWhere('key', $key);
+
+        if (! $ads || ! $ads->image) {
+            return null;
+        }
+
+        return $ads;
+    }
+
+    protected function filterExpired(Collection $data): Collection
+    {
+        return $data
+            ->where('status', BaseStatusEnum::PUBLISHED)
+            ->filter(fn (Ads $item) => $item->ads_type === 'google_adsense' || $item->expired_at->gte(Carbon::now()));
     }
 }

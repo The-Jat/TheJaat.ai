@@ -1,74 +1,77 @@
 <?php
 
-use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
-use Botble\Gallery\Repositories\Interfaces\GalleryMetaInterface;
+use Botble\Gallery\Models\Gallery as GalleryModel;
+use Botble\Gallery\Models\GalleryMeta;
+use Botble\Theme\Facades\Theme;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
-if (!function_exists('gallery_meta_data')) {
-    /**
-     * @param Model $object
-     * @param array $select
-     * @return array
-     */
-    function gallery_meta_data($object, array $select = ['gallery_meta.id', 'gallery_meta.images']): array
+if (! function_exists('gallery_meta_data')) {
+    function gallery_meta_data(Model $object, array $select = ['gallery_meta.id', 'gallery_meta.images']): array
     {
-        $meta = app(GalleryMetaInterface::class)->getFirstBy([
-            'reference_id'   => $object->id,
-            'reference_type' => get_class($object),
-        ], $select);
+        $meta = GalleryMeta::query()
+            ->where([
+                'reference_id' => $object->getKey(),
+                'reference_type' => $object::class,
+            ])
+            ->select($select)
+            ->first();
 
-        if (!empty($meta)) {
-            return $meta->images ? (array)$meta->images : [];
+        if (! empty($meta)) {
+            $images = $meta->images;
+            if (is_string($images)) {
+                $images = json_decode($images, true);
+            }
+
+            return $images ? (array) $images : [];
         }
 
         return [];
     }
 }
 
-if (!function_exists('get_galleries')) {
-    /**
-     * @param int $limit
-     * @param array $with
-     * @return Collection
-     */
-    function get_galleries(int $limit = 8, array $with = ['slugable', 'user']): Collection
+if (! function_exists('get_galleries')) {
+    function get_galleries(int $limit = 8, array $with = ['slugable', 'user'], array $condition = []): Collection
     {
-        return app(GalleryInterface::class)->getFeaturedGalleries($limit, $with);
+        return GalleryModel::query()
+            ->with($with)
+            ->wherePublished()
+            ->select([
+                'id',
+                'name',
+                'user_id',
+                'image',
+                'created_at',
+            ])
+            ->when($condition, fn ($query) => $query->where($condition))
+            ->oldest('order')->latest()
+            ->when($limit > 0, fn ($query) => $query->limit($limit))
+            ->get();
     }
 }
 
-if (!function_exists('render_galleries')) {
-    /**
-     * @param int $limit
-     * @return string
-     */
+if (! function_exists('render_galleries')) {
     function render_galleries(int $limit): string
     {
-        Gallery::registerAssets();
+        $galleries = get_galleries($limit);
 
-        return view('plugins/gallery::gallery', compact('limit'));
+        $view = apply_filters('galleries_box_template_view', 'plugins/gallery::shortcodes.gallery');
+
+        return view($view, compact('galleries'))->render();
     }
 }
 
-if (!function_exists('get_list_galleries')) {
-    /**
-     * @param array $condition
-     * @return Collection
-     */
+if (! function_exists('get_list_galleries')) {
     function get_list_galleries(array $condition): Collection
     {
-        return app(GalleryInterface::class)->allBy($condition, ['slugable', 'user']);
+        return GalleryModel::query()
+            ->where($condition)
+            ->with(['slugable', 'user'])
+            ->get();
     }
 }
 
-if (!function_exists('render_object_gallery')) {
-    /**
-     * @param array $galleries
-     * @param string|null $category
-     * @return string
-     * @throws Throwable
-     */
+if (! function_exists('render_object_gallery')) {
     function render_object_gallery(array $galleries, ?string $category = null): string
     {
         Theme::asset()

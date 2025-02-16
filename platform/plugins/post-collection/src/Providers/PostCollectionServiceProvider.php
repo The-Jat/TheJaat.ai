@@ -45,28 +45,28 @@ class PostCollectionServiceProvider extends ServiceProvider
         SlugHelper::registerModule(PostCollection::class, 'Posts Collection');
         SlugHelper::setPrefix(PostCollection::class, 'posts-collection');
 
-        Event::listen(RouteMatched::class, function () {
+        Event::listen(RouteMatched::class, function (): void {
             if (defined('LANGUAGE_MODULE_SCREEN_NAME')) {
                 \Language::registerModule([PostCollection::class]);
             }
 
             dashboard_menu()
                 ->registerItem([
-                    'id'          => 'cms-plugins-post-collection',
-                    'priority'    => 2,
-                    'parent_id'   => 'cms-plugins-blog',
-                    'name'        => 'plugins/post-collection::post-collection.name',
-                    'icon'        => null,
-                    'url'         => route('post-collection.index'),
+                    'id' => 'cms-plugins-post-collection',
+                    'priority' => 2,
+                    'parent_id' => 'cms-plugins-blog',
+                    'name' => 'plugins/post-collection::post-collection.name',
+                    'icon' => null,
+                    'url' => route('post-collection.index'),
                     'permissions' => ['post-collection.index'],
                 ])
                 ->registerItem([
-                    'id'          => 'cms-plugins-blog-post',
-                    'priority'    => 1,
-                    'parent_id'   => 'cms-plugins-blog',
-                    'name'        => 'plugins/blog::posts.create',
-                    'icon'        => null,
-                    'url'         => route('posts.create'),
+                    'id' => 'cms-plugins-blog-post',
+                    'priority' => 1,
+                    'parent_id' => 'cms-plugins-blog',
+                    'name' => 'plugins/blog::posts.create',
+                    'icon' => null,
+                    'url' => route('posts.create'),
                     'permissions' => ['posts.index.create'],
                 ]);
         });

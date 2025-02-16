@@ -2,8 +2,9 @@
 
 namespace Botble\Base\Enums;
 
+use Botble\Base\Facades\Html;
 use Botble\Base\Supports\Enum;
-use Html;
+use Illuminate\Support\HtmlString;
 
 /**
  * @method static BaseStatusEnum DRAFT()
@@ -16,28 +17,15 @@ class BaseStatusEnum extends Enum
     public const DRAFT = 'draft';
     public const PENDING = 'pending';
 
-    /**
-     * @var string
-     */
     public static $langPath = 'core/base::enums.statuses';
 
-    /**
-     * @return string
-     */
-    public function toHtml()
+    public function toHtml(): string|HtmlString
     {
-        switch ($this->value) {
-            case self::DRAFT:
-                return Html::tag('span', self::DRAFT()->label(), ['class' => 'label-info status-label'])
-                    ->toHtml();
-            case self::PENDING:
-                return Html::tag('span', self::PENDING()->label(), ['class' => 'label-warning status-label'])
-                    ->toHtml();
-            case self::PUBLISHED:
-                return Html::tag('span', self::PUBLISHED()->label(), ['class' => 'label-success status-label'])
-                    ->toHtml();
-            default:
-                return parent::toHtml();
-        }
+        return match ($this->value) {
+            self::DRAFT => Html::tag('span', self::DRAFT()->label(), ['class' => 'badge bg-secondary text-secondary-fg']),
+            self::PENDING => Html::tag('span', self::PENDING()->label(), ['class' => 'badge bg-warning text-warning-fg']),
+            self::PUBLISHED => Html::tag('span', self::PUBLISHED()->label(), ['class' => 'badge bg-success text-success-fg']),
+            default => parent::toHtml(),
+        };
     }
 }

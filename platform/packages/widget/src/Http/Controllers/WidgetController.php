@@ -2,181 +2,125 @@
 
 namespace Botble\Widget\Http\Controllers;
 
-use Assets;
+use Botble\Base\Facades\Assets;
 use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Widget\Factories\AbstractWidgetFactory;
-use Botble\Widget\Repositories\Interfaces\WidgetInterface;
-use Botble\Widget\WidgetId;
+use Botble\Base\Supports\Breadcrumb;
+use Botble\Widget\Events\RenderingWidgetSettings;
+use Botble\Widget\Facades\WidgetGroup;
+use Botble\Widget\Models\Widget;
 use Exception;
-use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\Factory;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Language;
-use Theme;
-use Throwable;
-use WidgetGroup;
 
 class WidgetController extends BaseController
 {
-    /**
-     * @var WidgetInterface
-     */
-    protected $widgetRepository;
-
-    /**
-     * @var string|null
-     */
-    protected $theme = null;
-
-    /**
-     * WidgetController constructor.
-     * @param WidgetInterface $widgetRepository
-     */
-    public function __construct(WidgetInterface $widgetRepository)
+    protected function breadcrumb(): Breadcrumb
     {
-        $this->widgetRepository = $widgetRepository;
-        $this->theme = Theme::getThemeName() . $this->getCurrentLocaleCode();
+        return parent::breadcrumb()
+            ->add(trans('packages/theme::theme.appearance'))
+            ->add(trans('packages/widget::widget.name'), route('widgets.index'));
     }
 
-    /**
-     * @return Application|Factory|View
-     * @since 24/09/2016 2:10 PM
-     */
     public function index()
     {
-        page_title()->setTitle(trans('packages/widget::widget.name'));
+        $this->pageTitle(trans('packages/widget::widget.name'));
 
         Assets::addScripts(['sortable'])
-            ->addScriptsDirectly('vendor/core/packages/widget/js/widget.js');
+            ->addScriptsDirectly('vendor/core/packages/widget/js/widget.js')
+            ->addStylesDirectly('vendor/core/packages/widget/css/widget.css');
 
-        $widgets = $this->widgetRepository->getByTheme($this->theme);
+        RenderingWidgetSettings::dispatch();
+
+        $widgets = Widget::query()->where('theme', Widget::getThemeName())->get();
 
         $groups = WidgetGroup::getGroups();
         foreach ($widgets as $widget) {
-            if (Arr::has($groups, $widget->sidebar_id)) {
-                WidgetGroup::group($widget->sidebar_id)
-                    ->position($widget->position)
-                    ->addWidget($widget->widget_id, $widget->data);
+            if (! Arr::has($groups, $widget->sidebar_id)) {
+                continue;
             }
+
+            WidgetGroup::group($widget->sidebar_id)
+                ->position($widget->position)
+                ->addWidget($widget->widget_id, $widget->data);
         }
 
         return view('packages/widget::list');
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Throwable
-     * @since 24/09/2016 3:14 PM
-     */
-    public function postSaveWidgetToSidebar(Request $request, BaseHttpResponse $response)
+    public function update(Request $request)
     {
         try {
             $sidebarId = $request->input('sidebar_id');
-            $this->widgetRepository->deleteBy([
+
+            $themeName = Widget::getThemeName();
+
+            Widget::query()->where([
                 'sidebar_id' => $sidebarId,
-                'theme'      => $this->theme,
-            ]);
-            foreach ($request->input('items', []) as $key => $item) {
+                'theme' => $themeName,
+            ])->delete();
+
+            foreach (array_filter($request->input('items', [])) as $key => $item) {
+
                 parse_str($item, $data);
+
                 if (empty($data['id'])) {
                     continue;
                 }
 
-                $this->widgetRepository->createOrUpdate([
+                Widget::query()->create([
                     'sidebar_id' => $sidebarId,
-                    'widget_id'  => $data['id'],
-                    'theme'      => $this->theme,
-                    'position'   => $key,
-                    'data'       => $data,
+                    'widget_id' => $data['id'],
+                    'theme' => $themeName,
+                    'position' => $key,
+                    'data' => $data,
                 ]);
             }
 
-            $widgetAreas = $this->widgetRepository->allBy([
+            $widgetAreas = Widget::query()->where([
                 'sidebar_id' => $sidebarId,
-                'theme'      => $this->theme,
-            ]);
+                'theme' => $themeName,
+            ])->get();
 
-            return $response
+            return $this
+                ->httpResponse()
                 ->setData(view('packages/widget::item', compact('widgetAreas'))->render())
                 ->setMessage(trans('packages/widget::widget.save_success'));
         } catch (Exception $exception) {
-            return $response
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function postDelete(Request $request, BaseHttpResponse $response)
+    public function destroy(Request $request)
     {
         try {
-            $this->widgetRepository->deleteBy([
-                'theme'      => $this->theme,
+            Widget::query()->where([
+                'theme' => Widget::getThemeName(),
                 'sidebar_id' => $request->input('sidebar_id'),
-                'position'   => $request->input('position'),
-                'widget_id'  => $request->input('widget_id'),
-            ]);
+                'position' => $request->input('position'),
+                'widget_id' => $request->input('widget_id'),
+            ])->delete();
 
-            return $response->setMessage(trans('packages/widget::widget.delete_success'));
+            $sidebarId = $request->input('sidebar_id');
+
+            $themeName = Widget::getThemeName();
+
+            $widgetAreas = Widget::query()->where([
+                'sidebar_id' => $sidebarId,
+                'theme' => $themeName,
+            ])->get();
+
+            return $this
+                ->httpResponse()
+                ->setData(view('packages/widget::item', compact('widgetAreas'))->render())
+                ->setMessage(trans('packages/widget::widget.delete_success'));
         } catch (Exception $exception) {
-            return $response
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage($exception->getMessage());
         }
-    }
-
-    /**
-     * The action to show widget output via ajax.
-     *
-     * @param Request $request
-     *
-     * @param Application $application
-     * @return mixed
-     * @throws BindingResolutionException
-     */
-    public function showWidget(Request $request, Application $application)
-    {
-        $this->prepareGlobals($request);
-
-        $factory = $application->make('botble.widget');
-        $widgetName = $request->input('name', '');
-        $widgetParams = $factory->decryptWidgetParams($request->input('params', ''));
-
-        return call_user_func_array([$factory, $widgetName], $widgetParams);
-    }
-
-    /**
-     * Set some specials variables to modify the workflow of the widget factory.
-     *
-     * @param Request $request
-     */
-    protected function prepareGlobals(Request $request)
-    {
-        WidgetId::set($request->input('id', 1) - 1);
-        AbstractWidgetFactory::$skipWidgetContainer = true;
-    }
-
-    /**
-     * @return null|string
-     */
-    protected function getCurrentLocaleCode(): ?string
-    {
-        $languageCode = null;
-        if (is_plugin_active('language')) {
-            $currentLocale = is_in_admin() ? Language::getCurrentAdminLocaleCode() : Language::getCurrentLocaleCode();
-            $languageCode = $currentLocale && $currentLocale != Language::getDefaultLocaleCode() ? '-' . $currentLocale : null;
-        }
-
-        return $languageCode;
     }
 }

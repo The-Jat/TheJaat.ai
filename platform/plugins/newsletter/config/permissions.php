@@ -6,8 +6,13 @@ return [
         'flag' => 'newsletter.index',
     ],
     [
-        'name'        => 'Delete',
-        'flag'        => 'newsletter.destroy',
+        'name' => 'Delete',
+        'flag' => 'newsletter.destroy',
         'parent_flag' => 'newsletter.index',
+    ],
+    [
+        'name' => 'Newsletters',
+        'flag' => 'newsletter.settings',
+        'parent_flag' => 'settings.others',
     ],
 ];

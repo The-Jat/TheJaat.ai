@@ -14,12 +14,7 @@ use SlugHelper;
 
 class PostsCollectionsSeeder extends BaseSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         PostCollection::truncate();
         Slug::where('reference_type', PostCollection::class)->delete();
@@ -29,21 +24,21 @@ class PostsCollectionsSeeder extends BaseSeeder
         $data = [
             'en_US' => [
                 [
-                    'name'    => "Editor's Picked",
+                    'name' => "Editor's Picked",
                     'postIds' => [12, 3, 5, 1, 7, 9],
                 ],
                 [
-                    'name'    => 'Recommended Posts',
+                    'name' => 'Recommended Posts',
                     'postIds' => [15, 4, 2, 1, 10],
                 ],
             ],
-            'vi'    => [
+            'vi' => [
                 [
-                    'name'    => 'Bài viết hay',
+                    'name' => 'Bài viết hay',
                     'postIds' => [20, 19, 21, 31, 32],
                 ],
                 [
-                    'name'    => 'Recommended Posts',
+                    'name' => 'Recommended Posts',
                     'postIds' => [22, 24, 25, 29, 30],
                 ],
             ],
@@ -52,7 +47,7 @@ class PostsCollectionsSeeder extends BaseSeeder
         foreach ($data as $locale => $postCollectionNames) {
             foreach ($postCollectionNames as $index => $item) {
                 $postCollection = PostCollection::create([
-                    'name'   => $item['name'],
+                    'name' => $item['name'],
                     'status' => BaseStatusEnum::PUBLISHED,
                 ]);
 
@@ -60,16 +55,16 @@ class PostsCollectionsSeeder extends BaseSeeder
 
                 Slug::create([
                     'reference_type' => Page::class,
-                    'reference_id'   => $postCollection->id,
-                    'key'            => Str::slug($postCollection->name),
-                    'prefix'         => SlugHelper::getPrefix(Page::class),
+                    'reference_id' => $postCollection->id,
+                    'key' => Str::slug($postCollection->name),
+                    'prefix' => SlugHelper::getPrefix(Page::class),
                 ]);
 
                 $originValue = null;
 
                 if ($locale !== 'en_US') {
                     $originValue = LanguageMeta::where([
-                        'reference_id'   => $index + 1,
+                        'reference_id' => $index + 1,
                         'reference_type' => Page::class,
                     ])->value('lang_meta_origin');
                 }

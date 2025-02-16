@@ -29,3 +29,11 @@
         <i class="ti-pinterest"></i>
     </a>
 </li>
+<li>
+    <a class="wa"
+       href="javascript:void(0)"
+       onclick="window.open('https://api.whatsapp.com/send?text={{ rawurlencode($post->description . ' ' . get_external_link($post)) }}', 'Share This Post', 'width=640,height=450'); return false"
+       title="{{ __('Share on WhatsApp') }}">
+        <img src="{{ Theme::asset()->url('images/whatsapp-white.svg') }}" alt="WhatsApp" width="16" height="16">
+    </a>
+</li>

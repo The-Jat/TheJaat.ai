@@ -3,49 +3,23 @@
 namespace Botble\Base\Supports;
 
 use Carbon\Carbon;
-use Exception;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Throwable;
 
 class MembershipAuthorization
 {
-    /**
-     * @var Client
-     */
-    protected $client;
+    protected string $url;
 
-    /**
-     * @var Request
-     */
-    protected $request;
-
-    /**
-     * @var string
-     */
-    protected $url;
-
-    /**
-     * MembershipAuthorization constructor.
-     * @param Client $client
-     * @param Request $request
-     */
-    public function __construct(Client $client, Request $request)
+    public function __construct()
     {
-        $this->client = $client;
-        $this->request = $request;
         $this->url = rtrim(url('/'), '/');
     }
 
-    /**
-     * @return boolean
-     * @throws GuzzleException
-     */
     public function authorize(): bool
     {
         try {
-            if (!filter_var($this->url, FILTER_VALIDATE_URL)) {
+            if (! filter_var($this->url, FILTER_VALIDATE_URL)) {
                 return false;
             }
 
@@ -55,24 +29,21 @@ class MembershipAuthorization
 
             $authorizeDate = setting('membership_authorization_at');
 
-            if (!$authorizeDate) {
+            if (! $authorizeDate) {
                 return $this->processAuthorize();
             }
 
             $authorizeDate = Carbon::createFromFormat('Y-m-d H:i:s', $authorizeDate);
-            if (now()->diffInDays($authorizeDate) > 7) {
+            if (Carbon::now()->diffInDays($authorizeDate) > 7) {
                 return $this->processAuthorize();
             }
 
             return true;
-        } catch (Exception $exception) {
+        } catch (Throwable) {
             return false;
         }
     }
 
-    /**
-     * @return bool
-     */
     protected function isInvalidDomain(): bool
     {
         if (filter_var($this->url, FILTER_VALIDATE_IP)) {
@@ -98,22 +69,27 @@ class MembershipAuthorization
         return false;
     }
 
-    /**
-     * @return bool
-     * @throws GuzzleException
-     */
     protected function processAuthorize(): bool
     {
-        $this->client->post('https://botble.com/membership/authorize', [
-            'form_params' => [
-                'website' => $this->url,
-            ],
-        ]);
+        try {
+            $response = Http::withoutVerifying()
+                ->asJson()
+                ->acceptJson()
+                ->post('https://botble.com/membership/authorize', [
+                    'website' => $this->url,
+                ]);
 
-        setting()
-            ->set('membership_authorization_at', now()->toDateTimeString())
-            ->save();
+            if (! $response->ok()) {
+                return true;
+            }
 
-        return true;
+            setting()
+                ->set('membership_authorization_at', Carbon::now()->toDateTimeString())
+                ->save();
+
+            return true;
+        } catch (Throwable) {
+            return true;
+        }
     }
 }

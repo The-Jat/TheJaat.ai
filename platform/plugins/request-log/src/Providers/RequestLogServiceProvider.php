@@ -2,15 +2,14 @@
 
 namespace Botble\RequestLog\Providers;
 
-use Illuminate\Routing\Events\RouteMatched;
-use Botble\Base\Supports\Helper;
+use Botble\Base\Facades\PanelSectionManager;
+use Botble\Base\PanelSections\PanelSectionItem;
+use Botble\Base\PanelSections\System\SystemPanelSection;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Botble\RequestLog\Repositories\Caches\RequestLogCacheDecorator;
+use Botble\RequestLog\Models\RequestLog as RequestLogModel;
 use Botble\RequestLog\Repositories\Eloquent\RequestLogRepository;
 use Botble\RequestLog\Repositories\Interfaces\RequestLogInterface;
-use Event;
-use Illuminate\Support\ServiceProvider;
-use Botble\RequestLog\Models\RequestLog as RequestLogModel;
 
 /**
  * @since 02/07/2016 09:50 AM
@@ -19,42 +18,41 @@ class RequestLogServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    public function register()
+    public function register(): void
     {
         $this->app->bind(RequestLogInterface::class, function () {
-            return new RequestLogCacheDecorator(new RequestLogRepository(new RequestLogModel()));
+            return new RequestLogRepository(new RequestLogModel());
         });
-
-        Helper::autoload(__DIR__ . '/../../helpers');
     }
 
-    public function boot()
+    public function boot(): void
     {
-        $this->app->register(EventServiceProvider::class);
-        $this->app->register(CommandServiceProvider::class);
-
-        $this->setNamespace('plugins/request-log')
-            ->loadRoutes(['web'])
+        $this
+            ->setNamespace('plugins/request-log')
+            ->loadHelpers()
+            ->loadRoutes()
             ->loadAndPublishViews()
             ->loadAndPublishTranslations()
             ->loadAndPublishConfigurations(['permissions'])
             ->loadMigrations()
             ->publishAssets();
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()
-                ->registerItem([
-                    'id'          => 'cms-plugin-request-log',
-                    'priority'    => 8,
-                    'parent_id'   => 'cms-core-platform-administration',
-                    'name'        => 'plugins/request-log::request-log.name',
-                    'icon'        => null,
-                    'url'         => route('request-log.index'),
-                    'permissions' => ['request-log.index'],
-                ]);
+        PanelSectionManager::group('system')->beforeRendering(function (): void {
+            PanelSectionManager::registerItem(
+                SystemPanelSection::class,
+                fn () => PanelSectionItem::make('request-logs')
+                    ->setTitle(trans('plugins/request-log::request-log.name'))
+                    ->withDescription(trans('plugins/request-log::request-log.description'))
+                    ->withIcon('ti ti-note')
+                    ->withPriority(10)
+                    ->withRoute('request-log.index')
+            );
         });
 
-        $this->app->booted(function () {
+        $this->app->register(EventServiceProvider::class);
+        $this->app->register(CommandServiceProvider::class);
+
+        $this->app->booted(function (): void {
             $this->app->register(HookServiceProvider::class);
         });
     }

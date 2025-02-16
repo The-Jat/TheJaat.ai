@@ -1,25 +1,30 @@
 <?php
 
 return [
-    'name'        => 'plugins/newsletter::newsletter.settings.email.templates.title',
+    'name' => 'plugins/newsletter::newsletter.settings.email.templates.title',
     'description' => 'plugins/newsletter::newsletter.settings.email.templates.description',
-    'templates'   => [
+    'templates' => [
         'subscriber_email' => [
-            'title'       => 'plugins/newsletter::newsletter.settings.email.templates.to_user.title',
+            'title' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.title',
             'description' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.description',
-            'subject'     => '{{ site_title }}: Subscription Confirmed!',
-            'can_off'     => true,
+            'subject' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.subject',
+            'can_off' => true,
+            'variables' => [
+                'newsletter_name' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.newsletter_name',
+                'newsletter_email' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.newsletter_email',
+                'newsletter_unsubscribe_link' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.newsletter_unsubscribe_link',
+                'newsletter_unsubscribe_url' => 'plugins/newsletter::newsletter.settings.email.templates.to_user.newsletter_unsubscribe_url',
+            ],
         ],
-        'admin_email'      => [
-            'title'       => 'plugins/newsletter::newsletter.settings.email.templates.to_admin.title',
+        'admin_email' => [
+            'title' => 'plugins/newsletter::newsletter.settings.email.templates.to_admin.title',
             'description' => 'plugins/newsletter::newsletter.settings.email.templates.to_admin.description',
-            'subject'     => 'New user subscribed your newsletter',
-            'can_off'     => true,
+            'subject' => 'plugins/newsletter::newsletter.settings.email.templates.to_admin.subject',
+            'can_off' => true,
+            'variables' => [
+                'newsletter_email' => 'plugins/newsletter::newsletter.settings.email.templates.to_admin.newsletter_email',
+            ],
         ],
     ],
-    'variables'   => [
-        'newsletter_name'             => 'Full name of user who subscribe newsletter',
-        'newsletter_email'            => 'Email of user who subscribe newsletter',
-        'newsletter_unsubscribe_link' => 'Link for unsubscribe newsletter',
-    ],
+    'variables' => [],
 ];

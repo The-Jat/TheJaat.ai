@@ -2,108 +2,49 @@
 
 namespace Botble\RequestLog\Http\Controllers;
 
-use Botble\Base\Events\DeletedContentEvent;
-use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Base\Traits\HasDeleteManyItemsTrait;
-use Botble\RequestLog\Repositories\Interfaces\RequestLogInterface;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Http\Actions\DeleteResourceAction;
+use Botble\Base\Http\Controllers\BaseSystemController;
+use Botble\RequestLog\Models\RequestLog;
 use Botble\RequestLog\Tables\RequestLogTable;
-use Exception;
-use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Throwable;
 
-class RequestLogController extends BaseController
+class RequestLogController extends BaseSystemController
 {
-    use HasDeleteManyItemsTrait;
-
-    /**
-     * @var RequestLogInterface
-     */
-    protected $requestLogRepository;
-
-    /**
-     * RequestLogController constructor.
-     * @param RequestLogInterface $requestLogRepository
-     */
-    public function __construct(RequestLogInterface $requestLogRepository)
+    public function getWidgetRequestErrors(Request $request)
     {
-        $this->requestLogRepository = $requestLogRepository;
-    }
+        $limit = $request->integer('paginate', 10);
+        $limit = $limit > 0 ? $limit : 10;
 
-    /**
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Throwable
-     */
-    public function getWidgetRequestErrors(Request $request, BaseHttpResponse $response)
-    {
-        $limit = $request->input('paginate', 10);
-        $requests = $this->requestLogRepository->getModel()->paginate($limit);
+        $requests = RequestLog::query()
+            ->orderByDesc('created_at')
+            ->paginate($limit);
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setData(view('plugins/request-log::widgets.request-errors', compact('requests', 'limit'))->render());
     }
 
-    /**
-     * @param RequestLogTable $dataTable
-     * @return Factory|View
-     * @throws Throwable
-     */
     public function index(RequestLogTable $dataTable)
     {
-        page_title()->setTitle(trans('plugins/request-log::request-log.name'));
+        Assets::addScriptsDirectly('vendor/core/plugins/request-log/js/request-log.js');
+
+        $this->pageTitle(trans('plugins/request-log::request-log.name'));
 
         return $dataTable->renderTable();
     }
 
-    /**
-     * @param Request $request
-     * @param $id
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function destroy(Request $request, $id, BaseHttpResponse $response)
+    public function destroy(RequestLog $log)
     {
-        try {
-            $log = $this->requestLogRepository->findOrFail($id);
-            $this->requestLogRepository->delete($log);
-
-            event(new DeletedContentEvent(REQUEST_LOG_MODULE_SCREEN_NAME, $request, $log));
-
-            return $response->setMessage(trans('core/base::notices.delete_success_message'));
-        } catch (Exception $ex) {
-            return $response
-                ->setError()
-                ->setMessage($ex->getMessage());
-        }
+        return DeleteResourceAction::make($log);
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     * @throws Exception
-     */
-    public function deletes(Request $request, BaseHttpResponse $response)
+    public function deleteAll()
     {
-        return $this->executeDeleteItems(
-            $request,
-            $response,
-            $this->requestLogRepository,
-            REQUEST_LOG_MODULE_SCREEN_NAME
-        );
-    }
+        RequestLog::query()->truncate();
 
-    /**
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function deleteAll(BaseHttpResponse $response)
-    {
-        $this->requestLogRepository->getModel()->truncate();
-
-        return $response->setMessage(trans('core/base::notices.delete_success_message'));
+        return $this
+            ->httpResponse()
+            ->withDeletedSuccessMessage();
     }
 }

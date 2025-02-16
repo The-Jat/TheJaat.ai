@@ -2,67 +2,44 @@
 
 namespace Botble\Backup\Commands;
 
-use BaseHelper;
 use Botble\Backup\Supports\Backup;
+use Botble\Base\Facades\BaseHelper;
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 
+use function Laravel\Prompts\table;
+
+use Symfony\Component\Console\Attribute\AsCommand;
+
+#[AsCommand('cms:backup:list', 'List all backups')]
 class BackupListCommand extends Command
 {
-    /**
-     * @var Backup
-     */
-    public $backup;
-
-    /**
-     * The console command signature.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:backup:list';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'List all backups';
-
-    /**
-     * BackupCommand constructor.
-     * @param Backup $backup
-     */
-    public function __construct(Backup $backup)
+    public function handle(Backup $backupService): int
     {
-        parent::__construct();
-        $this->backup = $backup;
-    }
+        if (! File::exists($backupService->getBackupPath('backup.json'))) {
+            $this->components->info('No backup found.');
 
-    /**
-     * Execute the console command.
-     * @throws Exception
-     */
-    public function handle()
-    {
+            return self::FAILURE;
+        }
+
         try {
-            $backups = BaseHelper::getFileData($this->backup->getBackupPath('backup.json'));
+            $backups = BaseHelper::getFileData($backupService->getBackupPath('backup.json'));
 
-            foreach ($backups as $key => &$backup) {
-                $backup['key'] = $key;
+            foreach ($backups as $key => &$item) {
+                $item['key'] = $key;
             }
 
-            $header = [
+            table([
                 'Name',
                 'Description',
                 'Date',
                 'Folder',
-            ];
-
-            $this->table($header, $backups);
+            ], $backups);
         } catch (Exception $exception) {
-            $this->error($exception->getMessage());
+            $this->components->error($exception->getMessage());
         }
 
-        return 0;
+        return self::SUCCESS;
     }
 }

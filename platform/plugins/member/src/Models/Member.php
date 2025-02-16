@@ -2,35 +2,44 @@
 
 namespace Botble\Member\Models;
 
+use Botble\Base\Casts\SafeContent;
+use Botble\Base\Models\BaseModel;
 use Botble\Base\Supports\Avatar;
+use Botble\Media\Facades\RvMedia;
 use Botble\Media\Models\MediaFile;
+use Botble\Member\Notifications\ConfirmEmailNotification;
 use Botble\Member\Notifications\ResetPasswordNotification;
 use Exception;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Laravel\Passport\HasApiTokens;
-use MacroableModels;
-use RvMedia;
+use Laravel\Sanctum\HasApiTokens;
 
-/**
- * @mixin \Eloquent
- */
-class Member extends Authenticatable
+class Member extends BaseModel implements
+    AuthenticatableContract,
+    AuthorizableContract,
+    CanResetPasswordContract
 {
-    use Notifiable;
+    use Authenticatable;
+    use Authorizable;
+    use CanResetPassword;
+    use MustVerifyEmail;
     use HasApiTokens;
+    use Notifiable;
 
-    /**
-     * @var string
-     */
     protected $table = 'members';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'first_name',
         'last_name',
@@ -43,125 +52,103 @@ class Member extends Authenticatable
         'gender',
     ];
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Send the password reset notification.
-     *
-     * @param string $token
-     * @return void
-     */
-    public function sendPasswordResetNotification($token)
+    protected $casts = [
+        'password' => 'hashed',
+        'confirmed_at' => 'datetime',
+        'dob' => 'date',
+        'first_name' => SafeContent::class,
+        'last_name' => SafeContent::class,
+        'description' => SafeContent::class,
+    ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Member $account): void {
+            $folder = Storage::path($account->upload_folder);
+            if (File::isDirectory($folder) && Str::endsWith($account->upload_folder, '/' . $account->getKey())) {
+                File::deleteDirectory($folder);
+            }
+        });
+    }
+
+    public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function avatar()
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new ConfirmEmailNotification());
+    }
+
+    public function avatar(): BelongsTo
     {
         return $this->belongsTo(MediaFile::class)->withDefault();
     }
 
-    /**
-     * @return \Illuminate\Contracts\Routing\UrlGenerator|string
-     */
-    public function getAvatarUrlAttribute()
-    {
-        if ($this->avatar->url) {
-            return RvMedia::url($this->avatar->url);
-        }
-
-        try {
-            return (new Avatar())->create($this->name)->toBase64();
-        } catch (Exception $exception) {
-            return RvMedia::getDefaultImage();
-        }
-    }
-
-    /**
-     * @return \Illuminate\Contracts\Routing\UrlGenerator|string
-     */
-    public function getAvatarThumbUrlAttribute()
-    {
-        if ($this->avatar->url) {
-            return RvMedia::getImageUrl($this->avatar->url, 'thumb');
-        }
-
-        try {
-            return (new Avatar())->create($this->name)->toBase64();
-        } catch (Exception $exception) {
-            return RvMedia::getDefaultImage();
-        }
-    }
-
-    /**
-     * Always capitalize the first name when we retrieve it
-     * @param string $value
-     * @return string
-     */
-    public function getFirstNameAttribute($value)
-    {
-        return ucfirst($value);
-    }
-
-    /**
-     * Always capitalize the last name when we retrieve it
-     * @param string $value
-     * @return string
-     */
-    public function getLastNameAttribute($value)
-    {
-        return ucfirst($value);
-    }
-
-    /**
-     * @return string
-     * @deprecated
-     */
-    public function getFullName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getNameAttribute()
-    {
-        return ucfirst($this->first_name) . ' ' . ucfirst($this->last_name);
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
-     */
-    public function posts()
+    public function posts(): MorphMany
     {
         return $this->morphMany('Botble\Blog\Models\Post', 'author');
     }
 
-    /**
-     * @param string $key
-     * @return mixed
-     */
-    public function __get($key)
+    protected function firstName(): Attribute
     {
-        if (class_exists('MacroableModels')) {
-            $method = 'get' . Str::studly($key) . 'Attribute';
-            if (MacroableModels::modelHasMacro(get_class($this), $method)) {
-                return call_user_func([$this, $method]);
-            }
-        }
+        return Attribute::get(fn ($value) => ucfirst((string) $value));
+    }
 
-        return parent::__get($key);
+    protected function lastName(): Attribute
+    {
+        return Attribute::get(fn ($value) => ucfirst((string) $value));
+    }
+
+    protected function name(): Attribute
+    {
+        return Attribute::get(fn () => trim($this->first_name . ' ' . $this->last_name));
+    }
+
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->avatar->url) {
+                return RvMedia::url($this->avatar->url);
+            }
+
+            try {
+                return (new Avatar())->create($this->name)->toBase64();
+            } catch (Exception) {
+                return RvMedia::getDefaultImage();
+            }
+        });
+    }
+
+    protected function avatarThumbUrl(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->avatar->url) {
+                return RvMedia::getImageUrl($this->avatar->url, 'thumb');
+            }
+
+            try {
+                return (new Avatar())->create($this->name)->toBase64();
+            } catch (Exception) {
+                return RvMedia::getDefaultImage();
+            }
+        })->shouldCache();
+    }
+
+    protected function uploadFolder(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $folder = $this->getKey() ? 'members/' . $this->getKey() : 'members';
+
+                return apply_filters('member_account_upload_folder', $folder, $this);
+            }
+        )->shouldCache();
     }
 }

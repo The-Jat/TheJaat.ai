@@ -3,68 +3,43 @@
 namespace Botble\Theme\Commands;
 
 use Botble\Theme\Commands\Traits\ThemeTrait;
+use Botble\Theme\Facades\Theme;
 use Botble\Theme\Services\ThemeService;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Contracts\Console\PromptsForMissingInput;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\InputArgument;
 
-class ThemeActivateCommand extends Command
+#[AsCommand('cms:theme:activate', 'Activate a theme')]
+class ThemeActivateCommand extends Command implements PromptsForMissingInput
 {
     use ThemeTrait;
 
-    /**
-     * @var ThemeService
-     */
-    public $themeService;
-
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:theme:activate
-        {name : The theme that you want to activate}
-        {--path= : Path to theme directory}
-    ';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Activate a theme';
-
-    /**
-     * ThemeActivateCommand constructor.
-     * @param ThemeService $themeService
-     */
-    public function __construct(ThemeService $themeService)
+    public function handle(ThemeService $themeService): int
     {
-        parent::__construct();
-        $this->themeService = $themeService;
-    }
+        $theme = $this->getTheme() ?: Theme::getThemeName();
 
-    /**
-     * Execute the console command.
-     *
-     * @return bool
-     * @throws FileNotFoundException
-     */
-    public function handle()
-    {
-        if (!preg_match('/^[a-z0-9\-]+$/i', $this->argument('name'))) {
-            $this->error('Only alphabetic characters are allowed.');
-            return 1;
+        if (! preg_match('/^[a-z0-9\-]+$/i', $theme)) {
+            $this->components->error('Only alphabetic characters are allowed.');
+
+            return self::FAILURE;
         }
 
-        $result = $this->themeService->activate($this->getTheme());
+        $result = $themeService->activate($theme);
 
         if ($result['error']) {
-            $this->error($result['message']);
-            return 1;
+            $this->components->error($result['message']);
+
+            return self::FAILURE;
         }
 
-        $this->info($result['message']);
+        $this->components->info($result['message']);
 
-        return 0;
+        return self::SUCCESS;
+    }
+
+    protected function configure(): void
+    {
+        $this->addArgument('name', InputArgument::OPTIONAL, 'The theme name that you want to activate');
     }
 }

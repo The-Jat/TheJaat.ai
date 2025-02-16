@@ -2,118 +2,127 @@
 
 namespace Botble\Setting\Providers;
 
+use Botble\Base\Events\PanelSectionsRendering;
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Facades\EmailHandler;
+use Botble\Base\Facades\PanelSectionManager;
+use Botble\Base\PanelSections\PanelSectionItem;
+use Botble\Base\PanelSections\System\SystemPanelSection;
+use Botble\Base\Supports\DashboardMenuItem;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Botble\Setting\Facades\SettingFacade;
+use Botble\Setting\Commands\CronJobTestCommand;
+use Botble\Setting\Facades\Setting;
+use Botble\Setting\Listeners\PushDashboardMenuToOtherSectionPanel;
 use Botble\Setting\Models\Setting as SettingModel;
-use Botble\Setting\Repositories\Caches\SettingCacheDecorator;
+use Botble\Setting\PanelSections\SettingCommonPanelSection;
+use Botble\Setting\PanelSections\SettingOthersPanelSection;
 use Botble\Setting\Repositories\Eloquent\SettingRepository;
 use Botble\Setting\Repositories\Interfaces\SettingInterface;
-use Botble\Setting\Supports\SettingsManager;
+use Botble\Setting\Supports\DatabaseSettingStore;
 use Botble\Setting\Supports\SettingStore;
-use EmailHandler;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\AliasLoader;
-use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\ServiceProvider;
 
 class SettingServiceProvider extends ServiceProvider
 {
     use LoadAndPublishDataTrait;
 
-    /**
-     * This provider is deferred and should be lazy loaded.
-     *
-     * @var boolean
-     */
-    protected $defer = true;
+    protected bool $defer = true;
 
-    public function register()
+    public function register(): void
     {
-        $this->setNamespace('core/setting')
+        $this
+            ->setNamespace('core/setting')
             ->loadAndPublishConfigurations(['general']);
 
-        $this->app->singleton(SettingsManager::class, function (Application $app) {
-            return new SettingsManager($app);
+        $this->app->singleton(SettingStore::class, function () {
+            return new DatabaseSettingStore();
         });
-
-        $this->app->singleton(SettingStore::class, function (Application $app) {
-            return $app->make(SettingsManager::class)->driver();
-        });
-
-        AliasLoader::getInstance()->alias('Setting', SettingFacade::class);
 
         $this->app->bind(SettingInterface::class, function () {
-            return new SettingCacheDecorator(
-                new SettingRepository(new SettingModel())
-            );
+            return new SettingRepository(new SettingModel());
         });
+
+        if (! class_exists('Setting')) {
+            AliasLoader::getInstance()->alias('Setting', Setting::class);
+        }
 
         $this->loadHelpers();
     }
 
-    public function boot()
+    public function boot(): void
     {
         $this
-            ->loadRoutes(['web'])
+            ->loadRoutes()
             ->loadAndPublishViews()
+            ->loadAnonymousComponents()
             ->loadAndPublishTranslations()
             ->loadAndPublishConfigurations(['permissions', 'email'])
             ->loadMigrations()
             ->publishAssets();
 
-        Event::listen(RouteMatched::class, function () {
-            dashboard_menu()
-                ->registerItem([
-                    'id'          => 'cms-core-settings',
-                    'priority'    => 998,
-                    'parent_id'   => null,
-                    'name'        => 'core/setting::setting.title',
-                    'icon'        => 'fa fa-cogs',
-                    'url'         => route('settings.options'),
-                    'permissions' => ['settings.options'],
-                ])
-                ->registerItem([
-                    'id'          => 'cms-core-settings-general',
-                    'priority'    => 1,
-                    'parent_id'   => 'cms-core-settings',
-                    'name'        => 'core/base::layouts.setting_general',
-                    'icon'        => null,
-                    'url'         => route('settings.options'),
-                    'permissions' => ['settings.options'],
-                ])
-                ->registerItem([
-                    'id'          => 'cms-core-settings-email',
-                    'priority'    => 2,
-                    'parent_id'   => 'cms-core-settings',
-                    'name'        => 'core/base::layouts.setting_email',
-                    'icon'        => null,
-                    'url'         => route('settings.email'),
-                    'permissions' => ['settings.email'],
-                ])
-                ->registerItem([
-                    'id'          => 'cms-core-settings-media',
-                    'priority'    => 3,
-                    'parent_id'   => 'cms-core-settings',
-                    'name'        => 'core/setting::setting.media.title',
-                    'icon'        => null,
-                    'url'         => route('settings.media'),
-                    'permissions' => ['settings.media'],
-                ]);
+        DashboardMenu::default()->beforeRetrieving(function (): void {
+            DashboardMenu::make()
+                ->registerItem(
+                    DashboardMenuItem::make()
+                        ->id('cms-core-settings')
+                        ->priority(9999)
+                        ->name('core/setting::setting.title')
+                        ->icon('ti ti-settings')
+                        ->route('settings.index')
+                        ->permission('settings.index')
+                );
+        });
 
+        $events = $this->app['events'];
+
+        $events->listen(RouteMatched::class, function (): void {
             EmailHandler::addTemplateSettings('base', config('core.setting.email', []), 'core');
         });
+
+        PanelSectionManager::default()
+            ->beforeRendering(function (): void {
+                PanelSectionManager::setGroupName(trans('core/setting::setting.title'))
+                    ->register([
+                        SettingCommonPanelSection::class,
+                        SettingOthersPanelSection::class,
+                    ]);
+            });
+
+        PanelSectionManager::group('system')->beforeRendering(function (): void {
+            PanelSectionManager::registerItem(
+                SystemPanelSection::class,
+                fn () => PanelSectionItem::make('cronjob')
+                    ->setTitle(trans('core/setting::setting.cronjob.name'))
+                    ->withIcon('ti ti-calendar-event')
+                    ->withDescription(trans('core/setting::setting.cronjob.description'))
+                    ->withPriority(50)
+                    ->withRoute('system.cronjob')
+            );
+        });
+
+        $events->listen(PanelSectionsRendering::class, PushDashboardMenuToOtherSectionPanel::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                CronJobTestCommand::class,
+            ]);
+
+            $this->app->afterResolving(Schedule::class, function (Schedule $schedule): void {
+                rescue(function () use ($schedule): void {
+                    $schedule
+                        ->command(CronJobTestCommand::class)
+                        ->everyMinute();
+                });
+            });
+        }
     }
 
-    /**
-     * Which IoC bindings the provider provides.
-     *
-     * @return array
-     */
-    public function provides()
+    public function provides(): array
     {
         return [
-            SettingsManager::class,
             SettingStore::class,
         ];
     }

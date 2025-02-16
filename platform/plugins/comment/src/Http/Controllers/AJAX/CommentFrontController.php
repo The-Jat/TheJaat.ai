@@ -2,18 +2,18 @@
 
 namespace Botble\Comment\Http\Controllers\AJAX;
 
+use Botble\ACL\Models\User;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Comment\Events\NewCommentEvent;
+use Botble\Comment\Facades\BbComment;
 use Botble\Comment\Http\Resources\CommentResource;
 use Botble\Comment\Http\Resources\UserResource;
 use Botble\Comment\Models\Comment;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Comment\Repositories\Interfaces\CommentLikeInterface;
 use Botble\Comment\Repositories\Interfaces\CommentRecommendInterface;
-use Botble\Comment\Supports\CheckMemberCredentials;
-use Botble\Member\Repositories\Interfaces\MemberInterface;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -22,50 +22,22 @@ use RvMedia;
 
 class CommentFrontController extends BaseController
 {
-    /**
-     * @var BaseHttpResponse
-     */
-    protected $response;
-
-    /**
-     * @var CommentInterface
-     */
-    protected $commentRepository;
-
-    /**
-     * @var CheckMemberCredentials
-     */
-    protected $memberCredentials;
-
-    /**
-     * @param BaseHttpResponse $response
-     * @param CommentInterface $commentRepository
-     * @param CheckMemberCredentials $memberCredentials
-     */
     public function __construct(
-        BaseHttpResponse $response,
-        CommentInterface $commentRepository,
-        CheckMemberCredentials $memberCredentials
+        protected BaseHttpResponse $response,
+        protected CommentInterface $commentRepository
     ) {
-        $this->response = $response;
-        $this->commentRepository = $commentRepository;
-        $this->memberCredentials = $memberCredentials;
     }
 
-    /**
-     * @param Request $request
-     * @return BaseHttpResponse
-     */
     public function postComment(Request $request): BaseHttpResponse
     {
         $validate = $this->validator($request->input());
         if ($validate->fails()) {
             return $this->response
-                ->setMessage($validate->getMessageBag())
-                ->setError(true);
+                ->setMessage($validate->getMessageBag()->first())
+                ->setError();
         }
 
-        if (!($reference = $this->reference($request))) {
+        if (! ($reference = $this->reference($request))) {
             return $this->response
                 ->setError()
                 ->setMessage(__('Invalid reference'));
@@ -76,14 +48,17 @@ class CommentFrontController extends BaseController
         $request->merge(array_merge(
             [
                 'ip_address' => $request->ip(),
-                'user_id'    => $user->getAuthIdentifier(),
-                'status'     => setting('comment_moderation') ? BaseStatusEnum::PENDING : BaseStatusEnum::PUBLISHED,
+                'user_id' => $user->getAuthIdentifier(),
+                'user_type' => BbComment::getCurrentUser() ? get_class(BbComment::getCurrentUser()) : User::class,
+                'status' => setting('comment_moderation') ? BaseStatusEnum::PENDING : BaseStatusEnum::PUBLISHED,
             ],
             $reference
         ));
+
         $comment = $this->commentRepository->storageComment($request->only([
             'ip_address',
             'user_id',
+            'user_type',
             'reference_id',
             'reference_type',
             'reference',
@@ -102,51 +77,39 @@ class CommentFrontController extends BaseController
         return $this->response->setData(new CommentResource($comment));
     }
 
-    /**
-     * @param array $data
-     * @return \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
-     */
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'reference' => 'required',
-            'comment'   => 'required|min:5',
+            'reference' => ['required'],
+            'comment' => ['required', 'min:5'],
         ]);
     }
 
-    /**
-     * @param Request $request
-     * @return mixed|null
-     */
     protected function reference(Request $request)
     {
         try {
             $reference = json_decode(base64_decode($request->input('reference')), true);
 
-            if (isset($reference['author']) && !empty($reference['author'])) {
+            if (! empty($reference['author'])) {
                 Comment::$author = app($reference['author']['type'])->where(['id' => $reference['author']['id']])
                     ->first();
             }
 
             return $reference;
-        } catch (Exception $exception) {
+        } catch (Exception) {
             return null;
         }
     }
 
-    /**
-     * @param Request $request
-     * @param CommentRecommendInterface $commentRecommendRepo
-     * @return BaseHttpResponse
-     */
     public function getComments(Request $request, CommentRecommendInterface $commentRecommendRepo)
     {
-        if (!($reference = $this->reference($request))) {
+        if (! ($reference = $this->reference($request))) {
             return $this->response
                 ->setError()
                 ->setMessage(__('Invalid reference'));
         }
-        $user = $this->memberCredentials->handle();
+
+        $user = BbComment::getCurrentUser();
         $parentId = $request->input('up', 0);
         $page = $request->input('page', 1);
         $limit = $request->input('limit', 5);
@@ -156,32 +119,25 @@ class CommentFrontController extends BaseController
 
         return $this->response
             ->setData([
-                'comments'  => CommentResource::collection($comments),
-                'attrs'     => $attrs,
-                'user'      => empty($user) ? null : new UserResource($user),
+                'comments' => CommentResource::collection($comments),
+                'attrs' => $attrs,
+                'user' => empty($user) ? null : new UserResource($user),
                 'recommend' => $commentRecommendRepo->getRecommendOfArticle($reference, $user),
             ]);
     }
 
-    /**
-     * @param Request $request
-     * @return BaseHttpResponse
-     */
     public function userInfo(Request $request): BaseHttpResponse
     {
         return $this->response
             ->setData(new UserResource($request->user()));
     }
 
-    /**
-     * @throws Exception
-     */
     public function deleteComment(Request $request)
     {
         $userId = $request->user()->getAuthIdentifier();
         $id = $request->input('id');
 
-        if (!$id) {
+        if (! $id) {
             return $this->response
                 ->setError()
                 ->setMessage(__('Comment ID is required'));
@@ -189,10 +145,10 @@ class CommentFrontController extends BaseController
 
         $comment = $this->commentRepository->getFirstBy(compact('id'));
 
-        if (!$comment || $comment->user_id !== $userId) {
+        if (! $comment || $comment->user_id !== $userId) {
             return $this->response
                 ->setError()
-                ->setMessage(__('You don\'t have permission with this comment'));
+                ->setMessage(__("You don't have permission with this comment"));
         }
 
         $this->commentRepository->delete($comment);
@@ -201,11 +157,6 @@ class CommentFrontController extends BaseController
             ->setMessage(__('Delete comment successfully'));
     }
 
-    /**
-     * @param Request $request
-     * @param CommentLikeInterface $commentLikeRepo
-     * @return BaseHttpResponse
-     */
     public function likeComment(Request $request, CommentLikeInterface $commentLikeRepo)
     {
         $id = $request->input('id');
@@ -220,16 +171,10 @@ class CommentFrontController extends BaseController
             ->setMessage($liked ? __('Like successfully') : __('Unlike successfully'));
     }
 
-    /**
-     * @param Request $request
-     * @param MemberInterface $commentUserRepo
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function changeAvatar(Request $request, MemberInterface $commentUserRepo, BaseHttpResponse $response)
+    public function changeAvatar(Request $request, BaseHttpResponse $response)
     {
         $validator = Validator::make($request->all(), [
-            'photo' => 'required|image|mimes:jpg,jpeg,png',
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png'],
         ]);
 
         if ($validator->fails()) {
@@ -240,11 +185,11 @@ class CommentFrontController extends BaseController
         }
 
         try {
-            $file = RvMedia::handleUpload($request->file('photo'), 0, 'members');
+            $file = RvMedia::handleUpload($request->file('photo'), 0, 'comments');
             if (Arr::get($file, 'error') !== true) {
-                $commentUserRepo->createOrUpdate(
-                    ['avatar_id' => $file['data']->id],
-                    ['id' => $request->user()->getKey()]
+                BbComment::getModel()->updateOrCreate(
+                    ['id' => $request->user()->getKey()],
+                    ['avatar_id' => $file['data']->id]
                 );
             }
 
@@ -257,11 +202,6 @@ class CommentFrontController extends BaseController
         }
     }
 
-    /**
-     * @param Request $request
-     * @param CommentRecommendInterface $commentRecommendRepo
-     * @return BaseHttpResponse
-     */
     public function recommend(Request $request, CommentRecommendInterface $commentRecommendRepo): BaseHttpResponse
     {
         $reference = $this->reference($request);
@@ -274,7 +214,7 @@ class CommentFrontController extends BaseController
             );
             $recommend = $commentRecommendRepo->getFirstBy($params);
 
-            if (!$recommend) {
+            if (! $recommend) {
                 $commentRecommendRepo->createOrUpdate($params);
             } else {
                 $recommend->delete();

@@ -2,235 +2,225 @@
 
 namespace Botble\Member\Http\Controllers;
 
-use Assets;
-use Botble\Base\Http\Responses\BaseHttpResponse;
+use Botble\ACL\Models\User;
+use Botble\Base\Enums\BaseStatusEnum;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Http\Controllers\BaseController;
+use Botble\Blog\Models\Post;
 use Botble\Media\Chunks\Exceptions\UploadMissingFileException;
 use Botble\Media\Chunks\Handler\DropZoneUploadHandler;
 use Botble\Media\Chunks\Receiver\FileReceiver;
-use Botble\Media\Repositories\Interfaces\MediaFileInterface;
-use Botble\Media\Services\ThumbnailService;
+use Botble\Media\Facades\RvMedia;
+use Botble\Media\Models\MediaFile;
+use Botble\Member\Forms\Fronts\ChangePasswordForm;
+use Botble\Member\Forms\Fronts\ProfileForm;
 use Botble\Member\Http\Requests\AvatarRequest;
 use Botble\Member\Http\Requests\SettingRequest;
 use Botble\Member\Http\Requests\UpdatePasswordRequest;
 use Botble\Member\Http\Resources\ActivityLogResource;
-use Botble\Member\Repositories\Interfaces\MemberActivityLogInterface;
-use Botble\Member\Repositories\Interfaces\MemberInterface;
+use Botble\Member\Models\Member;
+use Botble\Member\Models\MemberActivityLog;
+use Botble\SeoHelper\Facades\SeoHelper;
+use Botble\SeoHelper\SeoOpenGraph;
+use Botble\Slug\Facades\SlugHelper;
+use Botble\Theme\Facades\Theme;
 use Exception;
-use File;
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use RvMedia;
-use SeoHelper;
 
-class PublicController extends Controller
+class PublicController extends BaseController
 {
-    /**
-     * @var MemberInterface
-     */
-    protected $memberRepository;
+    public function getAuthor(string $slug)
+    {
+        $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Member::class), Member::class);
+        abort_unless($slug, 404);
 
-    /**
-     * @var MemberActivityLogInterface
-     */
-    protected $activityLogRepository;
+        $condition = [
+            'id' => $slug->reference_id,
+            'status' => BaseStatusEnum::PUBLISHED,
+        ];
 
-    /**
-     * @var MediaFileInterface
-     */
-    protected $fileRepository;
+        if (Auth::guard()->check() && request('preview')) {
+            Arr::forget($condition, 'status');
+        }
 
-    /**
-     * PublicController constructor.
-     * @param Repository $config
-     * @param MemberInterface $memberRepository
-     * @param MemberActivityLogInterface $memberActivityLogRepository
-     * @param MediaFileInterface $fileRepository
-     */
-    public function __construct(
-        Repository $config,
-        MemberInterface $memberRepository,
-        MemberActivityLogInterface $memberActivityLogRepository,
-        MediaFileInterface $fileRepository
-    ) {
-        $this->memberRepository = $memberRepository;
-        $this->activityLogRepository = $memberActivityLogRepository;
-        $this->fileRepository = $fileRepository;
+        $author = Member::query()
+            ->where($condition)
+            ->with(['slugable'])
+            ->first();
 
-        Assets::setConfig($config->get('plugins.member.assets', []));
+        abort_unless($author, 404);
+
+        SeoHelper::setTitle($author->name)->setDescription($author->description);
+
+        $meta = new SeoOpenGraph();
+        if ($author->avatar) {
+            $meta->setImage(RvMedia::getImageUrl($author->avatar));
+        }
+        $meta->setDescription($author->description);
+        $meta->setUrl($author->url);
+        $meta->setTitle($author->name);
+        $meta->setType('article');
+
+        SeoHelper::setSeoOpenGraph($meta);
+
+        Theme::breadcrumb()->add($author->name, $author->url);
+
+        do_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, MEMBER_MODULE_SCREEN_NAME, $author);
+
+        $posts = Post::query()
+            ->where([
+                'status' => BaseStatusEnum::PUBLISHED,
+                'author_id' => $author->id,
+                'author_type' => Member::class,
+            ])
+            ->orderByDesc('created_at')
+            ->paginate(12);
+
+        return Theme::scope('author', compact('author', 'posts'), 'plugins/member::themes.author')->render();
     }
 
-    /**
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
-     */
     public function getDashboard()
     {
         $user = auth('member')->user();
 
-        SeoHelper::setTitle($user->name);
+        $this->pageTitle(__('Dashboard'));
 
-        return view('plugins/member::dashboard.index', compact('user'));
+        Assets::addScriptsDirectly('vendor/core/plugins/member/js/dashboard/activity-logs.js');
+
+        Assets::usingVueJS();
+
+        return view('plugins/member::themes.dashboard.index', compact('user'));
     }
 
-    /**
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     *
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
     public function getSettings()
     {
-        SeoHelper::setTitle(__('Account settings'));
+        $this->pageTitle(__('Account settings'));
 
+        /**
+         * @var User $user
+         */
         $user = auth('member')->user();
 
-        return view('plugins/member::settings.index', compact('user'));
+        Assets::addScripts('form-validation');
+
+        $profileForm = ProfileForm::createFromModel($user)->renderForm();
+        $changePasswordForm = ChangePasswordForm::create()->renderForm();
+
+        return view(
+            'plugins/member::themes.dashboard.settings.index',
+            compact('user', 'profileForm', 'changePasswordForm')
+        );
     }
 
-    /**
-     * @param SettingRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse|\Illuminate\Http\RedirectResponse
-     */
-    public function postSettings(SettingRequest $request, BaseHttpResponse $response)
+    public function postSettings(SettingRequest $request)
     {
-        $year = $request->input('year');
-        $month = $request->input('month');
-        $day = $request->input('day');
+        auth('member')->user()->update($request->except('email'));
 
-        if ($year && $month && $day) {
-            $request->merge(['dob' => implode('-', [$year, $month, $day])]);
+        MemberActivityLog::query()->create([
+            'action' => 'update_setting',
+        ]);
 
-            $validator = Validator::make($request->input(), [
-                'dob' => 'nullable|date',
-            ]);
-
-            if ($validator->fails()) {
-                return redirect()->route('public.member.settings');
-            }
-        }
-
-        $this->memberRepository->createOrUpdate($request->except('email'), ['id' => auth('member')->id()]);
-
-        $this->activityLogRepository->createOrUpdate(['action' => 'update_setting']);
-
-        return $response
-            ->setNextUrl(route('public.member.settings'))
+        return $this
+            ->httpResponse()
+            ->setNextRoute('public.member.settings')
             ->setMessage(__('Update profile successfully!'));
     }
 
-    /**
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     *
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function getSecurity()
+    public function postSecurity(UpdatePasswordRequest $request)
     {
-        SeoHelper::setTitle(__('Security'));
-
-        return view('plugins/member::settings.security');
-    }
-
-    /**
-     * @param UpdatePasswordRequest $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function postSecurity(UpdatePasswordRequest $request, BaseHttpResponse $response)
-    {
-        $this->memberRepository->update(['id' => auth('member')->id()], [
-            'password' => bcrypt($request->input('password')),
+        $request->user('member')->update([
+            'password' => $request->input('password'),
         ]);
 
-        $this->activityLogRepository->createOrUpdate(['action' => 'update_security']);
+        MemberActivityLog::query()->create(['action' => 'update_security']);
 
-        return $response->setMessage(trans('plugins/member::dashboard.password_update_success'));
+        return $this
+            ->httpResponse()
+            ->setMessage(trans('plugins/member::dashboard.password_update_success'));
     }
 
-    /**
-     * @param AvatarRequest $request
-     * @param ThumbnailService $thumbnailService
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function postAvatar(AvatarRequest $request, ThumbnailService $thumbnailService, BaseHttpResponse $response)
+    public function postAvatar(AvatarRequest $request)
     {
         try {
             $account = auth('member')->user();
 
-            $result = RvMedia::handleUpload($request->file('avatar_file'), 0, 'members');
+            $result = RvMedia::uploadFromBlob($request->file('avatar_file'), folderSlug: $account->upload_folder);
 
-            if ($result['error'] != false) {
-                return $response->setError()->setMessage($result['message']);
+            if ($result['error']) {
+                return $this
+                    ->httpResponse()
+                    ->setError()
+                    ->setMessage($result['message']);
             }
-
-            $avatarData = json_decode($request->input('avatar_data'));
 
             $file = $result['data'];
 
-            $thumbnailService
-                ->setImage(RvMedia::getRealPath($file->url))
-                ->setSize((int)$avatarData->width, (int)$avatarData->height)
-                ->setCoordinates((int)$avatarData->x, (int)$avatarData->y)
-                ->setDestinationPath(File::dirname($file->url))
-                ->setFileName(File::name($file->url) . '.' . File::extension($file->url))
-                ->save('crop');
-
-            $this->fileRepository->forceDelete(['id' => $account->avatar_id]);
+            $mediaFile = MediaFile::query()->find($account->avatar_id);
+            $mediaFile?->forceDelete();
 
             $account->avatar_id = $file->id;
+            $account->save();
 
-            $this->memberRepository->createOrUpdate($account);
-
-            $this->activityLogRepository->createOrUpdate([
+            MemberActivityLog::query()->create([
                 'action' => 'changed_avatar',
             ]);
 
-            return $response
+            return $this
+                ->httpResponse()
                 ->setMessage(trans('plugins/member::dashboard.update_avatar_success'))
                 ->setData(['url' => RvMedia::url($file->url)]);
         } catch (Exception $exception) {
-            return $response
+            return $this
+                ->httpResponse()
                 ->setError()
                 ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse
-     */
-    public function getActivityLogs(BaseHttpResponse $response)
+    public function getActivityLogs()
     {
-        $activities = $this->activityLogRepository->getAllLogs(auth('member')->id());
+        $activities = MemberActivityLog::query()
+            ->where('member_id', auth('member')->id())
+            ->latest()
+            ->paginate();
 
-        return $response->setData(ActivityLogResource::collection($activities))->toApiResponse();
+        return $this
+            ->httpResponse()
+            ->setData(ActivityLogResource::collection($activities))
+            ->toApiResponse();
     }
 
-    /**
-     * @param Request $request
-     * @param BaseHttpResponse $response
-     * @return BaseHttpResponse|\Illuminate\Http\JsonResponse
-     */
-    public function postUpload(Request $request, BaseHttpResponse $response)
+    public function postUpload(Request $request)
     {
-        if (!RvMedia::isChunkUploadEnabled()) {
+        $account = auth('member')->user();
+
+        if (! RvMedia::isChunkUploadEnabled()) {
             $validator = Validator::make($request->all(), [
                 'file.0' => RvMedia::imageValidationRule(),
             ]);
 
             if ($validator->fails()) {
-                return $response->setError()->setMessage($validator->getMessageBag()->first());
+                return $this
+                    ->httpResponse()
+                    ->setError()
+                    ->setMessage($validator->getMessageBag()->first());
             }
 
-            $result = RvMedia::handleUpload(Arr::first($request->file('file')), 0, 'accounts');
+            $result = RvMedia::handleUpload(Arr::first($request->file('file')), 0, $account->upload_folder);
 
             if ($result['error']) {
-                return $response->setError()->setMessage($result['message']);
+                return $this
+                    ->httpResponse()
+                    ->setError()
+                    ->setMessage($result['message']);
             }
 
-            return $response->setData($result['data']);
+            return $this
+                ->httpResponse()
+                ->setData($result['data']);
         }
 
         try {
@@ -244,32 +234,38 @@ class PublicController extends Controller
             $save = $receiver->receive();
             // Check if the upload has finished (in chunk mode it will send smaller files)
             if ($save->isFinished()) {
-                $result = RvMedia::handleUpload($save->getFile(), 0, 'accounts');
+                $result = RvMedia::handleUpload($save->getFile(), 0, $account->upload_folder);
 
-                if ($result['error'] == false) {
-                    return $response->setData($result['data']);
+                if (! $result['error']) {
+                    return $this
+                        ->httpResponse()
+                        ->setData($result['data']);
                 }
 
-                return $response->setError()->setMessage($result['message']);
+                return $this
+                    ->httpResponse()
+                    ->setError()
+                    ->setMessage($result['message']);
             }
             // We are in chunk mode, lets send the current progress
             $handler = $save->handler();
+
             return response()->json([
-                'done'   => $handler->getPercentageDone(),
+                'done' => $handler->getPercentageDone(),
                 'status' => true,
             ]);
         } catch (Exception $exception) {
-            return $response->setError()->setMessage($exception->getMessage());
+            return $this
+                ->httpResponse()
+                ->setError()
+                ->setMessage($exception->getMessage());
         }
     }
 
-    /**
-     * @param Request $request
-     * @return mixed
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
     public function postUploadFromEditor(Request $request)
     {
-        return RvMedia::uploadFromEditor($request, 0, 'accounts');
+        $account = auth('member')->user();
+
+        return RvMedia::uploadFromEditor($request, 0, $account->upload_folder);
     }
 }

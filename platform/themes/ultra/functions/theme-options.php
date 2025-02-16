@@ -1,375 +1,375 @@
 <?php
 
-app()->booted(function () {
+app()->booted(function (): void {
     theme_option()
         ->setField([
-            'id'         => 'logo_mobile',
+            'id' => 'logo_mobile',
             'section_id' => 'opt-text-subsection-logo',
-            'type'       => 'mediaImage',
-            'label'      => 'Logo mobile',
+            'type' => 'mediaImage',
+            'label' => 'Logo mobile',
             'attributes' => [
-                'name'    => 'logo_mobile',
-                'value'   => null,
+                'name' => 'logo_mobile',
+                'value' => null,
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'logo_tablet',
+            'id' => 'logo_tablet',
             'section_id' => 'opt-text-subsection-logo',
-            'type'       => 'mediaImage',
-            'label'      => 'Logo tablet',
+            'type' => 'mediaImage',
+            'label' => 'Logo tablet',
             'attributes' => [
-                'name'    => 'logo_tablet',
-                'value'   => null,
+                'name' => 'logo_tablet',
+                'value' => null,
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'logo_white',
+            'id' => 'logo_white',
             'section_id' => 'opt-text-subsection-logo',
-            'type'       => 'mediaImage',
-            'label'      => 'Logo white',
+            'type' => 'mediaImage',
+            'label' => 'Logo white',
             'attributes' => [
-                'name'    => 'logo_white',
-                'value'   => null,
+                'name' => 'logo_white',
+                'value' => null,
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'img_loading',
+            'id' => 'img_loading',
             'section_id' => 'opt-text-subsection-logo',
-            'type'       => 'mediaImage',
-            'label'      => 'Image Loading',
+            'type' => 'mediaImage',
+            'label' => 'Image Loading',
             'attributes' => [
-                'name'    => 'img_loading',
-                'value'   => null,
+                'name' => 'img_loading',
+                'value' => null,
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'single_layout',
+            'id' => 'single_layout',
             'section_id' => 'opt-text-subsection-blog',
-            'type'       => 'select',
-            'label'      => __('Single Layout'),
+            'type' => 'select',
+            'label' => __('Single Layout'),
             'attributes' => [
-                'name'    => 'single_layout',
-                'list'    => ['' => trans('plugins/blog::base.select')] + get_single_layout(),
-                'value'   => '',
+                'name' => 'single_layout',
+                'list' => ['' => trans('plugins/blog::base.select')] + get_single_layout(),
+                'value' => '',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'copyright',
+            'id' => 'copyright',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'text',
-            'label'      => __('Copyright'),
+            'type' => 'text',
+            'label' => __('Copyright'),
             'attributes' => [
-                'name'    => 'copyright',
-                'value'   => '©2021 UltraNews - Theme for magazine/news site.',
+                'name' => 'copyright',
+                'value' => '©2021 UltraNews - Theme for magazine/news site.',
                 'options' => [
-                    'class'        => 'form-control',
-                    'placeholder'  => __('Change copyright'),
+                    'class' => 'form-control',
+                    'placeholder' => __('Change copyright'),
                     'data-counter' => 250,
                 ],
             ],
-            'helper'     => __('Copyright on footer of site'),
+            'helper' => __('Copyright on footer of site'),
         ])
         ->setField([
-            'id'         => 'designed_by',
+            'id' => 'designed_by',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'text',
-            'label'      => __('Designed by'),
+            'type' => 'text',
+            'label' => __('Designed by'),
             'attributes' => [
-                'name'    => 'designed_by',
-                'value'   => '',
+                'name' => 'designed_by',
+                'value' => '',
                 'options' => [
-                    'class'        => 'form-control',
+                    'class' => 'form-control',
                     'data-counter' => 250,
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'preloader_enabled',
+            'id' => 'preloader_enabled',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'select',
-            'label'      => __('Enable Preloader?'),
+            'type' => 'select',
+            'label' => __('Enable Preloader?'),
             'attributes' => [
-                'name'    => 'preloader_enabled',
-                'list'    => [
-                    'no'  => trans('core/base::base.no'),
+                'name' => 'preloader_enabled',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'yes' => trans('core/base::base.yes'),
                 ],
-                'value'   => 'yes',
+                'value' => 'yes',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'allow_account_login',
+            'id' => 'allow_account_login',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'select',
-            'label'      => __('Allow user login?'),
+            'type' => 'select',
+            'label' => __('Allow user login?'),
             'attributes' => [
-                'name'    => 'allow_account_login',
-                'list'    => [
-                    'no'  => trans('core/base::base.no'),
+                'name' => 'allow_account_login',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'yes' => trans('core/base::base.yes'),
                 ],
-                'value'   => 'yes',
+                'value' => 'yes',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'site_description',
+            'id' => 'site_description',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'textarea',
-            'label'      => __('Site description'),
+            'type' => 'textarea',
+            'label' => __('Site description'),
             'attributes' => [
-                'name'    => 'site_description',
-                'value'   => null,
+                'name' => 'site_description',
+                'value' => null,
                 'options' => [
-                    'class'        => 'form-control',
+                    'class' => 'form-control',
                     'data-counter' => 255,
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'address',
+            'id' => 'address',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'text',
-            'label'      => __('Address'),
+            'type' => 'text',
+            'label' => __('Address'),
             'attributes' => [
-                'name'    => 'address',
-                'value'   => null,
+                'name' => 'address',
+                'value' => null,
                 'options' => [
-                    'class'        => 'form-control',
+                    'class' => 'form-control',
                     'data-counter' => 255,
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'phone',
+            'id' => 'phone',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'text',
-            'label'      => __('Phone'),
+            'type' => 'text',
+            'label' => __('Phone'),
             'attributes' => [
-                'name'    => 'phone',
-                'value'   => null,
+                'name' => 'phone',
+                'value' => null,
                 'options' => [
-                    'class'        => 'form-control',
+                    'class' => 'form-control',
                     'data-counter' => 255,
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'email',
+            'id' => 'email',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'text',
-            'label'      => __('Email'),
+            'type' => 'text',
+            'label' => __('Email'),
             'attributes' => [
-                'name'    => 'email',
-                'value'   => null,
+                'name' => 'email',
+                'value' => null,
                 'options' => [
-                    'class'        => 'form-control',
+                    'class' => 'form-control',
                     'data-counter' => 255,
                 ],
             ],
         ])
         ->setSection([
-            'title'      => __('Style'),
-            'desc'       => __('Style of page'),
-            'id'         => 'opt-text-subsection-style',
+            'title' => __('Style'),
+            'desc' => __('Style of page'),
+            'id' => 'opt-text-subsection-style',
             'subsection' => true,
-            'icon'       => 'fa fa-bars',
+            'icon' => 'fa fa-bars',
         ])
         ->setField([
-            'id'         => 'font_heading',
+            'id' => 'font_heading',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'googleFonts',
-            'label'      => __('Font heading'),
+            'type' => 'googleFonts',
+            'label' => __('Font heading'),
             'attributes' => [
-                'name'  => 'font_heading',
+                'name' => 'font_heading',
                 'value' => 'Poppins',
             ],
         ])
         ->setField([
-            'id'         => 'font_body',
+            'id' => 'font_body',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'googleFonts',
-            'label'      => __('Font body'),
+            'type' => 'googleFonts',
+            'label' => __('Font body'),
             'attributes' => [
-                'name'  => 'font_body',
+                'name' => 'font_body',
                 'value' => 'Source Sans Pro',
             ],
         ])
         ->setField([
-            'id'         => 'color_primary',
+            'id' => 'color_primary',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Primary color'),
+            'type' => 'customColor',
+            'label' => __('Primary color'),
             'attributes' => [
-                'name'  => 'color_primary',
+                'name' => 'color_primary',
                 'value' => '#87c6e3',
             ],
         ])
         ->setField([
-            'id'         => 'color_secondary',
+            'id' => 'color_secondary',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Secondary color'),
+            'type' => 'customColor',
+            'label' => __('Secondary color'),
             'attributes' => [
-                'name'  => 'color_secondary',
+                'name' => 'color_secondary',
                 'value' => '#455265',
             ],
         ])
         ->setField([
-            'id'         => 'color_success',
+            'id' => 'color_success',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Success color'),
+            'type' => 'customColor',
+            'label' => __('Success color'),
             'attributes' => [
-                'name'  => 'color_success',
+                'name' => 'color_success',
                 'value' => '#76e1c6',
             ],
         ])
         ->setField([
-            'id'         => 'color_danger',
+            'id' => 'color_danger',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Danger color'),
+            'type' => 'customColor',
+            'label' => __('Danger color'),
             'attributes' => [
-                'name'  => 'color_danger',
+                'name' => 'color_danger',
                 'value' => '#f0a9a9',
             ],
         ])
         ->setField([
-            'id'         => 'color_warning',
+            'id' => 'color_warning',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Warning color'),
+            'type' => 'customColor',
+            'label' => __('Warning color'),
             'attributes' => [
-                'name'  => 'color_warning',
+                'name' => 'color_warning',
                 'value' => '#e6bf7e',
             ],
         ])
         ->setField([
-            'id'         => 'color_info',
+            'id' => 'color_info',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Info color'),
+            'type' => 'customColor',
+            'label' => __('Info color'),
             'attributes' => [
-                'name'  => 'color_info',
+                'name' => 'color_info',
                 'value' => '#58c1c8',
             ],
         ])
         ->setField([
-            'id'         => 'color_light',
+            'id' => 'color_light',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Light color'),
+            'type' => 'customColor',
+            'label' => __('Light color'),
             'attributes' => [
-                'name'  => 'color_light',
+                'name' => 'color_light',
                 'value' => '#F3F3F3',
             ],
         ])
         ->setField([
-            'id'         => 'color_dark',
+            'id' => 'color_dark',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Dark color'),
+            'type' => 'customColor',
+            'label' => __('Dark color'),
             'attributes' => [
-                'name'  => 'color_dark',
+                'name' => 'color_dark',
                 'value' => '#111111',
             ],
         ])
         ->setField([
-            'id'         => 'color_link',
+            'id' => 'color_link',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('Link color'),
+            'type' => 'customColor',
+            'label' => __('Link color'),
             'attributes' => [
-                'name'  => 'color_link',
+                'name' => 'color_link',
                 'value' => '#222831',
             ],
         ])
         ->setField([
-            'id'         => 'color_white',
+            'id' => 'color_white',
             'section_id' => 'opt-text-subsection-style',
-            'type'       => 'customColor',
-            'label'      => __('White color'),
+            'type' => 'customColor',
+            'label' => __('White color'),
             'attributes' => [
-                'name'  => 'color_white',
+                'name' => 'color_white',
                 'value' => '#FFFFFF',
             ],
         ])
         ->setSection([
-            'title'      => __('Social links'),
-            'desc'       => __('Social links'),
-            'id'         => 'opt-text-subsection-social-links',
+            'title' => __('Social links'),
+            'desc' => __('Social links'),
+            'id' => 'opt-text-subsection-social-links',
             'subsection' => true,
-            'icon'       => 'fa fa-share-alt',
+            'icon' => 'fa fa-share-alt',
         ])
         ->setField([
-            'id'         => 'social_links',
+            'id' => 'social_links',
             'section_id' => 'opt-text-subsection-social-links',
-            'type'       => 'repeater',
-            'label'      => __('Social links'),
+            'type' => 'repeater',
+            'label' => __('Social links'),
             'attributes' => [
-                'name'   => 'social_links',
-                'value'  => null,
+                'name' => 'social_links',
+                'value' => null,
                 'fields' => [
                     [
-                        'type'       => 'text',
-                        'label'      => __('Name'),
+                        'type' => 'text',
+                        'label' => __('Name'),
                         'attributes' => [
-                            'name'    => 'social-name',
-                            'value'   => null,
+                            'name' => 'social-name',
+                            'value' => null,
                             'options' => [
                                 'class' => 'form-control',
                             ],
                         ],
                     ],
                     [
-                        'type'       => 'text',
-                        'label'      => __('Icon'),
+                        'type' => 'text',
+                        'label' => __('Icon'),
                         'attributes' => [
-                            'name'    => 'social-icon',
-                            'value'   => null,
+                            'name' => 'social-icon',
+                            'value' => null,
                             'options' => [
                                 'class' => 'form-control',
                             ],
                         ],
                     ],
                     [
-                        'type'       => 'text',
-                        'label'      => __('URL'),
+                        'type' => 'text',
+                        'label' => __('URL'),
                         'attributes' => [
-                            'name'    => 'social-url',
-                            'value'   => null,
+                            'name' => 'social-url',
+                            'value' => null,
                             'options' => [
                                 'class' => 'form-control',
                             ],
                         ],
                     ],
                     [
-                        'type'       => 'text',
-                        'label'      => __('Total follow'),
+                        'type' => 'text',
+                        'label' => __('Total follow'),
                         'attributes' => [
-                            'name'    => 'social-total-follow',
-                            'value'   => null,
+                            'name' => 'social-total-follow',
+                            'value' => null,
                             'options' => [
                                 'class' => 'form-control',
                             ],
@@ -379,172 +379,172 @@ app()->booted(function () {
             ],
         ])
         ->setField([
-            'id'         => 'facebook_chat_enabled',
+            'id' => 'facebook_chat_enabled',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'select',
-            'label'      => __('Enable Facebook chat?'),
+            'type' => 'select',
+            'label' => __('Enable Facebook chat?'),
             'attributes' => [
-                'name'    => 'facebook_chat_enabled',
-                'list'    => [
-                    'no'  => trans('core/base::base.no'),
+                'name' => 'facebook_chat_enabled',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'yes' => trans('core/base::base.yes'),
                 ],
-                'value'   => 'no',
+                'value' => 'no',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
-            'helper'     => __(
+            'helper' => __(
                 'To show chat box on that website, please go to :link and add :domain to whitelist domains!',
                 [
                     'domain' => Html::link(url('')),
-                    'link'   => Html::link('https://www.facebook.com/' . theme_option('facebook_page_id') . '/settings/?tab=messenger_platform'),
+                    'link' => Html::link('https://www.facebook.com/' . theme_option('facebook_page_id') . '/settings/?tab=messenger_platform'),
                 ]
             ),
         ])
         ->setField([
-            'id'         => 'facebook_page_id',
+            'id' => 'facebook_page_id',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'text',
-            'label'      => __('Facebook page ID'),
+            'type' => 'text',
+            'label' => __('Facebook page ID'),
             'attributes' => [
-                'name'    => 'facebook_page_id',
-                'value'   => null,
+                'name' => 'facebook_page_id',
+                'value' => null,
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
-            'helper'     => __(
+            'helper' => __(
                 'You can get fan page ID using this site :link',
                 ['link' => Html::link('https://findmyfbid.com') . ' or ' . Html::link('https://findidfb.com/')]
             ),
         ])
         ->setField([
-            'id'         => 'comment_type_in_post',
+            'id' => 'comment_type_in_post',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'select',
-            'label'      => __('Enable Comment in post detail page?'),
+            'type' => 'select',
+            'label' => __('Enable Comment in post detail page?'),
             'attributes' => [
-                'name'    => 'comment_type_in_post',
-                'list'    => [
-                    'no'       => trans('core/base::base.no'),
+                'name' => 'comment_type_in_post',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'facebook' => 'Via Facebook',
-                    'member'   => 'Via Member login',
+                    'member' => 'Via Member login',
                 ],
-                'value'   => 'yes',
+                'value' => 'yes',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'header_style',
+            'id' => 'header_style',
             'section_id' => 'opt-text-subsection-page',
-            'type'       => 'select',
-            'label'      => __('Header style'),
+            'type' => 'select',
+            'label' => __('Header style'),
             'attributes' => [
-                'name'    => 'header_style',
-                'list'    => [
+                'name' => 'header_style',
+                'list' => [
                     'style-1' => 'Style 1',
                     'style-2' => 'Style 2',
                     'style-3' => 'Style 3',
                 ],
-                'value'   => 'style-1',
+                'value' => 'style-1',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'posts_layout',
+            'id' => 'posts_layout',
             'section_id' => 'opt-text-subsection-blog',
-            'type'       => 'select',
-            'label'      => __('Post list Layout'),
+            'type' => 'select',
+            'label' => __('Post list Layout'),
             'attributes' => [
-                'name'    => 'posts_layout',
-                'list'    => [
-                    'list'  => 'List',
-                    'grid'  => 'Grid',
+                'name' => 'posts_layout',
+                'list' => [
+                    'list' => 'List',
+                    'grid' => 'Grid',
                     'metro' => 'Metro',
                 ],
-                'value'   => 'list',
+                'value' => 'list',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'preloader_enabled',
+            'id' => 'preloader_enabled',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'select',
-            'label'      => __('Enable Preloader?'),
+            'type' => 'select',
+            'label' => __('Enable Preloader?'),
             'attributes' => [
-                'name'    => 'preloader_enabled',
-                'list'    => [
-                    'no'  => trans('core/base::base.no'),
+                'name' => 'preloader_enabled',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'yes' => trans('core/base::base.yes'),
                 ],
-                'value'   => 'no',
+                'value' => 'no',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'recently_viewed_posts_enable',
+            'id' => 'recently_viewed_posts_enable',
             'section_id' => 'opt-text-subsection-general',
-            'type'       => 'select',
-            'label'      => __('Enable Recently viewed posts?'),
+            'type' => 'select',
+            'label' => __('Enable Recently viewed posts?'),
             'attributes' => [
-                'name'    => 'recently_viewed_posts_enable',
-                'list'    => [
-                    'no'  => trans('core/base::base.no'),
+                'name' => 'recently_viewed_posts_enable',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'yes' => trans('core/base::base.yes'),
                 ],
-                'value'   => 'no',
+                'value' => 'no',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'post_date_format',
+            'id' => 'post_date_format',
             'section_id' => 'opt-text-subsection-blog',
-            'type'       => 'text',
-            'label'      => __('Post date format') . ' (Reference the formats at https://docs.oracle.com/cd/E41183_01/DR/Date_Format_Types.html)',
+            'type' => 'text',
+            'label' => __('Post date format') . ' (Reference the formats at https://docs.oracle.com/cd/E41183_01/DR/Date_Format_Types.html)',
             'attributes' => [
-                'name'    => 'post_date_format',
-                'value'   => 'd M, Y',
+                'name' => 'post_date_format',
+                'value' => 'd M, Y',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'post_date_short_format',
+            'id' => 'post_date_short_format',
             'section_id' => 'opt-text-subsection-blog',
-            'type'       => 'text',
-            'label'      => __('Post date short format'),
+            'type' => 'text',
+            'label' => __('Post date short format'),
             'attributes' => [
-                'name'    => 'post_date_short_format',
-                'value'   => 'M d',
+                'name' => 'post_date_short_format',
+                'value' => 'M d',
                 'options' => [
                     'class' => 'form-control',
                 ],
             ],
         ])
         ->setField([
-            'id'         => 'enable_show_post_author_detail',
+            'id' => 'enable_show_post_author_detail',
             'section_id' => 'opt-text-subsection-blog',
-            'type'       => 'select',
-            'label'      => __('Show author description in post detail'),
+            'type' => 'select',
+            'label' => __('Show author description in post detail'),
             'attributes' => [
-                'name'    => 'enable_show_post_author_detail',
-                'list'    => [
-                    'no'  => trans('core/base::base.no'),
+                'name' => 'enable_show_post_author_detail',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
                     'yes' => trans('core/base::base.yes'),
                 ],
-                'value'   => 'yes',
+                'value' => 'yes',
                 'options' => [
                     'class' => 'form-control',
                 ],

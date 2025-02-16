@@ -3,55 +3,40 @@
 namespace Botble\AuditLog\Listeners;
 
 use Botble\AuditLog\Events\AuditHandlerEvent;
-use Botble\AuditLog\Repositories\Interfaces\AuditLogInterface;
+use Botble\AuditLog\Models\AuditHistory;
+use Botble\Base\Facades\BaseHelper;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class AuditHandlerListener
 {
-    /**
-     * @var AuditLogInterface
-     */
-    public $auditLogRepository;
-
-    /**
-     * @var Request
-     */
-    protected $request;
-
-    /**
-     * AuditHandlerListener constructor.
-     * @param AuditLogInterface $auditLogRepository
-     * @param Request $request
-     */
-    public function __construct(AuditLogInterface $auditLogRepository, Request $request)
+    public function __construct(protected Request $request)
     {
-        $this->auditLogRepository = $auditLogRepository;
-        $this->request = $request;
     }
 
-    /**
-     * Handle the event.
-     *
-     * @param AuditHandlerEvent $event
-     * @return void
-     */
-    public function handle(AuditHandlerEvent $event)
+    public function handle(AuditHandlerEvent $event): void
     {
         try {
+            $module = strtolower(Str::afterLast($event->module, '\\'));
+
             $data = [
-                'user_agent'     => $this->request->userAgent(),
-                'ip_address'     => $this->request->ip(),
-                'module'         => $event->module,
-                'action'         => $event->action,
-                'user_id'        => $this->request->user() ? $this->request->user()->getKey() : 0,
+                'user_agent' => $this->request->userAgent(),
+                'ip_address' => $this->request->ip(),
+                'module' => $module,
+                'action' => $event->action,
+                'user_id' => $this->request->user() ? $this->request->user()->getKey() : 0,
                 'reference_user' => $event->referenceUser,
-                'reference_id'   => $event->referenceId,
+                'reference_id' => $event->referenceId,
                 'reference_name' => $event->referenceName,
-                'type'           => $event->type,
+                'type' => $event->type,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ];
 
-            if (!in_array($event->action, ['loggedin', 'password'])) {
+            if (! in_array($event->action, ['loggedin', 'password'])) {
                 $data['request'] = json_encode($this->request->except([
                     'username',
                     'password',
@@ -66,9 +51,15 @@ class AuditHandlerListener
                 ]));
             }
 
-            $this->auditLogRepository->createOrUpdate($data);
+            if (! Cache::has('pruned_audit_logs_table')) {
+                (new AuditHistory())->pruneAll();
+
+                Cache::put('pruned_audit_logs_table', 1, Carbon::now()->addDay());
+            }
+
+            AuditHistory::query()->insert($data);
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

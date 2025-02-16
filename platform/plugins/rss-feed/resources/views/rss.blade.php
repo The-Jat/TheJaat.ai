@@ -1,23 +1,51 @@
-{!! '<' . '?' . 'xml version="1.0" encoding="UTF-8"?>' . "\n" !!}
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+@php(OptimizerHelper::disable())
+
+<?php echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL ?>
+<rss
+    version="2.0"
+    xmlns:atom="http://www.w3.org/2005/Atom"
+>
     <channel>
-        <title><![CDATA[{{ $meta['title'] }}]]></title>
-        <link><![CDATA[{{ url($meta['link']) }}]]></link>
-        <description><![CDATA[{{ $meta['description'] }}]]></description>
+        <atom:link
+            type="application/rss+xml"
+            href="{{ url($meta['link']) }}"
+            rel="self"
+        />
+        <title>{!! Botble\RssFeed\Helpers\Cdata::out($meta['title']) !!}</title>
+        <link>{!! Botble\RssFeed\Helpers\Cdata::out(url($meta['link'])) !!}</link>
+        @if (!empty($meta['image']))
+            <image>
+                <url>{{ $meta['image'] }}</url>
+                <title>{!! Botble\RssFeed\Helpers\Cdata::out($meta['title']) !!}</title>
+                <link>{!! Botble\RssFeed\Helpers\Cdata::out(url($meta['link'])) !!}</link>
+            </image>
+        @endif
+        <description>{!! Botble\RssFeed\Helpers\Cdata::out($meta['description']) !!}</description>
         <language>{{ $meta['language'] }}</language>
         <pubDate>{{ $meta['updated'] }}</pubDate>
-        <atom:link href="{{ url($meta['link']) }}" rel="self" type="application/rss+xml" />
 
-        @foreach($items as $item)
+        @foreach ($items as $item)
             <item>
-                <title><![CDATA[{{ $item->title }}]]></title>
-                <link>{{ $item->link }}</link>
-                <description><![CDATA[{!! $item->summary !!}]]></description>
-                <dc:creator><![CDATA[{{ $item->author }}]]></dc:creator>
-                <pubDate>{{ $item->updated->toRssString() }}</pubDate>
+                <title>{!! Botble\RssFeed\Helpers\Cdata::out($item->title) !!}</title>
+                <link>{{ url($item->link) }}</link>
+                <description>{!! Botble\RssFeed\Helpers\Cdata::out($item->summary) !!}</description>
+                @if (property_exists($item, 'author'))
+                    <dc:creator>{!! Botble\RssFeed\Helpers\Cdata::out($item->author) !!}</dc:creator>
+                @else
+                    <author>{!! Botble\RssFeed\Helpers\Cdata::out(
+                        $item->authorName . (empty($item->authorEmail) ? '' : ' <' . $item->authorEmail . '>'),
+                    ) !!}</author>
+                @endif
                 <guid>{{ $item->link }}</guid>
-                <enclosure url="{{ str_replace('https', 'http', $item->enclosure) }}" length="{{ $item->enclosureLength }}" type="{{ $item->enclosureType }}" />
-                <category><![CDATA[{{ is_array($item->category) ? Arr::first($item->category) : $item->category }}]]></category>
+                <pubDate>{{ $item->updated->toRssString() }}</pubDate>
+                <enclosure
+                    type="{{ $item->enclosureType }}"
+                    url="{{ str_replace('https', 'http', $item->enclosure) }}"
+                    length="{{ $item->enclosureLength }}"
+                />
+                @foreach ($item->category as $category)
+                    <category>{{ $category }}</category>
+                @endforeach
             </item>
         @endforeach
     </channel>

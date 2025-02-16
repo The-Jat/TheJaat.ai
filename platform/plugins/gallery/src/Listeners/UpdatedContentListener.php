@@ -3,23 +3,18 @@
 namespace Botble\Gallery\Listeners;
 
 use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Gallery\Facades\Gallery;
 use Exception;
-use Gallery;
 
 class UpdatedContentListener
 {
-    /**
-     * Handle the event.
-     *
-     * @param UpdatedContentEvent $event
-     * @return void
-     */
-    public function handle(UpdatedContentEvent $event)
+    public function handle(UpdatedContentEvent $event): void
     {
         try {
             Gallery::saveGallery($event->request, $event->data);
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

@@ -51,13 +51,16 @@ class ToCHelper
                     switch (Arr::get($this->options, 'option')) {
                         case 'top':
                             $content = $html . $this->mbFindReplace($find, $replace, $content);
+
                             break;
                         case 'bottom':
                             $content = $this->mbFindReplace($find, $replace, $content) . $html;
+
                             break;
                         case 'after-first-heading':
                             $replace[0] = $replace[0] . $html;
                             $content = $this->mbFindReplace($find, $replace, $content);
+
                             break;
                         case 'before-first-heading':
                         default:
@@ -162,10 +165,11 @@ class ToCHelper
                             for ($j = 0; $j < count($excludedHeadings); $j++) {
                                 if (@preg_match('/^' . $excludedHeadings[$j] . '$/imU', strip_tags($matches[$i][0]))) {
                                     $found = true;
+
                                     break;
                                 }
                             }
-                            if (!$found) {
+                            if (! $found) {
                                 $newMatches[] = $matches[$i];
                             }
                         }
@@ -207,7 +211,7 @@ class ToCHelper
                         );
 
                         // assemble flat list
-                        if (!Arr::get($this->options, 'show_heirarchy')) {
+                        if (! Arr::get($this->options, 'show_heirarchy')) {
                             $items .= '<li><a href="#' . $anchor . '">';
                             if (Arr::get($this->options, 'ordered_list')) {
                                 $items .= count($replace) . ' ';
@@ -272,7 +276,7 @@ class ToCHelper
 
             // if blank, then prepend with the fragment prefix
             // blank anchors normally appear on sites that don't use the latin charset
-            if (!$return) {
+            if (! $return) {
                 $return = Arr::get($this->options, 'fragment_prefix') ?: '_';
             }
 
@@ -299,7 +303,7 @@ class ToCHelper
      */
     public function registerModule($model)
     {
-        if (!is_array($model)) {
+        if (! is_array($model)) {
             $model = [$model];
         }
 

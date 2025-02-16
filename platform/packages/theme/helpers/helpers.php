@@ -1,17 +1,14 @@
 <?php
 
-use Botble\Theme\Facades\AdminBarFacade;
-use Botble\Theme\Facades\ThemeOptionFacade;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Theme\Contracts\Theme as ThemeContract;
+use Botble\Theme\Facades\AdminBar;
+use Botble\Theme\Facades\ThemeOption;
 use Botble\Theme\Supports\AdminBar as AdminBarBase;
-use Illuminate\Contracts\Foundation\Application;
+use Botble\Theme\ThemeOption as ThemeOptionBase;
 
-if (!function_exists('sanitize_html_class')) {
-    /**
-     * @param string $class
-     * @param string|callable $fallback
-     * @return string
-     */
-    function sanitize_html_class(string $class, $fallback = ''): string
+if (! function_exists('sanitize_html_class')) {
+    function sanitize_html_class(string $class, string|callable|null $fallback = ''): string
     {
         //Strip out any % encoded octets
         $sanitized = preg_replace('|%[a-fA-F0-9][a-fA-F0-9]|', '', $class);
@@ -23,30 +20,17 @@ if (!function_exists('sanitize_html_class')) {
             return sanitize_html_class($fallback);
         }
 
-        /**
-         * Filters a sanitized HTML class string.
-         *
-         * @param string $sanitized The sanitized HTML class.
-         * @param string $class HTML class before sanitization.
-         * @param string $fallback The fallback string.
-         * @since 2.8.0
-         */
         return apply_filters('sanitize_html_class', $sanitized, $class, $fallback);
     }
 }
 
-if (!function_exists('parse_args')) {
-    /**
-     * @param array|object $args
-     * @param string|array $defaults
-     * @return array
-     */
-    function parse_args($args, $defaults = '')
+if (! function_exists('parse_args')) {
+    function parse_args(array|object $args, string|array $defaults = ''): array
     {
         if (is_object($args)) {
             $result = get_object_vars($args);
         } else {
-            $result =& $args;
+            $result =&$args;
         }
 
         if (is_array($defaults)) {
@@ -57,17 +41,10 @@ if (!function_exists('parse_args')) {
     }
 }
 
-if (!function_exists('theme')) {
-    /**
-     * Get the theme instance.
-     *
-     * @param string|null $themeName
-     * @param string|null $layoutName
-     * @return Application|mixed
-     */
-    function theme(?string $themeName = null, ?string $layoutName = null)
+if (! function_exists('theme')) {
+    function theme(?string $themeName = null, ?string $layoutName = null): mixed
     {
-        $theme = app('theme');
+        $theme = app(ThemeContract::class);
 
         if ($themeName) {
             $theme->theme($themeName);
@@ -81,41 +58,33 @@ if (!function_exists('theme')) {
     }
 }
 
-if (!function_exists('theme_option')) {
-    /**
-     * @return \Botble\Theme\ThemeOption|string
-     */
-    function theme_option($key = null, $default = '')
+if (! function_exists('theme_option')) {
+    function theme_option($key = null, $default = ''): ThemeOptionBase|string|null
     {
-        if (!empty($key)) {
+        if (! empty($key)) {
             try {
                 return ThemeOption::getOption($key, $default);
             } catch (Exception $exception) {
-                info($exception->getMessage());
+                BaseHelper::logError($exception);
+
+                return $default;
             }
         }
 
-        return ThemeOptionFacade::getFacadeRoot();
+        return ThemeOption::getFacadeRoot();
     }
 }
 
-if (!function_exists('theme_path')) {
-    /**
-     * @param string|null $path
-     * @return string
-     */
+if (! function_exists('theme_path')) {
     function theme_path(?string $path = null): string
     {
-        return platform_path('themes' . DIRECTORY_SEPARATOR . $path);
+        return platform_path('themes' . DIRECTORY_SEPARATOR . ltrim((string) $path, DIRECTORY_SEPARATOR));
     }
 }
 
-if (!function_exists('admin_bar')) {
-    /**
-     * @return AdminBarBase
-     */
+if (! function_exists('admin_bar')) {
     function admin_bar(): AdminBarBase
     {
-        return AdminBarFacade::getFacadeRoot();
+        return AdminBar::getFacadeRoot();
     }
 }

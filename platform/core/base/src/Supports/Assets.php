@@ -4,105 +4,92 @@ namespace Botble\Base\Supports;
 
 use Botble\Assets\Assets as BaseAssets;
 use Botble\Assets\HtmlBuilder;
-use File;
+use Botble\Base\Facades\AdminHelper;
+use Botble\Base\Facades\BaseHelper;
 use Illuminate\Config\Repository;
-use Illuminate\Support\Str;
-use Throwable;
 
 /**
  * @since 22/07/2015 11:23 PM
  */
 class Assets extends BaseAssets
 {
-    /**
-     * Assets constructor.
-     *
-     * @param Repository $config
-     * @param HtmlBuilder $htmlBuilder
-     */
+    protected bool $hasVueJs = false;
+
     public function __construct(Repository $config, HtmlBuilder $htmlBuilder)
     {
         parent::__construct($config, $htmlBuilder);
 
         $this->config = $config->get('core.base.assets');
 
+        if (empty($this->config['version'])) {
+            $this->config['version'] = get_cms_version();
+        }
+
         $this->scripts = $this->config['scripts'];
 
         $this->styles = $this->config['styles'];
     }
 
-    /**
-     * @param array $config
-     */
-    public function setConfig(array $config)
+    public function setConfig(array $config): void
     {
         $this->config = $config;
     }
 
     /**
-     * Get all admin themes
-     *
-     * @return array
+     * @deprecated v7.0
      */
     public function getThemes(): array
     {
-        $themeFolder = '/vendor/core/core/base/css/themes';
-
-        $themes = ['default' => $themeFolder . '/default.css'];
-
-        if (!File::isDirectory(public_path($themeFolder))) {
-            return $themes;
-        }
-
-        $files = File::files(public_path($themeFolder));
-
-        if (empty($files)) {
-            return $themes;
-        }
-
-        foreach ($files as $file) {
-            $name = $themeFolder . '/' . basename($file);
-            if (!Str::contains($file, '.css.map')) {
-                $themes[basename($file, '.css')] = $name;
-            }
-        }
-
-        if (empty($themes)) {
-            $themes['default'] = $themeFolder . '/default.css';
-        }
-
-        return $themes;
+        return [];
     }
 
-    /**
-     * @deprecated since v5.13
-     * @return array
-     */
-    public function getAdminLocales(): array
-    {
-        return Language::getAvailableLocales();
-    }
-
-    /**
-     * @param array $lastStyles
-     * @return string
-     * @throws Throwable
-     */
     public function renderHeader($lastStyles = []): string
     {
         do_action(BASE_ACTION_ENQUEUE_SCRIPTS);
 
+        if (AdminHelper::isInAdmin(true) && BaseHelper::adminLanguageDirection() === 'rtl') {
+            $this->config['resources']['styles']['core']['src']['local'] = '/vendor/core/core/base/css/core.rtl.css';
+            $this->config['resources']['styles']['select2']['src']['local'][1] = '/vendor/core/core/base/css/libraries/select2.rtl.css';
+        }
+
         return parent::renderHeader($lastStyles);
     }
 
-    /**
-     * @return string
-     * @throws Throwable
-     */
     public function renderFooter(): string
     {
         $bodyScripts = $this->getScripts(self::ASSETS_SCRIPT_POSITION_FOOTER);
 
         return view('assets::footer', compact('bodyScripts'))->render();
+    }
+
+    public function usingVueJS(): self
+    {
+        $this->addScripts(['vue', 'vue-app']);
+
+        $this->hasVueJs = true;
+
+        return $this;
+    }
+
+    public function disableVueJS(): self
+    {
+        $this->removeScripts(['vue', 'vue-app']);
+
+        $this->hasVueJs = false;
+
+        return $this;
+    }
+
+    public function hasVueJs(): bool
+    {
+        return $this->hasVueJs;
+    }
+
+    /**
+     * @deprecated since v5.13
+     */
+    public function getAdminLocales(): array
+    {
+        return Language::getAvailableLocales();
     }
 }

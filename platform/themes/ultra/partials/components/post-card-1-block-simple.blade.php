@@ -11,6 +11,7 @@
     @if(is_external_link($post))
         <span class="top-right-icon background10"><i class="ti-link" aria-hidden="true"></i></span>
     @endif
+    <div>hi</div>
 </div>
 <div class="post-content media-body">
     <h6 class="post-title mb-10 text-limit-2-row"><a href="{{ get_external_link($post) }}" {{ is_external_link($post) ? 'target="_blank"' : '' }}>{{ $post->name }}</a></h6>

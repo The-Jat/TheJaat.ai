@@ -5,27 +5,24 @@ namespace Botble\Comment\Http\Resources;
 use Botble\Comment\Models\Comment;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
+/**
+ * @mixin Comment
+ */
 class RepCollection extends ResourceCollection
 {
-    /**
-     * Transform the resource collection into an array.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return array
-     */
-    public function toArray($request)
+    public function toArray($request): array
     {
         $this->collection->transform(function (Comment $comment) {
             return (new CommentResource($comment));
         });
 
         return [
-            'data'       => $this->collection,
+            'data' => $this->collection,
             'pagination' => [
-                'per_page'     => $this->perPage(),
-                'total'        => $this->total(),
+                'per_page' => $this->perPage(),
+                'total' => $this->total(),
                 'current_page' => $this->currentPage(),
-                'last_page'    => $this->lastPage(),
+                'last_page' => $this->lastPage(),
             ],
 
         ];

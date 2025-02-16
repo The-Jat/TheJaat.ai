@@ -3,52 +3,48 @@
 namespace Botble\Base\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Console\ConfirmableTrait;
 
+use function Laravel\Prompts\confirm;
+
+use Symfony\Component\Console\Attribute\AsCommand;
+
+#[AsCommand('cms:install', 'Install CMS.')]
 class InstallCommand extends Command
 {
-    use ConfirmableTrait;
-
-    /**
-     * The console command signature.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:install';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Install CMS';
-
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function handle(): int
     {
-        $this->info('Starting installation...');
+        if (! confirm('Do you want to proceed with installation?')) {
+            return self::SUCCESS;
+        }
 
+        $this->components->info('Starting installation...');
+
+        $this->components->info('Running migrate...');
         $this->call('migrate:fresh');
+        $this->components->info('Migrate done!');
 
-        if ($this->confirmToProceed('Do you want to add a new super user?', true)) {
+        if (confirm('Create a new super user?')) {
             $this->call('cms:user:create');
         }
 
-        $this->info('Activating all plugins...');
-        $this->call('cms:plugin:activate:all');
-
-        if ($this->confirmToProceed('Do you want to install sample data?', true)) {
-            $this->call('db:seed');
+        if (confirm('Do you want to activate all plugins?')) {
+            $this->components->info('Activating all plugins...');
+            $this->call('cms:plugin:activate:all');
+            $this->components->info('All plugins are activated!');
         }
 
-        $this->info('Publishing assets...');
+        if (confirm('Do you want to install sample data?')) {
+            $this->components->info('Seeding...');
+            $this->call('db:seed');
+            $this->components->info('Seeding done!');
+        }
+
+        $this->components->info('Publishing assets...');
         $this->call('cms:publish:assets');
+        $this->components->info('Publishing assets done!');
 
-        $this->info('Publishing lang...');
-        $this->call('vendor:publish', ['--tag' => 'cms-lang']);
+        $this->components->info('Your CMS is ready to use!');
 
-        $this->info('Install CMS successfully!');
+        return self::SUCCESS;
     }
 }

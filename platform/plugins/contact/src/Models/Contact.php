@@ -2,40 +2,20 @@
 
 namespace Botble\Contact\Models;
 
-use Botble\Base\Supports\Avatar;
-use Botble\Base\Traits\EnumCastable;
-use Botble\Contact\Enums\ContactStatusEnum;
+use Botble\Base\Casts\SafeContent;
 use Botble\Base\Models\BaseModel;
-use Exception;
-use Illuminate\Contracts\Routing\UrlGenerator;
-use RvMedia;
+use Botble\Base\Supports\Avatar;
+use Botble\Contact\Enums\ContactStatusEnum;
+use Botble\Media\Facades\RvMedia;
+use Botble\Support\Services\Cache\Cache;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Throwable;
 
 class Contact extends BaseModel
 {
-    use EnumCastable;
-
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'contacts';
 
-    /**
-     * The date fields for the model.clear
-     *
-     * @var array
-     */
-    protected $dates = [
-        'created_at',
-        'updated_at',
-    ];
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'name',
         'email',
@@ -44,32 +24,42 @@ class Contact extends BaseModel
         'subject',
         'content',
         'status',
+        'custom_fields',
     ];
 
-    /**
-     * @var array
-     */
     protected $casts = [
         'status' => ContactStatusEnum::class,
+        'name' => SafeContent::class,
+        'address' => SafeContent::class,
+        'subject' => SafeContent::class,
+        'content' => SafeContent::class,
+        'custom_fields' => 'array',
     ];
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function replies()
+    public function replies(): HasMany
     {
         return $this->hasMany(ContactReply::class);
     }
 
-    /**
-     * @return UrlGenerator|string
-     */
-    public function getAvatarUrlAttribute()
+    protected function avatarUrl(): Attribute
     {
-        try {
-            return (new Avatar())->create($this->name)->toBase64();
-        } catch (Exception $exception) {
-            return RvMedia::getDefaultImage();
-        }
+        return Attribute::get(function () {
+            try {
+                return Avatar::createBase64Image($this->name);
+            } catch (Throwable) {
+                return RvMedia::getDefaultImage();
+            }
+        });
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (): void {
+            Cache::make(static::class)->flush();
+        });
+
+        static::deleted(function (): void {
+            Cache::make(static::class)->flush();
+        });
     }
 }

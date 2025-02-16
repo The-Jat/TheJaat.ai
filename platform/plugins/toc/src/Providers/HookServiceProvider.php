@@ -32,7 +32,7 @@ class HookServiceProvider extends ServiceProvider
                 true
             ) ?: config('plugins.toc.general.default_option_in_form');
 
-            if ($showToC == 'yes' || !ToCHelper::config('show_option_in_form')) {
+            if ($showToC == 'yes' || ! ToCHelper::config('show_option_in_form')) {
                 Theme::asset()
                     ->usePath(false)
                     ->add('toc-css', 'vendor/core/plugins/toc/css/toc.css');
@@ -64,7 +64,7 @@ class HookServiceProvider extends ServiceProvider
                     function () {
                         $args = func_get_args();
                         $showToC = config('plugins.toc.general.default_option_in_form');
-                        if (!empty($args[0])) {
+                        if (! empty($args[0])) {
                             $data = $args[0];
                             $showToC = MetaBox::getMetaData($data, 'show_toc_in_content', true);
                         }

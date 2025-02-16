@@ -1,8 +1,0 @@
-{
-    "name": "botble/member",
-    "description": "Member plugin",
-    "type": "package",
-    "require": {
-       "laravel/passport": "^9.0|^10.0"
-    }
-}

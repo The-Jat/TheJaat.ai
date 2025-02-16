@@ -33,9 +33,13 @@
                                     <a class="nav-item nav-link text-uppercase" id="nav-trending-tab" data-toggle="tab"
                                        href="#nav-trending" role="tab" aria-controls="nav-trending"
                                        aria-selected="false">{{ __('Feature') }}</a>
-                                    <a class="nav-item nav-link text-uppercase" id="nav-comment-tab" data-toggle="tab"
-                                       href="#nav-comment" role="tab" aria-controls="nav-comment"
-                                       aria-selected="false">{{ __('Comments') }}</a>
+
+                                    @if (is_plugin_active('comment'))
+                                        <a class="nav-item nav-link text-uppercase" id="nav-comment-tab"
+                                           data-toggle="tab"
+                                           href="#nav-comment" role="tab" aria-controls="nav-comment"
+                                           aria-selected="false">{{ __('Comments') }}</a>
+                                    @endif
                                 </div>
                             </nav>
 
@@ -67,18 +71,20 @@
                                 </div>
 
                                 <!--Tab Comments-->
-                                <div class="tab-pane fade" id="nav-comment" role="tabpanel"
-                                     aria-labelledby="nav-comment-tab">
-                                    <div class="post-block-list post-module-1">
-                                        <ul class="list-post">
-                                            @foreach(get_recent_comment_posts($shortcode->tab_post_limit ?? 4) as $post)
-                                                <li class="mb-30">
-                                                    {!! Theme::partial('components.post-card-2-block-simple', ['post' => $post]) !!}
-                                                </li>
-                                            @endforeach
-                                        </ul>
+                                @if (is_plugin_active('comment'))
+                                    <div class="tab-pane fade" id="nav-comment" role="tabpanel"
+                                         aria-labelledby="nav-comment-tab">
+                                        <div class="post-block-list post-module-1">
+                                            <ul class="list-post">
+                                                @foreach(get_recent_comment_posts($shortcode->tab_post_limit ?? 4) as $post)
+                                                    <li class="mb-30">
+                                                        {!! Theme::partial('components.post-card-2-block-simple', ['post' => $post]) !!}
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>

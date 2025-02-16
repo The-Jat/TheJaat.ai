@@ -3,23 +3,18 @@
 namespace Botble\Gallery\Listeners;
 
 use Botble\Base\Events\DeletedContentEvent;
+use Botble\Base\Facades\BaseHelper;
+use Botble\Gallery\Facades\Gallery;
 use Exception;
-use Gallery;
 
 class DeletedContentListener
 {
-    /**
-     * Handle the event.
-     *
-     * @param DeletedContentEvent $event
-     * @return void
-     */
-    public function handle(DeletedContentEvent $event)
+    public function handle(DeletedContentEvent $event): void
     {
         try {
             Gallery::deleteGallery($event->data);
         } catch (Exception $exception) {
-            info($exception->getMessage());
+            BaseHelper::logError($exception);
         }
     }
 }

@@ -2,64 +2,75 @@
 
 namespace Botble\Contact\Providers;
 
-use Assets;
+use Botble\Base\Supports\ServiceProvider;
 use Botble\Contact\Enums\ContactStatusEnum;
-use Botble\Contact\Repositories\Interfaces\ContactInterface;
-use Html;
-use Illuminate\Contracts\Container\BindingResolutionException;
+use Botble\Contact\Forms\Fronts\ContactForm;
+use Botble\Contact\Forms\ShortcodeContactAdminConfigForm;
+use Botble\Contact\Http\Requests\ContactRequest;
+use Botble\Contact\Models\Contact;
+use Botble\Contact\Models\CustomField;
+use Botble\Shortcode\Compilers\Shortcode;
+use Botble\Shortcode\Facades\Shortcode as ShortcodeFacade;
+use Botble\Support\Services\Cache\Cache;
+use Botble\Theme\Facades\Theme;
+use Botble\Theme\FormFrontManager;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\ServiceProvider;
-use Theme;
-use Throwable;
 
 class HookServiceProvider extends ServiceProvider
 {
-    /**
-     * @throws Throwable
-     */
-    public function boot()
+    public function boot(): void
     {
         add_filter(BASE_FILTER_TOP_HEADER_LAYOUT, [$this, 'registerTopHeaderNotification'], 120);
         add_filter(BASE_FILTER_APPEND_MENU_NAME, [$this, 'getUnreadCount'], 120, 2);
         add_filter(BASE_FILTER_MENU_ITEMS_COUNT, [$this, 'getMenuItemCount'], 120);
 
-        if (function_exists('add_shortcode')) {
-            add_shortcode(
+        FormFrontManager::register(ContactForm::class, ContactRequest::class);
+
+        if (class_exists(ShortcodeFacade::class)) {
+            ShortcodeFacade::register(
                 'contact-form',
                 trans('plugins/contact::contact.shortcode_name'),
                 trans('plugins/contact::contact.shortcode_description'),
                 [$this, 'form']
             );
 
-            shortcode()
-                ->setAdminConfig('contact-form', view('plugins/contact::partials.short-code-admin-config')->render());
+            ShortcodeFacade::setAdminConfig('contact-form', function (array $attributes) {
+                return ShortcodeContactAdminConfigForm::createFromArray($attributes);
+            });
         }
 
-        add_filter(BASE_FILTER_AFTER_SETTING_CONTENT, [$this, 'addSettings'], 93);
+        add_filter('form_extra_fields_render', function (?string $fields = null, ?string $form = null): ?string {
+            $customFields = CustomField::query()
+                ->wherePublished()->with('options')
+                ->orderBy('order')
+                ->get();
+
+            if ($customFields->isEmpty()) {
+                return $fields;
+            }
+
+            return $fields . view('plugins/contact::forms.old-version-support', compact('customFields'))->render();
+        }, 128, 2);
     }
 
-    /**
-     * @param string|null $options
-     * @return string
-     * @throws BindingResolutionException
-     */
     public function registerTopHeaderNotification(?string $options): ?string
     {
-        if (Auth::user()->hasPermission('contacts.edit')) {
-            $contacts = $this->app->make(ContactInterface::class)
-                ->advancedGet([
-                    'condition' => [
-                        'status' => ContactStatusEnum::UNREAD,
-                    ],
-                    'paginate'  => [
-                        'per_page'      => 10,
-                        'current_paged' => 1,
-                    ],
-                    'select'    => ['id', 'name', 'email', 'phone', 'created_at'],
-                    'order_by'  => ['created_at' => 'DESC'],
-                ]);
+        if (Auth::guard()->user()->hasPermission('contacts.edit')) {
+            $cache = Cache::make(Contact::class);
 
-            if ($contacts->count() == 0) {
+            if ($cache->has('unread-contacts')) {
+                $contacts = $cache->get('unread-contacts');
+            } else {
+                $contacts = Contact::query()
+                    ->where('status', ContactStatusEnum::UNREAD)
+                    ->select(['id', 'name', 'email', 'phone', 'created_at'])->latest()
+                    ->paginate(10);
+
+                $cache->put('unread-contacts', $contacts, 60 * 60 * 24);
+            }
+
+            if ($contacts->total() == 0) {
                 return $options;
             }
 
@@ -69,51 +80,45 @@ class HookServiceProvider extends ServiceProvider
         return $options;
     }
 
-    /**
-     * @param int|null|string $number
-     * @param string|null $menuId
-     * @return string
-     */
-    public function getUnreadCount($number, string $menuId)
+    public function getUnreadCount(string|null|int $number, string $menuId): int|string|null
     {
-        if ($menuId == 'cms-plugins-contact') {
-            $attributes = [
-                'class'    => 'badge badge-success menu-item-count unread-contacts',
-                'style'    => 'display: none;',
-            ];
-
-            return Html::tag('span', '', $attributes)->toHtml();
+        if ($menuId !== 'cms-plugins-contact') {
+            return $number;
         }
 
-        return $number;
+        return view('core/base::partials.navbar.badge-count', ['class' => 'unread-contacts'])->render();
     }
 
-    /**
-     * @param array $data
-     * @return array
-     */
     public function getMenuItemCount(array $data = []): array
     {
-        if (Auth::user()->hasPermission('contacts.index')) {
-            $data[] = [
-                'key'   => 'unread-contacts',
-                'value' => app(ContactInterface::class)->countUnread(),
-            ];
+        if (! Auth::guard()->user()->hasPermission('contacts.index')) {
+            return $data;
         }
+
+        $cache = Cache::make(Contact::class);
+
+        if ($cache->has('unread-contacts-count')) {
+            $contactCount = $cache->get('unread-contacts-count');
+        } else {
+            $contactCount = Contact::query()->where('status', ContactStatusEnum::UNREAD)->count();
+
+            $cache->put('unread-contacts-count', $contactCount, 60 * 60 * 24);
+        }
+
+        $data[] = [
+            'key' => 'unread-contacts',
+            'value' => $contactCount,
+        ];
 
         return $data;
     }
 
-    /**
-     * @param $shortcode
-     * @return string
-     */
-    public function form($shortcode): string
+    public function form(Shortcode $shortcode): string
     {
         $view = apply_filters(CONTACT_FORM_TEMPLATE_VIEW, 'plugins/contact::forms.contact');
 
         if (defined('THEME_OPTIONS_MODULE_SCREEN_NAME')) {
-            $this->app->booted(function () {
+            $this->app->booted(function (): void {
                 Theme::asset()
                     ->usePath(false)
                     ->add('contact-css', asset('vendor/core/plugins/contact/css/contact-public.css'), [], [], '1.0.0');
@@ -135,22 +140,14 @@ class HookServiceProvider extends ServiceProvider
             $view = $shortcode->view;
         }
 
-        return view($view, compact('shortcode'))->render();
-    }
+        $form = ContactForm::createFromArray(
+            Arr::except($shortcode->toArray(), ['name', 'email', 'phone', 'content', 'subject', 'address'])
+        );
 
-    /**
-     * @param string|null $data
-     * @return string
-     * @throws Throwable
-     */
-    public function addSettings(?string $data = null): string
-    {
-        Assets::addStylesDirectly('vendor/core/core/base/libraries/tagify/tagify.css')
-            ->addScriptsDirectly([
-                'vendor/core/core/base/libraries/tagify/tagify.js',
-                'vendor/core/core/base/js/tags.js',
-            ]);
+        add_filter('contact_request_rules', function (array $rules, ContactRequest $request) use ($shortcode): array {
+            return $request->applyRules($rules, $shortcode->display_fields, $shortcode->mandatory_fields);
+        }, 120, 2);
 
-        return $data . view('plugins/contact::settings')->render();
+        return view($view, compact('shortcode', 'form'))->render();
     }
 }

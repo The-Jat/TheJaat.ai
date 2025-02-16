@@ -2,26 +2,18 @@
 
 namespace Botble\Analytics\Exceptions;
 
+use Botble\Base\Facades\Html;
 use Exception;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
 
 class InvalidConfiguration extends Exception
 {
-    /**
-     * @return static
-     * @throws FileNotFoundException
-     */
-    public static function viewIdNotSpecified()
+    public static function credentialsIsNotValid(): self
     {
-        return new static(trans('plugins/analytics::analytics.view_id_not_specified'));
+        return new self(trans('plugins/analytics::analytics.settings.credential_is_not_valid', ['url' => Html::link('https://docs.botble.com/cms/usage-analytics.html', attributes: ['target' => '_blank'])->toHtml()]));
     }
 
-    /**
-     * @return static
-     * @throws FileNotFoundException
-     */
-    public static function credentialsIsNotValid()
+    public static function invalidPropertyId(): self
     {
-        return new static(trans('plugins/analytics::analytics.credential_is_not_valid'));
+        return new self(trans('plugins/analytics::analytics.settings.property_id_is_invalid'));
     }
 }

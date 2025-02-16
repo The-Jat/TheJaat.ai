@@ -2,7 +2,9 @@
 
 namespace Botble\Contact\Forms;
 
-use Assets;
+use Botble\Base\Facades\Assets;
+use Botble\Base\Forms\FieldOptions\StatusFieldOption;
+use Botble\Base\Forms\Fields\SelectField;
 use Botble\Base\Forms\FormAbstract;
 use Botble\Contact\Enums\ContactStatusEnum;
 use Botble\Contact\Http\Requests\EditContactRequest;
@@ -10,35 +12,29 @@ use Botble\Contact\Models\Contact;
 
 class ContactForm extends FormAbstract
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function buildForm()
+    public function setup(): void
     {
         Assets::addScriptsDirectly('vendor/core/plugins/contact/js/contact.js')
             ->addStylesDirectly('vendor/core/plugins/contact/css/contact.css');
 
         $this
-            ->setupModel(new Contact())
+            ->model(Contact::class)
             ->setValidatorClass(EditContactRequest::class)
-            ->withCustomFields()
-            ->add('status', 'customSelect', [
-                'label'      => trans('core/base::tables.status'),
-                'label_attr' => ['class' => 'control-label required'],
-                'choices'    => ContactStatusEnum::labels(),
-            ])
+            ->add(
+                'status',
+                SelectField::class,
+                StatusFieldOption::make()
+                    ->choices(ContactStatusEnum::labels())
+            )
             ->setBreakFieldPoint('status')
             ->addMetaBoxes([
                 'information' => [
-                    'title'      => trans('plugins/contact::contact.contact_information'),
-                    'content'    => view('plugins/contact::contact-info', ['contact' => $this->getModel()])->render(),
-                    'attributes' => [
-                        'style' => 'margin-top: 0',
-                    ],
+                    'title' => trans('plugins/contact::contact.contact_information'),
+                    'content' => view('plugins/contact::contact-info', ['contact' => $this->getModel()])->render(),
                 ],
                 'replies' => [
-                    'title'      => trans('plugins/contact::contact.replies'),
-                    'content'    => view('plugins/contact::reply-box', ['contact' => $this->getModel()])->render(),
+                    'title' => trans('plugins/contact::contact.replies'),
+                    'content' => view('plugins/contact::reply-box', ['contact' => $this->getModel()])->render(),
                 ],
             ]);
     }

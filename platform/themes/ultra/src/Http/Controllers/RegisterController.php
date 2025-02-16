@@ -10,13 +10,15 @@ class RegisterController extends MemberRegisterController
 {
     public function showRegistrationForm()
     {
-        if (theme_option('allow_account_login', '') != 'yes') {
-            abort(404);
+        abort_if(theme_option('allow_account_login', '') != 'yes', 404);
+
+        if (auth('member')->check()) {
+            return redirect(route('public.member.dashboard'));
         }
 
         SeoHelper::setTitle(__('Register'));
 
-        if (!session()->has('url.intended')) {
+        if (! session()->has('url.intended')) {
             session(['url.intended' => url()->previous()]);
         }
 

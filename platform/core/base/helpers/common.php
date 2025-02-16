@@ -1,137 +1,112 @@
 <?php
 
-use Botble\Base\Facades\DashboardMenuFacade;
-use Botble\Base\Facades\PageTitleFacade;
-use Botble\Base\Supports\DashboardMenu;
+use Botble\Base\Facades\AdminHelper;
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Facades\Html;
+use Botble\Base\Facades\PageTitle;
+use Botble\Base\Supports\Core;
+use Botble\Base\Supports\DashboardMenu as DashboardMenuSupport;
 use Botble\Base\Supports\Editor;
-use Botble\Base\Supports\PageTitle;
-use Illuminate\Support\Arr;
+use Botble\Base\Supports\PageTitle as PageTitleSupport;
 
-if (!function_exists('anchor_link')) {
-    /**
-     * @param string|null $link
-     * @param string|null $name
-     * @param array $options
-     * @return string
-     * @deprecated
-     */
-    function anchor_link(?string $link, ?string $name, array $options = []): string
+if (! function_exists('language_flag')) {
+    function language_flag(?string $flag, ?string $name = null, int $width = 16): string
     {
-        return Html::link($link, $name, $options);
+        if (! $flag) {
+            return '';
+        }
+
+        $flag = apply_filters('cms_language_flag', $flag, $name);
+
+        return Html::image(asset(BASE_LANGUAGE_FLAG_PATH . $flag . '.svg'), sprintf('%s flag', $name), [
+            'title' => $name,
+            'class' => 'flag',
+            'style' => "height: {$width}px",
+            'loading' => 'lazy',
+        ]);
     }
 }
 
-if (!function_exists('language_flag')) {
-    /**
-     * @param string $flag
-     * @param string|null $name
-     * @return string
-     */
-    function language_flag(string $flag, ?string $name = null): string
-    {
-        return Html::image(asset(BASE_LANGUAGE_FLAG_PATH . $flag . '.svg'), $name, ['title' => $name, 'width' => 16]);
+if (! function_exists('render_editor')) {
+    function render_editor(
+        string $name,
+        ?string $value = null,
+        bool $withShortCode = false,
+        array $attributes = []
+    ): string {
+        return (new Editor())->registerAssets()->render($name, $value, $withShortCode, $attributes);
     }
 }
 
-if (!function_exists('render_editor')) {
-    /**
-     * @param string $name
-     * @param string|null $value
-     * @param bool $withShortCode
-     * @param array $attributes
-     * @return string
-     * @throws Throwable
-     */
-    function render_editor(string $name, ?string $value = null, bool $withShortCode = false, array $attributes = []): string
-    {
-        return (new Editor())->render($name, $value, $withShortCode, $attributes);
-    }
-}
-
-if (!function_exists('is_in_admin')) {
-    /**
-     * @param bool $force
-     * @return bool
-     */
+if (! function_exists('is_in_admin')) {
     function is_in_admin(bool $force = false): bool
     {
-        $prefix = BaseHelper::getAdminPrefix();
-
-        $segments = array_slice(request()->segments(), 0, count(explode('/', $prefix)));
-
-        $isInAdmin = implode('/', $segments) === $prefix;
-
-        return $force ? $isInAdmin : apply_filters(IS_IN_ADMIN_FILTER, $isInAdmin);
+        return AdminHelper::isInAdmin($force);
     }
 }
 
-if (!function_exists('page_title')) {
-    /**
-     * @return PageTitle
-     */
-    function page_title(): PageTitle
+if (! function_exists('page_title')) {
+    function page_title(): PageTitleSupport
     {
-        return PageTitleFacade::getFacadeRoot();
+        return PageTitle::getFacadeRoot();
     }
 }
 
-if (!function_exists('dashboard_menu')) {
-    /**
-     * @return DashboardMenu
-     */
-    function dashboard_menu(): DashboardMenu
+if (! function_exists('dashboard_menu')) {
+    function dashboard_menu(): DashboardMenuSupport
     {
-        return DashboardMenuFacade::getFacadeRoot();
+        return DashboardMenu::getFacadeRoot();
     }
 }
 
-if (!function_exists('get_cms_version')) {
-    /**
-     * @return string
-     */
+if (! function_exists('get_cms_version')) {
     function get_cms_version(): string
     {
-        $version = '...';
-
         try {
-            $core = BaseHelper::getFileData(core_path('core.json'));
-
-            return Arr::get($core, 'version', $version);
-        } catch (Exception $exception) {
-            return $version;
+            return Core::make()->version();
+        } catch (Throwable) {
+            return '...';
         }
     }
 }
 
-if (!function_exists('platform_path')) {
-    /**
-     * @param string|null $path
-     * @return string
-     */
+if (! function_exists('get_core_version')) {
+    function get_core_version(): string
+    {
+        return '7.4.7';
+    }
+}
+
+if (! function_exists('get_minimum_php_version')) {
+    function get_minimum_php_version(): string
+    {
+        try {
+            return Core::make()->minimumPhpVersion();
+        } catch (Throwable) {
+            return phpversion();
+        }
+    }
+}
+
+if (! function_exists('platform_path')) {
     function platform_path(?string $path = null): string
     {
-        return base_path('platform/' . $path);
+        $path = ltrim($path, DIRECTORY_SEPARATOR);
+
+        return base_path('platform' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
     }
 }
 
-if (!function_exists('core_path')) {
-    /**
-     * @param string|null $path
-     * @return string
-     */
+if (! function_exists('core_path')) {
     function core_path(?string $path = null): string
     {
-        return platform_path('core/' . $path);
+        return platform_path('core' . ($path ? DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR) : ''));
     }
 }
 
-if (!function_exists('package_path')) {
-    /**
-     * @param string|null $path
-     * @return string
-     */
+if (! function_exists('package_path')) {
     function package_path(?string $path = null): string
     {
-        return platform_path('packages/' . $path);
+        return platform_path('packages' . ($path ? DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR) : ''));
     }
 }

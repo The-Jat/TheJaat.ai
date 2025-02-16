@@ -5,32 +5,22 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class () extends Migration {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
+    public function up(): void
     {
-        if (!Schema::hasTable('ads_translations')) {
-            Schema::create('ads_translations', function (Blueprint $table) {
+        if (! Schema::hasTable('ads_translations')) {
+            Schema::create('ads_translations', function (Blueprint $table): void {
                 $table->string('lang_code');
-                $table->integer('ads_id');
-                $table->string('name', 255)->nullable();
-                $table->string('image', 255)->nullable();
-                $table->string('url', 255)->nullable();
+                $table->foreignId('ads_id');
+                $table->string('name')->nullable();
+                $table->string('image')->nullable();
+                $table->string('url')->nullable();
 
                 $table->primary(['lang_code', 'ads_id'], 'ads_translations_primary');
             });
         }
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('ads_translations');
     }

@@ -2,20 +2,17 @@
 
 namespace Botble\ACL\Http\Requests;
 
+use Botble\Base\Rules\OnOffRule;
 use Botble\Support\Http\Requests\Request;
 
 class RoleCreateRequest extends Request
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'name'        => 'required|max:60|min:3',
-            'description' => 'required|max:255',
+            'name' => ['required', 'string', 'max:120', 'min:3'],
+            'description' => ['nullable', 'string', 'string', 'max:255'],
+            'is_default' => [new OnOffRule()],
         ];
     }
 }

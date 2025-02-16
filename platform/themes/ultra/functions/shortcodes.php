@@ -2,17 +2,17 @@
 
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
+use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
 use Botble\PostCollection\Repositories\Interfaces\PostCollectionInterface;
 use Botble\Theme\Supports\ThemeSupport;
-use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
 
-app()->booted(function () {
+app()->booted(function (): void {
     ThemeSupport::registerGoogleMapsShortcode();
     ThemeSupport::registerYoutubeShortcode();
 
     if (is_plugin_active('blog')) {
         add_shortcode('posts-listing', __('Posts listing'), __('Add posts listing'), function ($shortcode) {
-            $limit = $shortcode->limit ? (int)$shortcode->limit : 12;
+            $limit = $shortcode->limit ? (int) $shortcode->limit : 12;
             $layout = $shortcode->layout ?: 'default';
             $posts = get_all_posts(true, $limit);
 
@@ -23,20 +23,16 @@ app()->booted(function () {
             return Theme::partial('shortcodes.posts-listing-admin-config', compact('attributes'));
         });
 
-        add_shortcode('trending-posts', __('Trending posts'), __('Trending posts'), function () {
-            return Theme::partial('shortcodes.trending-posts');
-        });
-
         add_shortcode('posts-grid', __('Posts Grid'), __('Posts Grid'), function ($shortcode) {
             $attributes = $shortcode->toArray();
             $queryPosts = [
-                'categories'         => $attributes['categories'] ?? '',
+                'categories' => $attributes['categories'] ?? '',
                 'categories_exclude' => $attributes['categories_exclude'] ?? '',
-                'include'            => $attributes['include'] ?? '',
-                'exclude'            => $attributes['exclude'] ?? '',
-                'limit'              => $attributes['limit'] ? (int)$attributes['limit'] : 4,
-                'order_by'           => $attributes['order_by'] ?? 'updated_at',
-                'order'              => $attributes['order'] ?? 'desc',
+                'include' => $attributes['include'] ?? '',
+                'exclude' => $attributes['exclude'] ?? '',
+                'limit' => $attributes['limit'] ? (int) $attributes['limit'] : 4,
+                'order_by' => $attributes['order_by'] ?? 'updated_at',
+                'order' => $attributes['order'] ?? 'desc',
             ];
             $title = $attributes['title'] ?? '';
             $subtitle = $attributes['subtitle'] ?? '';
@@ -52,17 +48,20 @@ app()->booted(function () {
         });
 
         add_shortcode('posts-slider', __('Posts slider'), __('Posts slider'), function ($shortcode) {
+            if (! is_plugin_active('post-collection')) {
+                return null;
+            }
             $queryPosts = [];
             $posts = [];
             if ($shortcode->filter_by == 'posts-collection') {
                 $postCollection = app(PostCollectionInterface::class)
                     ->findById($shortcode->posts_collection_id, [
                         'posts' => function ($query) use ($shortcode) {
-                            return $query->limit(!empty($shortcode->limit) ? (int)$shortcode->limit : 6);
+                            return $query->limit(! empty($shortcode->limit) ? (int) $shortcode->limit : 6);
                         },
                         'posts.slugable',
                     ]);
-                if (!empty($postCollection)) {
+                if (! empty($postCollection)) {
                     $posts = $postCollection->posts;
                 }
             } else {
@@ -70,20 +69,23 @@ app()->booted(function () {
                     case 'featured':
                         $queryPosts = [
                             'featured' => 1,
-                            'limit'    => $shortcode->limit ? (int)$shortcode->limit : 4,
+                            'limit' => $shortcode->limit ? (int) $shortcode->limit : 4,
                         ];
+
                         break;
 
                     case 'recent':
                         $queryPosts = [
-                            'limit' => $shortcode->limit ? (int)$shortcode->limit : 4,
+                            'limit' => $shortcode->limit ? (int) $shortcode->limit : 4,
                         ];
+
                         break;
 
                     case 'ids':
                         $queryPosts = [
                             'include' => $shortcode->include,
                         ];
+
                         break;
                 }
                 $posts = query_post($queryPosts);
@@ -104,7 +106,7 @@ app()->booted(function () {
 
         add_shortcode('popular-categories', __('Popular categories'), __('Popular categories'), function ($shortcode) {
             $title = $shortcode->title;
-            $limit = (int)$shortcode->limit;
+            $limit = (int) $shortcode->limit;
 
             return Theme::partial('shortcodes.popular-categories', compact('title', 'limit'));
         });
@@ -136,16 +138,20 @@ app()->booted(function () {
 
         //posts collection
         add_shortcode('posts-collection', __('Posts Collection'), __('Add posts collection'), function ($shortcode) {
+            if (! is_plugin_active('post-collection')) {
+                return null;
+            }
+
             $postCollectionData = app(PostCollectionInterface::class)
                 ->findById($shortcode->posts_collection_id, [
                     'posts' => function ($query) use ($shortcode) {
-                        return $query->limit(!empty($shortcode->limit) ? (int)$shortcode->limit : 4);
+                        return $query->limit(! empty($shortcode->limit) ? (int) $shortcode->limit : 4);
                     },
                     'posts.slugable',
                 ]);
 
             return Theme::partial('shortcodes.posts-collection', [
-                'shortcode'          => $shortcode,
+                'shortcode' => $shortcode,
                 'postCollectionData' => $postCollectionData,
             ]);
         });
@@ -165,21 +171,21 @@ app()->booted(function () {
             __('Categories tab posts'),
             __('Add Categories tab posts'),
             function ($shortcode) {
-                $postLimit = !empty($shortcode->limit) ? (int)$shortcode->limit : 5;
+                $postLimit = ! empty($shortcode->limit) ? (int) $shortcode->limit : 5;
                 $categoryIds = explode(',', $shortcode->categories_ids);
                 $categoriesData = [];
                 foreach ($categoryIds as $categoryId) {
                     $category = get_category_by_id($categoryId);
-                    if (!empty($category)) {
+                    if (! empty($category)) {
                         $categoriesData[] = [
                             'category' => $category,
-                            'posts'    => get_posts_by_category($categoryId, $postLimit),
+                            'posts' => get_posts_by_category($categoryId, $postLimit),
                         ];
                     }
                 }
 
                 return Theme::partial('shortcodes.categories-tab-posts', [
-                    'shortcode'      => $shortcode,
+                    'shortcode' => $shortcode,
                     'categoriesData' => $categoriesData,
                 ]);
             }
@@ -195,18 +201,18 @@ app()->booted(function () {
         add_shortcode('videos-posts', __('Video posts'), __('Add video posts'), function ($shortcode) {
             $posts = query_post([
                 'format_type' => 'video',
-                'limit'       => (int)($shortcode->limit ?? 7)
+                'limit' => (int) ($shortcode->limit ?? 7),
             ]);
 
-            if (!empty($shortcode->toArray()['is_slider'])) {
+            if (! empty($shortcode->toArray()['is_slider'])) {
                 return Theme::partial('shortcodes.video-posts-slider', [
                     'shortcode' => $shortcode,
-                    'posts'     => $posts,
+                    'posts' => $posts,
                 ]);
             } else {
                 return Theme::partial('shortcodes.video-posts', [
                     'shortcode' => $shortcode,
-                    'posts'     => $posts,
+                    'posts' => $posts,
                 ]);
             }
         });
@@ -217,7 +223,7 @@ app()->booted(function () {
 
         //most comments
         add_shortcode('most-comments', __('Most comments'), __('Most comments'), function ($shortcode) {
-            if (!is_plugin_active('comment')) {
+            if (! is_plugin_active('comment')) {
                 return null;
             }
 
@@ -244,6 +250,7 @@ app()->booted(function () {
             $gallery = app(GalleryInterface::class)->getFirstBy([
                 'id' => $gallery_id,
             ]);
+
             return Theme::partial('shortcodes.gallery', compact('title', 'gallery'));
         });
 
@@ -270,24 +277,24 @@ app()->booted(function () {
                     $posts = app(PostInterface::class)->advancedGet([
                         'condition' => [
                             'posts.status' => BaseStatusEnum::PUBLISHED,
-                            'posts.id'     => [
+                            'posts.id' => [
                                 'posts.id',
                                 'IN',
-                                $ids
+                                $ids,
                             ],
                         ],
-                        'paginate'  => [
-                            'per_page'      => 9,
-                            'current_paged' => (int)request()->input('page', 1),
+                        'paginate' => [
+                            'per_page' => 9,
+                            'current_paged' => (int) request()->input('page', 1),
                         ],
-                        'order_by'  => ['created_at' => 'DESC'],
+                        'order_by' => ['created_at' => 'DESC'],
                     ]);
 
                     return Theme::partial('shortcodes.recently-viewed-posts', [
-                        'title'       => $shortcode->title,
+                        'title' => $shortcode->title,
                         'description' => $shortcode->content,
-                        'subtitle'    => $shortcode->subtitle,
-                        'posts'       => $posts
+                        'subtitle' => $shortcode->subtitle,
+                        'posts' => $posts,
                     ]);
                 }
 

@@ -2,14 +2,9 @@
 
 namespace Botble\Base\Forms\Fields;
 
-use Kris\LaravelFormBuilder\Fields\SelectType;
-
-class GoogleFontsField extends SelectType
+class GoogleFontsField extends SelectField
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected function getTemplate()
+    protected function getTemplate(): string
     {
         return 'core/base::forms.fields.google-fonts';
     }

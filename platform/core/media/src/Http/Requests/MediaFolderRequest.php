@@ -6,21 +6,15 @@ use Botble\Support\Http\Requests\Request;
 
 class MediaFolderRequest extends Request
 {
-    /**
-     * Get the validation rules that apply to the request.
-     * @return array
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'name' => 'required|regex:/^[\pL\s\ \_\-0-9]+$/u',
+            'name' => ['required', 'regex:/^[\pL\s\ \_\-0-9]+$/u'],
+            'color' => ['nullable', 'hex_color'],
         ];
     }
 
-    /**
-     * @return array
-     */
-    public function messages()
+    public function messages(): array
     {
         return [
             'name.regex' => trans('core/media::media.name_invalid'),

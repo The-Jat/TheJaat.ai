@@ -14,250 +14,245 @@ use Menu;
 
 class MenuSeeder extends BaseSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         $data = [
             'en_US' => [
                 [
-                    'name'     => 'Main menu',
-                    'slug'     => 'main-menu',
+                    'name' => 'Main menu',
+                    'slug' => 'main-menu',
                     'location' => 'main-menu',
-                    'items'    => [
+                    'items' => [
                         [
-                            'title'    => 'Home',
-                            'url'      => '/',
+                            'title' => 'Home',
+                            'url' => '/',
                             'children' => [
                                 [
                                     'title' => 'Home default',
-                                    'url'   => '/',
+                                    'url' => '/',
                                 ],
                                 [
                                     'title' => 'Home 2',
-                                    'url'   => '/home-2?header=style-2',
+                                    'url' => '/home-2?header=style-2',
                                 ],
                                 [
                                     'title' => 'Home 3',
-                                    'url'   => '/home-3?header=style-3',
+                                    'url' => '/home-3?header=style-3',
                                 ],
                             ],
                         ],
                         [
                             'title' => 'Galleries',
-                            'url'   => '/galleries',
+                            'url' => '/galleries',
                         ],
                         [
-                            'title'          => 'Category layouts',
-                            'reference_id'   => 6,
+                            'title' => 'Category layouts',
+                            'reference_id' => 6,
                             'reference_type' => Page::class,
-                            'children'       => [
-                                [
-                                    'title'          => 'List',
-                                    'reference_id'   => 5,
-                                    'reference_type' => Page::class,
-                                ],
-                                [
-                                    'title'          => 'Grid',
-                                    'reference_id'   => 6,
-                                    'reference_type' => Page::class,
-                                ],
-                                [
-                                    'title'          => 'Metro',
-                                    'reference_id'   => 7,
-                                    'reference_type' => Page::class,
-                                ],
-                            ],
-                        ],
-                        [
-                            'title'          => 'Post layouts',
-                            'reference_id'   => 1,
-                            'reference_type' => Post::class,
-                            'children'       => [
-                                [
-                                    'title'          => 'Default',
-                                    'reference_id'   => 1,
-                                    'reference_type' => Post::class,
-                                ],
-                                [
-                                    'title'          => 'Full top',
-                                    'reference_id'   => 2,
-                                    'reference_type' => Post::class,
-                                ],
-                                [
-                                    'title'          => 'Inline',
-                                    'reference_id'   => 3,
-                                    'reference_type' => Post::class,
-                                ],
-                            ],
-                        ],
-                        [
-                            'title'          => 'About',
-                            'reference_id'   => 9,
-                            'reference_type' => Page::class,
-                        ],
-                        [
-                            'title'          => 'Contact',
-                            'reference_id'   => 8,
-                            'reference_type' => Page::class,
-                        ],
-                        [
-                            'title'    => 'Pages',
                             'children' => [
                                 [
-                                    'title'          => 'Cookie Policy',
-                                    'reference_id'   => 10,
+                                    'title' => 'List',
+                                    'reference_id' => 5,
+                                    'reference_type' => Page::class,
+                                ],
+                                [
+                                    'title' => 'Grid',
+                                    'reference_id' => 6,
+                                    'reference_type' => Page::class,
+                                ],
+                                [
+                                    'title' => 'Metro',
+                                    'reference_id' => 7,
+                                    'reference_type' => Page::class,
+                                ],
+                            ],
+                        ],
+                        [
+                            'title' => 'Post layouts',
+                            'reference_id' => 1,
+                            'reference_type' => Post::class,
+                            'children' => [
+                                [
+                                    'title' => 'Default',
+                                    'reference_id' => 1,
+                                    'reference_type' => Post::class,
+                                ],
+                                [
+                                    'title' => 'Full top',
+                                    'reference_id' => 2,
+                                    'reference_type' => Post::class,
+                                ],
+                                [
+                                    'title' => 'Inline',
+                                    'reference_id' => 3,
+                                    'reference_type' => Post::class,
+                                ],
+                            ],
+                        ],
+                        [
+                            'title' => 'About',
+                            'reference_id' => 9,
+                            'reference_type' => Page::class,
+                        ],
+                        [
+                            'title' => 'Contact',
+                            'reference_id' => 8,
+                            'reference_type' => Page::class,
+                        ],
+                        [
+                            'title' => 'Pages',
+                            'children' => [
+                                [
+                                    'title' => 'Cookie Policy',
+                                    'reference_id' => 10,
                                     'reference_type' => Page::class,
                                 ],
                                 [
                                     'title' => '404',
-                                    'url'   => 'page-not-found',
+                                    'url' => 'page-not-found',
                                 ],
                                 [
                                     'title' => 'Login',
-                                    'url'   => '/login',
+                                    'url' => '/login',
                                 ],
                                 [
                                     'title' => 'Signup',
-                                    'url'   => '/register',
+                                    'url' => '/register',
                                 ],
                             ],
                         ],
                     ],
                 ],
                 [
-                    'name'  => 'Quick links',
-                    'slug'  => 'quick-links',
+                    'name' => 'Quick links',
+                    'slug' => 'quick-links',
                     'items' => [
                         [
                             'title' => 'Homepage',
-                            'url'   => '/',
+                            'url' => '/',
                         ],
                         [
-                            'title'          => 'Contact',
-                            'reference_id'   => 8,
+                            'title' => 'Contact',
+                            'reference_id' => 8,
                             'reference_type' => Page::class,
                         ],
                         [
-                            'title'          => 'Blog',
-                            'reference_id'   => 4,
+                            'title' => 'Blog',
+                            'reference_id' => 4,
                             'reference_type' => Page::class,
                         ],
                         [
                             'title' => 'Galleries',
-                            'url'   => '/galleries',
+                            'url' => '/galleries',
                         ],
                     ],
                 ],
             ],
-            'vi'    => [
+            'vi' => [
                 [
-                    'name'     => 'Menu chính',
-                    'slug'     => 'menu-chinh',
+                    'name' => 'Menu chính',
+                    'slug' => 'menu-chinh',
                     'location' => 'main-menu',
-                    'items'    => [
+                    'items' => [
                         [
-                            'title'    => 'Trang chủ',
-                            'url'      => '/',
+                            'title' => 'Trang chủ',
+                            'url' => '/',
                             'children' => [
                                 [
                                     'title' => 'Trang chủ mặc định',
-                                    'url'   => '/',
+                                    'url' => '/',
                                 ],
                                 [
                                     'title' => 'Trang chủ 2',
-                                    'url'   => '/home-2?header=style-2',
+                                    'url' => '/home-2?header=style-2',
                                 ],
                                 [
                                     'title' => 'Trang chủ 3',
-                                    'url'   => '/home-3?header=style-3',
+                                    'url' => '/home-3?header=style-3',
                                 ],
                             ],
                         ],
                         [
                             'title' => 'Thư viện ảnh',
-                            'url'   => '/galleries',
+                            'url' => '/galleries',
                         ],
                         [
-                            'title'          => 'Danh mục',
-                            'reference_id'   => 6,
+                            'title' => 'Danh mục',
+                            'reference_id' => 6,
                             'reference_type' => Page::class,
-                            'children'       => [
+                            'children' => [
                                 [
-                                    'title'          => 'Style cột',
-                                    'reference_id'   => 5,
+                                    'title' => 'Style cột',
+                                    'reference_id' => 5,
                                     'reference_type' => Page::class,
                                 ],
                                 [
-                                    'title'          => 'Style danh sách',
-                                    'reference_id'   => 6,
+                                    'title' => 'Style danh sách',
+                                    'reference_id' => 6,
                                     'reference_type' => Page::class,
                                 ],
                                 [
-                                    'title'          => 'Style danh sách 2',
-                                    'reference_id'   => 7,
+                                    'title' => 'Style danh sách 2',
+                                    'reference_id' => 7,
                                     'reference_type' => Page::class,
                                 ],
                             ],
                         ],
                         [
-                            'title'          => 'Bài viết',
-                            'reference_id'   => 1,
+                            'title' => 'Bài viết',
+                            'reference_id' => 1,
                             'reference_type' => Post::class,
-                            'children'       => [
+                            'children' => [
                                 [
-                                    'title'          => 'Default',
-                                    'reference_id'   => 1,
+                                    'title' => 'Default',
+                                    'reference_id' => 1,
                                     'reference_type' => Post::class,
                                 ],
                                 [
-                                    'title'          => 'Full top',
-                                    'reference_id'   => 2,
+                                    'title' => 'Full top',
+                                    'reference_id' => 2,
                                     'reference_type' => Post::class,
                                 ],
                                 [
-                                    'title'          => 'Inline',
-                                    'reference_id'   => 3,
+                                    'title' => 'Inline',
+                                    'reference_id' => 3,
                                     'reference_type' => Post::class,
                                 ],
                             ],
                         ],
                         [
-                            'title'          => 'Liên hệ',
-                            'reference_id'   => 9,
+                            'title' => 'Liên hệ',
+                            'reference_id' => 9,
                             'reference_type' => Page::class,
                         ],
                         [
-                            'title'          => 'Về chúng tôi',
-                            'reference_id'   => 8,
+                            'title' => 'Về chúng tôi',
+                            'reference_id' => 8,
                             'reference_type' => Page::class,
                         ],
                     ],
                 ],
                 [
-                    'name'  => 'Liên kết',
-                    'slug'  => 'lien-ket',
+                    'name' => 'Liên kết',
+                    'slug' => 'lien-ket',
                     'items' => [
                         [
                             'title' => 'Trang chủ',
-                            'url'   => '/',
+                            'url' => '/',
                         ],
                         [
-                            'title'          => 'Liên hệ',
-                            'reference_id'   => 8,
+                            'title' => 'Liên hệ',
+                            'reference_id' => 8,
                             'reference_type' => Page::class,
                         ],
                         [
-                            'title'          => 'Tin tức',
-                            'reference_id'   => 4,
+                            'title' => 'Tin tức',
+                            'reference_id' => 4,
                             'reference_type' => Page::class,
                         ],
                         [
                             'title' => 'Thư viện ảnh',
-                            'url'   => '/galleries',
+                            'url' => '/galleries',
                         ],
                     ],
                 ],
@@ -276,12 +271,12 @@ class MenuSeeder extends BaseSeeder
 
                 if (isset($item['location'])) {
                     $menuLocation = MenuLocation::create([
-                        'menu_id'  => $menu->id,
+                        'menu_id' => $menu->id,
                         'location' => $item['location'],
                     ]);
 
                     $originValue = LanguageMeta::where([
-                        'reference_id'   => $locale == 'en_US' ? 1 : 2,
+                        'reference_id' => $locale == 'en_US' ? 1 : 2,
                         'reference_type' => MenuLocation::class,
                     ])->value('lang_meta_origin');
 
@@ -296,7 +291,7 @@ class MenuSeeder extends BaseSeeder
 
                 if ($locale !== 'en_US') {
                     $originValue = LanguageMeta::where([
-                        'reference_id'   => $index + 1,
+                        'reference_id' => $index + 1,
                         'reference_type' => MenuModel::class,
                     ])->value('lang_meta_origin');
                 }

@@ -2,9 +2,10 @@
 
 namespace Botble\SeoHelper;
 
+use Botble\Base\Facades\BaseHelper;
+use Botble\Media\Facades\RvMedia;
 use Botble\SeoHelper\Contracts\Entities\OpenGraphContract;
 use Botble\SeoHelper\Contracts\SeoOpenGraphContract;
-use RvMedia;
 
 class SeoOpenGraph implements SeoOpenGraphContract
 {
@@ -90,6 +91,8 @@ class SeoOpenGraph implements SeoOpenGraphContract
      */
     public function setDescription($description)
     {
+        $description = BaseHelper::cleanShortcodes($description);
+
         $this->openGraph->setDescription($description);
 
         return $this;
@@ -169,8 +172,8 @@ class SeoOpenGraph implements SeoOpenGraphContract
      */
     public function render()
     {
-        if (!$this->hasImage() && theme_option('seo_og_image')) {
-            $this->setImage(RvMedia::url(theme_option('seo_og_image')));
+        if (! $this->hasImage() && $ogImage = theme_option('seo_og_image')) {
+            $this->setImage(RvMedia::url($ogImage));
         }
 
         return $this->openGraph->render();
@@ -182,6 +185,11 @@ class SeoOpenGraph implements SeoOpenGraphContract
     public function hasImage()
     {
         return $this->openGraph->hasImage();
+    }
+
+    public function getProperty(string $property): ?string
+    {
+        return $this->openGraph->getProperty($property);
     }
 
     /**

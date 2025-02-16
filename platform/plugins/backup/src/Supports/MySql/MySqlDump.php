@@ -138,45 +138,45 @@ class MySqlDump
         $pdoSettings = []
     ) {
         $dumpSettingsDefault = [
-            'include-tables'             => [],
-            'exclude-tables'             => [],
-            'include-views'              => [],
-            'compress'                   => Mysqldump::NONE,
-            'init_commands'              => [],
-            'no-data'                    => [],
-            'if-not-exists'              => false,
-            'reset-auto-increment'       => false,
-            'add-drop-database'          => false,
-            'add-drop-table'             => false,
-            'add-drop-trigger'           => true,
-            'add-locks'                  => true,
-            'complete-insert'            => false,
-            'databases'                  => false,
-            'default-character-set'      => Mysqldump::UTF8,
-            'disable-keys'               => true,
-            'extended-insert'            => true,
-            'events'                     => false,
-            'hex-blob'                   => true, /* faster than escaped content */
-            'insert-ignore'              => false,
-            'net_buffer_length'          => self::MAXLINESIZE,
-            'no-autocommit'              => false,
-            'no-create-info'             => false,
-            'lock-tables'                => true,
-            'routines'                   => false,
-            'single-transaction'         => true,
-            'skip-triggers'              => false,
-            'skip-tz-utc'                => false,
-            'skip-comments'              => false,
-            'skip-dump-date'             => false,
-            'skip-definer'               => false,
-            'where'                      => '',
+            'include-tables' => [],
+            'exclude-tables' => [],
+            'include-views' => [],
+            'compress' => MySqlDump::NONE,
+            'init_commands' => [],
+            'no-data' => [],
+            'if-not-exists' => false,
+            'reset-auto-increment' => false,
+            'add-drop-database' => false,
+            'add-drop-table' => false,
+            'add-drop-trigger' => true,
+            'add-locks' => true,
+            'complete-insert' => false,
+            'databases' => false,
+            'default-character-set' => MySqlDump::UTF8,
+            'disable-keys' => true,
+            'extended-insert' => true,
+            'events' => false,
+            'hex-blob' => true, /* faster than escaped content */
+            'insert-ignore' => false,
+            'net_buffer_length' => self::MAXLINESIZE,
+            'no-autocommit' => false,
+            'no-create-info' => false,
+            'lock-tables' => true,
+            'routines' => false,
+            'single-transaction' => true,
+            'skip-triggers' => false,
+            'skip-tz-utc' => false,
+            'skip-comments' => false,
+            'skip-dump-date' => false,
+            'skip-definer' => false,
+            'where' => '',
             /* deprecated */
             'disable-foreign-keys-check' => true,
         ];
 
         $pdoSettingsDefault = [
             PDO::ATTR_PERSISTENT => true,
-            PDO::ATTR_ERRMODE    => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         ];
 
         $this->user = $user;
@@ -201,13 +201,13 @@ class MySqlDump
             throw new Exception('Unexpected value in dumpSettings: (' . implode(',', $diff) . ')');
         }
 
-        if (!is_array($this->dumpSettings['include-tables']) ||
-            !is_array($this->dumpSettings['exclude-tables'])) {
+        if (! is_array($this->dumpSettings['include-tables']) ||
+            ! is_array($this->dumpSettings['exclude-tables'])) {
             throw new Exception('Include-tables and exclude-tables should be arrays');
         }
 
         // If no include-views is passed in, dump the same views as tables, mimic mysqldump behaviour.
-        if (!isset($dumpSettings['include-views'])) {
+        if (! isset($dumpSettings['include-views'])) {
             $this->dumpSettings['include-views'] = $this->dumpSettings['include-tables'];
         }
 
@@ -239,7 +239,7 @@ class MySqlDump
      */
     public function getTableWhere($tableName)
     {
-        if (!empty($this->tableWheres[$tableName])) {
+        if (! empty($this->tableWheres[$tableName])) {
             return $this->tableWheres[$tableName];
         } elseif ($this->dumpSettings['where']) {
             return $this->dumpSettings['where'];
@@ -262,16 +262,16 @@ class MySqlDump
      *
      * @param $tableName
      *
-     * @return bool
+     * @return bool|int
      */
     public function getTableLimit($tableName)
     {
-        if (!isset($this->tableLimits[$tableName])) {
+        if (! isset($this->tableLimits[$tableName])) {
             return false;
         }
 
         $limit = $this->tableLimits[$tableName];
-        if (!is_numeric($limit)) {
+        if (! is_numeric($limit)) {
             return false;
         }
 
@@ -315,7 +315,7 @@ class MySqlDump
             empty($this->dsnArray['unix_socket'])) {
             throw new Exception('Missing host from DSN string');
         }
-        $this->host = (!empty($this->dsnArray['host'])) ?
+        $this->host = (! empty($this->dsnArray['host'])) ?
             $this->dsnArray['host'] : $this->dsnArray['unix_socket'];
 
         if (empty($this->dsnArray['dbname'])) {
@@ -341,6 +341,7 @@ class MySqlDump
             switch ($this->dbType) {
                 case 'sqlite':
                     $this->dbHandler = @new PDO('sqlite:' . $this->dbName, null, null, $this->pdoSettings);
+
                     break;
                 case 'mysql':
                 case 'pgsql':
@@ -357,12 +358,13 @@ class MySqlDump
                     }
                     // Store server version
                     $this->version = $this->dbHandler->getAttribute(PDO::ATTR_SERVER_VERSION);
+
                     break;
                 default:
                     throw new Exception('Unsupported database type (' . $this->dbType . ')');
             }
-        } catch (PDOException $e) {
-            throw new Exception('Connection to ' . $this->dbType . ' failed with message: ' . $e->getMessage());
+        } catch (PDOException $exception) {
+            throw new Exception('Connection to ' . $this->dbType . ' failed with message: ' . $exception->getMessage());
         }
 
         if (is_null($this->dbHandler)) {
@@ -378,14 +380,12 @@ class MySqlDump
      *
      * @param string $filename Name of file to write sql dump to
      *
-     * @return null
-     *
      * @throws \Exception
      */
     public function start($filename = '')
     {
         // Output file can be redefined here
-        if (!empty($filename)) {
+        if (! empty($filename)) {
             $this->fileName = $filename;
         }
 
@@ -435,6 +435,7 @@ class MySqlDump
         // This check will be removed once include-tables supports regexps.
         if (0 < count($this->dumpSettings['include-tables'])) {
             $name = implode(',', $this->dumpSettings['include-tables']);
+
             throw new Exception('Table (' . $name . ') not found in database');
         }
 
@@ -453,8 +454,6 @@ class MySqlDump
         $this->compressManager->write($this->getDumpFileFooter());
         // Close output file.
         $this->compressManager->close();
-
-        return;
     }
 
     /**
@@ -465,18 +464,18 @@ class MySqlDump
     protected function getDumpFileHeader()
     {
         $header = '';
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             // Some info about software, source and time
             $header = '-- mysqldump-php https://github.com/ifsnop/mysqldump-php' . PHP_EOL .
                 '--' . PHP_EOL .
                 '-- Host: ' . $this->host . '	Database: ' . $this->dbName . PHP_EOL .
                 '-- ------------------------------------------------------' . PHP_EOL;
 
-            if (!empty($this->version)) {
+            if (! empty($this->version)) {
                 $header .= "-- Server version \t" . $this->version . PHP_EOL;
             }
 
-            if (!$this->dumpSettings['skip-dump-date']) {
+            if (! $this->dumpSettings['skip-dump-date']) {
                 $header .= '-- Date: ' . date('r') . PHP_EOL . PHP_EOL;
             }
         }
@@ -492,9 +491,9 @@ class MySqlDump
     protected function getDumpFileFooter()
     {
         $footer = '';
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $footer .= '-- Dump completed';
-            if (!$this->dumpSettings['skip-dump-date']) {
+            if (! $this->dumpSettings['skip-dump-date']) {
                 $footer .= ' on: ' . date('r');
             }
             $footer .= PHP_EOL;
@@ -506,8 +505,6 @@ class MySqlDump
     /**
      * Reads table names from database.
      * Fills $this->tables array so they will be dumped later.
-     *
-     * @return null
      */
     protected function getDatabaseStructureTables()
     {
@@ -530,15 +527,11 @@ class MySqlDump
                 }
             }
         }
-
-        return;
     }
 
     /**
      * Reads view names from database.
      * Fills $this->tables array so they will be dumped later.
-     *
-     * @return null
      */
     protected function getDatabaseStructureViews()
     {
@@ -561,15 +554,11 @@ class MySqlDump
                 }
             }
         }
-
-        return;
     }
 
     /**
      * Reads trigger names from database.
      * Fills $this->tables array so they will be dumped later.
-     *
-     * @return null
      */
     protected function getDatabaseStructureTriggers()
     {
@@ -579,15 +568,11 @@ class MySqlDump
                 $this->triggers[] = $row['Trigger'];
             }
         }
-
-        return;
     }
 
     /**
      * Reads procedure names from database.
      * Fills $this->tables array so they will be dumped later.
-     *
-     * @return null
      */
     protected function getDatabaseStructureProcedures()
     {
@@ -597,15 +582,11 @@ class MySqlDump
                 $this->procedures[] = $row['procedure_name'];
             }
         }
-
-        return;
     }
 
     /**
      * Reads functions names from database.
      * Fills $this->tables array so they will be dumped later.
-     *
-     * @return null
      */
     protected function getDatabaseStructureFunctions()
     {
@@ -615,15 +596,11 @@ class MySqlDump
                 $this->functions[] = $row['function_name'];
             }
         }
-
-        return;
     }
 
     /**
      * Reads event names from database.
      * Fills $this->tables array so they will be dumped later.
-     *
-     * @return null
      */
     protected function getDatabaseStructureEvents()
     {
@@ -662,7 +639,6 @@ class MySqlDump
     /**
      * Exports all the tables selected from database.
      *
-     * @return null
      * @throws Exception
      */
     protected function exportTables()
@@ -686,8 +662,6 @@ class MySqlDump
 
     /**
      * Exports all the views found in database.
-     *
-     * @return null
      */
     protected function exportViews()
     {
@@ -711,8 +685,6 @@ class MySqlDump
 
     /**
      * Exports all the triggers found in database.
-     *
-     * @return null
      */
     protected function exportTriggers()
     {
@@ -724,8 +696,6 @@ class MySqlDump
 
     /**
      * Exports all the procedures found in database.
-     *
-     * @return null
      */
     protected function exportProcedures()
     {
@@ -737,8 +707,6 @@ class MySqlDump
 
     /**
      * Exports all the functions found in database.
-     *
-     * @return null
      */
     protected function exportFunctions()
     {
@@ -750,8 +718,6 @@ class MySqlDump
 
     /**
      * Exports all the events found in database.
-     *
-     * @return null
      */
     protected function exportEvents()
     {
@@ -766,16 +732,14 @@ class MySqlDump
      *
      * @param string $tableName Name of table to export
      *
-     * @return null
-     *
      * @throws Exception
      * @todo move specific mysql code to typeAdapter
      */
     protected function getTableStructure($tableName)
     {
-        if (!$this->dumpSettings['no-create-info']) {
+        if (! $this->dumpSettings['no-create-info']) {
             $ret = '';
-            if (!$this->dumpSettings['skip-comments']) {
+            if (! $this->dumpSettings['skip-comments']) {
                 $ret = '--' . PHP_EOL .
                     '-- Table structure for table ' . $tableName . PHP_EOL .
                     '--' . PHP_EOL . PHP_EOL;
@@ -791,12 +755,11 @@ class MySqlDump
                 $this->compressManager->write(
                     $this->typeAdapter->createTable($r)
                 );
+
                 break;
             }
         }
         $this->tableColumnTypes[$tableName] = $this->getTableColumnTypes($tableName);
-
-        return;
     }
 
     /**
@@ -818,9 +781,9 @@ class MySqlDump
             $types = $this->typeAdapter->parseColumnType($col);
             $columnTypes[$col['Field']] = [
                 'is_numeric' => $types['is_numeric'],
-                'is_blob'    => $types['is_blob'],
-                'type'       => $types['type'],
-                'type_sql'   => $col['Type'],
+                'is_blob' => $types['is_blob'],
+                'type' => $types['type'],
+                'type_sql' => $col['Type'],
                 'is_virtual' => $types['is_virtual'],
             ];
         }
@@ -833,13 +796,11 @@ class MySqlDump
      *
      * @param string $viewName Name of view to export
      *
-     * @return null
-     *
      * @todo move mysql specific code to typeAdapter
      */
     protected function getViewStructureTable($viewName)
     {
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $ret = '--' . PHP_EOL .
                 "-- Stand-In structure for view `${viewName}`" . PHP_EOL .
                 '--' . PHP_EOL . PHP_EOL;
@@ -858,6 +819,7 @@ class MySqlDump
             $this->compressManager->write(
                 $this->createStandInTable($viewName)
             );
+
             break;
         }
     }
@@ -889,13 +851,11 @@ class MySqlDump
      *
      * @param string $viewName Name of view to export
      *
-     * @return null
-     *
      * @todo move mysql specific code to typeAdapter
      */
     protected function getViewStructureView($viewName)
     {
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $ret = '--' . PHP_EOL .
                 "-- View structure for view `${viewName}`" . PHP_EOL .
                 '--' . PHP_EOL . PHP_EOL;
@@ -913,6 +873,7 @@ class MySqlDump
             $this->compressManager->write(
                 $this->typeAdapter->createView($r)
             );
+
             break;
         }
     }
@@ -921,8 +882,6 @@ class MySqlDump
      * Trigger structure extractor.
      *
      * @param string $triggerName Name of trigger to export
-     *
-     * @return null
      */
     protected function getTriggerStructure($triggerName)
     {
@@ -945,12 +904,10 @@ class MySqlDump
      * Procedure structure extractor.
      *
      * @param string $procedureName Name of procedure to export
-     *
-     * @return null
      */
     protected function getProcedureStructure($procedureName)
     {
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $ret = '--' . PHP_EOL .
                 "-- Dumping routines for database '" . $this->dbName . "'" . PHP_EOL .
                 '--' . PHP_EOL . PHP_EOL;
@@ -970,12 +927,10 @@ class MySqlDump
      * Function structure extractor.
      *
      * @param string $functionName Name of function to export
-     *
-     * @return null
      */
     protected function getFunctionStructure($functionName)
     {
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $ret = '--' . PHP_EOL .
                 "-- Dumping routines for database '" . $this->dbName . "'" . PHP_EOL .
                 '--' . PHP_EOL . PHP_EOL;
@@ -995,12 +950,10 @@ class MySqlDump
      * Event structure extractor.
      *
      * @param string $eventName Name of event to export
-     *
-     * @return null
      */
     protected function getEventStructure($eventName)
     {
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $ret = '--' . PHP_EOL .
                 "-- Dumping events for database '" . $this->dbName . "'" . PHP_EOL .
                 '--' . PHP_EOL . PHP_EOL;
@@ -1045,20 +998,12 @@ class MySqlDump
         return $ret;
     }
 
-    /**
-     * Escape values with quotes when needed.
-     *
-     * @param string $tableName Name of table which contains rows
-     * @param array $row Associative array of column names and values to be quoted
-     *
-     * @return string
-     */
     protected function escape($colValue, $colType)
     {
         if (is_null($colValue)) {
             return 'NULL';
         } elseif ($this->dumpSettings['hex-blob'] && $colType['is_blob']) {
-            if ('bit' == $colType['type'] || !empty($colValue)) {
+            if ('bit' == $colType['type'] || ! empty($colValue)) {
                 return "0x${colValue}";
             }
 
@@ -1080,20 +1025,6 @@ class MySqlDump
     public function setTransformTableRowHook($callable)
     {
         $this->transformTableRowCallable = $callable;
-    }
-
-    /**
-     * Set a callable that will be used to transform column values.
-     *
-     * @param callable $callable
-     *
-     * @return void
-     *
-     * @deprecated Use setTransformTableRowHook instead for better performance
-     */
-    public function setTransformColumnValueHook($callable)
-    {
-        $this->transformColumnValueCallable = $callable;
     }
 
     /**
@@ -1155,7 +1086,7 @@ class MySqlDump
         foreach ($resultSet as $row) {
             ++$count;
             $vals = $this->prepareColumnValues($tableName, $row);
-            if ($onlyOnce || !$this->dumpSettings['extended-insert']) {
+            if ($onlyOnce || ! $this->dumpSettings['extended-insert']) {
                 if ($this->dumpSettings['complete-insert']) {
                     $lineSize += $this->compressManager->write(
                         'INSERT' . $ignore . ' INTO `' . $tableName . '` (' .
@@ -1172,14 +1103,14 @@ class MySqlDump
                 $lineSize += $this->compressManager->write(',(' . implode(',', $vals) . ')');
             }
             if (($lineSize > $this->dumpSettings['net_buffer_length']) ||
-                !$this->dumpSettings['extended-insert']) {
+                ! $this->dumpSettings['extended-insert']) {
                 $onlyOnce = true;
                 $lineSize = $this->compressManager->write(';' . PHP_EOL);
             }
         }
         $resultSet->closeCursor();
 
-        if (!$onlyOnce) {
+        if (! $onlyOnce) {
             $this->compressManager->write(';' . PHP_EOL);
         }
 
@@ -1195,13 +1126,11 @@ class MySqlDump
      *
      * @param string $tableName Name of table to export
      *
-     * @return null
-     *
      * @throws Exception
      */
     public function prepareListValues($tableName)
     {
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $this->compressManager->write(
                 '--' . PHP_EOL .
                 '-- Dumping data for table `' . $tableName . '`' . PHP_EOL .
@@ -1214,7 +1143,7 @@ class MySqlDump
             $this->dbHandler->exec($this->typeAdapter->startTransaction());
         }
 
-        if ($this->dumpSettings['lock-tables'] && !$this->dumpSettings['single-transaction']) {
+        if ($this->dumpSettings['lock-tables'] && ! $this->dumpSettings['single-transaction']) {
             $this->typeAdapter->lockTable($tableName);
         }
 
@@ -1236,8 +1165,6 @@ class MySqlDump
                 $this->typeAdapter->startDisableAutocommit()
             );
         }
-
-        return;
     }
 
     /**
@@ -1267,7 +1194,7 @@ class MySqlDump
             $this->dbHandler->exec($this->typeAdapter->commitTransaction());
         }
 
-        if ($this->dumpSettings['lock-tables'] && !$this->dumpSettings['single-transaction']) {
+        if ($this->dumpSettings['lock-tables'] && ! $this->dumpSettings['single-transaction']) {
             $this->typeAdapter->unlockTable($tableName);
         }
 
@@ -1280,14 +1207,12 @@ class MySqlDump
 
         $this->compressManager->write(PHP_EOL);
 
-        if (!$this->dumpSettings['skip-comments']) {
+        if (! $this->dumpSettings['skip-comments']) {
             $this->compressManager->write(
                 '-- Dumped table `' . $tableName . '` with ' . $count . ' row(s)' . PHP_EOL .
                 '--' . PHP_EOL . PHP_EOL
             );
         }
-
-        return;
     }
 
     /**

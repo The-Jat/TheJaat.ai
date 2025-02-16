@@ -2,30 +2,21 @@
 
 namespace Botble\Language\Models;
 
+use Botble\Base\Casts\SafeContent;
 use Botble\Base\Models\BaseModel;
+use Botble\Setting\Facades\Setting;
+use Botble\Theme\Facades\ThemeOption;
+use Botble\Widget\Models\Widget;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Language extends BaseModel
 {
-    /**
-     * @var bool
-     */
     public $timestamps = false;
 
-    /**
-     * @var string
-     */
     protected $primaryKey = 'lang_id';
 
-    /**
-     * The database table used by the model.
-     *
-     * @var string
-     */
     protected $table = 'languages';
 
-    /**
-     * @var array
-     */
     protected $fillable = [
         'lang_name',
         'lang_locale',
@@ -36,20 +27,31 @@ class Language extends BaseModel
         'lang_order',
     ];
 
-    protected static function boot()
+    protected $casts = [
+        'lang_name' => SafeContent::class,
+        'lang_locale' => SafeContent::class,
+        'lang_code' => SafeContent::class,
+        'lang_is_rtl' => 'bool',
+        'lang_is_default' => 'bool',
+        'lang_order' => 'int',
+    ];
+
+    protected static function booted(): void
     {
-        parent::boot();
-
-        self::deleted(function (Language $language) {
-            $defaultLanguage = self::where('lang_is_default', 1)->first();
-
-            if (empty($defaultLanguage) && self::count() > 0) {
-                $defaultLanguage = self::first();
-                $defaultLanguage->lang_is_default = 1;
-                $defaultLanguage->save();
+        self::deleted(function (Language $language): void {
+            if (! self::query()->where('lang_is_default', 1)->exists() && self::query()->exists()) {
+                self::query()->limit(1)->update(['lang_is_default' => 1]);
             }
 
-            LanguageMeta::where('lang_meta_code', $language->lang_code)->delete();
+            $language->meta()->each(fn (LanguageMeta $item) => $item->delete());
+
+            Setting::newQuery()->where('key', 'LIKE', ThemeOption::getOptionKey('%', $language->lang_code))->delete();
+            Widget::query()->where('theme', 'LIKE', Widget::getThemeName($language->lang_code))->delete();
         });
+    }
+
+    public function meta(): HasMany
+    {
+        return $this->hasMany(LanguageMeta::class, 'lang_meta_code', 'lang_code');
     }
 }

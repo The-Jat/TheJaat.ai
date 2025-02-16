@@ -2,16 +2,11 @@
 
 namespace Botble\Dashboard\Repositories\Caches;
 
-use Botble\Dashboard\Repositories\Interfaces\DashboardWidgetSettingInterface;
-use Botble\Support\Repositories\Caches\CacheAbstractDecorator;
+use Botble\Dashboard\Repositories\Eloquent\DashboardWidgetSettingRepository;
 
-class DashboardWidgetSettingCacheDecorator extends CacheAbstractDecorator implements DashboardWidgetSettingInterface
+/**
+ * @deprecated
+ */
+class DashboardWidgetSettingCacheDecorator extends DashboardWidgetSettingRepository
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getListWidget()
-    {
-        return $this->getDataIfExistCache(__FUNCTION__, func_get_args());
-    }
 }

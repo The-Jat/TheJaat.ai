@@ -2,244 +2,131 @@
 
 namespace Botble\Analytics;
 
-use Carbon\Carbon;
-use Google_Service_Analytics;
+use Botble\Analytics\Abstracts\AnalyticsAbstract;
+use Botble\Analytics\Abstracts\AnalyticsContract;
+use Botble\Analytics\Exceptions\InvalidConfiguration;
+use Botble\Analytics\Traits\DateRangeTrait;
+use Botble\Analytics\Traits\DimensionTrait;
+use Botble\Analytics\Traits\FilterByDimensionTrait;
+use Botble\Analytics\Traits\FilterByMetricTrait;
+use Botble\Analytics\Traits\MetricAggregationTrait;
+use Botble\Analytics\Traits\MetricTrait;
+use Botble\Analytics\Traits\OrderByDimensionTrait;
+use Botble\Analytics\Traits\OrderByMetricTrait;
+use Botble\Analytics\Traits\ResponseTrait;
+use Botble\Analytics\Traits\RowOperationTrait;
+use Google\Analytics\Data\V1beta\BetaAnalyticsDataClient;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Traits\Macroable;
+use Illuminate\Support\Facades\Storage;
 
-class Analytics
+class Analytics extends AnalyticsAbstract implements AnalyticsContract
 {
-    use Macroable;
+    use DateRangeTrait;
+    use MetricTrait;
+    use DimensionTrait;
+    use OrderByMetricTrait;
+    use OrderByDimensionTrait;
+    use MetricAggregationTrait;
+    use FilterByDimensionTrait;
+    use FilterByMetricTrait;
+    use RowOperationTrait;
+    use ResponseTrait;
 
-    /**
-     * @var AnalyticsClient
-     */
-    protected $client;
+    public array $orderBys = [];
 
-    /**
-     * @var string
-     */
-    protected $viewId;
-
-    /**
-     * @param \Botble\Analytics\AnalyticsClient $client
-     * @param string $viewId
-     */
-    public function __construct(AnalyticsClient $client, string $viewId)
+    public function __construct(int|string $propertyId, string $credentials)
     {
-        $this->client = $client;
-
-        $this->viewId = $viewId;
+        $this->propertyId = $propertyId;
+        $this->credentials = $credentials;
     }
 
-    /**
-     * @return string
-     */
-    public function getViewId()
+    public function getCredentials(): string
     {
-        return $this->viewId;
+        return $this->credentials;
     }
 
-    /**
-     * @param string $viewId
-     *
-     * @return $this
-     */
-    public function setViewId(string $viewId)
+    public function getClient(): BetaAnalyticsDataClient
     {
-        $this->viewId = $viewId;
+        $storage = Storage::disk('local');
 
-        return $this;
-    }
+        $fileName = 'analytics-credentials.json';
 
-    /**
-     * @param Period $period
-     * @return Collection
-     */
-    public function fetchVisitorsAndPageViews(Period $period): Collection
-    {
-        $response = $this->performQuery(
-            $period,
-            'ga:users,ga:pageviews',
-            ['dimensions' => 'ga:date,ga:pageTitle']
-        );
-
-        return collect($response['rows'] ?? [])->map(function (array $dateRow) {
-            return [
-                'date'      => Carbon::createFromFormat('Ymd', $dateRow[0]),
-                'pageTitle' => $dateRow[1],
-                'visitors'  => (int)$dateRow[2],
-                'pageViews' => (int)$dateRow[3],
-            ];
-        });
-    }
-
-    /**
-     * Call the query method on the authenticated client.
-     *
-     * @param Period $period
-     * @param string $metrics
-     * @param array $others
-     *
-     * @return array|null
-     */
-    public function performQuery(Period $period, string $metrics, array $others = [])
-    {
-        return $this->client->performQuery(
-            $this->viewId,
-            $period->startDate,
-            $period->endDate,
-            $metrics,
-            $others
-        );
-    }
-
-    /**
-     * @param Period $period
-     * @return Collection
-     */
-    public function fetchTotalVisitorsAndPageViews(Period $period): Collection
-    {
-        $response = $this->performQuery(
-            $period,
-            'ga:users,ga:pageviews',
-            ['dimensions' => 'ga:date']
-        );
-
-        return collect($response['rows'] ?? [])->map(function (array $dateRow) {
-            return [
-                'date'      => Carbon::createFromFormat('Ymd', $dateRow[0]),
-                'visitors'  => (int)$dateRow[1],
-                'pageViews' => (int)$dateRow[2],
-            ];
-        });
-    }
-
-    /**
-     * @param Period $period
-     * @param int $maxResults
-     * @return Collection
-     */
-    public function fetchMostVisitedPages(Period $period, int $maxResults = 20): Collection
-    {
-        $response = $this->performQuery(
-            $period,
-            'ga:pageviews',
-            [
-                'dimensions'  => 'ga:pagePath,ga:pageTitle',
-                'sort'        => '-ga:pageviews',
-                'max-results' => $maxResults,
-            ]
-        );
-
-        return collect($response['rows'] ?? [])
-            ->map(function (array $pageRow) {
-                return [
-                    'url'       => $pageRow[0],
-                    'pageTitle' => $pageRow[1],
-                    'pageViews' => (int)$pageRow[2],
-                ];
-            });
-    }
-
-    /**
-     * @param Period $period
-     * @param int $maxResults
-     * @return Collection
-     */
-    public function fetchTopReferrers(Period $period, int $maxResults = 20): Collection
-    {
-        $response = $this->performQuery(
-            $period,
-            'ga:pageviews',
-            [
-                'dimensions'  => 'ga:fullReferrer',
-                'sort'        => '-ga:pageviews',
-                'max-results' => $maxResults,
-            ]
-        );
-
-        return collect($response['rows'] ?? [])->map(function (array $pageRow) {
-            return [
-                'url'       => $pageRow[0],
-                'pageViews' => (int)$pageRow[1],
-            ];
-        });
-    }
-
-    /**
-     * @param Period $period
-     * @return Collection
-     */
-    public function fetchUserTypes(Period $period): Collection
-    {
-        $response = $this->performQuery(
-            $period,
-            'ga:sessions',
-            [
-                'dimensions' => 'ga:userType',
-            ]
-        );
-
-        return collect($response->rows ?? [])->map(function (array $userRow) {
-            return [
-                'type'     => $userRow[0],
-                'sessions' => (int)$userRow[1],
-            ];
-        });
-    }
-
-    /**
-     * @param Period $period
-     * @param int $maxResults
-     * @return Collection
-     */
-    public function fetchTopBrowsers(Period $period, int $maxResults = 10): Collection
-    {
-        $response = $this->performQuery(
-            $period,
-            'ga:sessions',
-            [
-                'dimensions' => 'ga:browser',
-                'sort'       => '-ga:sessions',
-            ]
-        );
-
-        $topBrowsers = collect($response['rows'] ?? [])->map(function (array $browserRow) {
-            return [
-                'browser'  => $browserRow[0],
-                'sessions' => (int)$browserRow[1],
-            ];
-        });
-
-        if ($topBrowsers->count() <= $maxResults) {
-            return $topBrowsers;
+        if (! $storage->exists($fileName) || md5_file($storage->path($fileName)) !== md5($this->getCredentials())) {
+            $storage->put('analytics-credentials.json', $this->getCredentials());
         }
 
-        return $this->summarizeTopBrowsers($topBrowsers, $maxResults);
+        if (! $storage->exists($fileName)) {
+            throw new InvalidConfiguration('The credentials file does not exist.');
+        }
+
+        return new BetaAnalyticsDataClient([
+            'credentials' => $storage->path($fileName),
+        ]);
     }
 
-    /**
-     * @param Collection $topBrowsers
-     * @param int $maxResults
-     * @return Collection
-     */
-    protected function summarizeTopBrowsers(Collection $topBrowsers, int $maxResults): Collection
+    public function get(): AnalyticsResponse
     {
-        return $topBrowsers
-            ->take($maxResults - 1)
-            ->push([
-                'browser'  => 'Others',
-                'sessions' => $topBrowsers->splice($maxResults - 1)->sum('sessions'),
-            ]);
+        $response = $this->getClient()->runReport([
+            'property' => 'properties/' . $this->getPropertyId(),
+            'dateRanges' => $this->dateRanges,
+            'metrics' => $this->metrics,
+            'dimensions' => $this->dimensions,
+            'orderBys' => $this->orderBys,
+            'metricAggregations' => $this->metricAggregations,
+            'dimensionFilter' => $this->dimensionFilter,
+            'metricFilter' => $this->metricFilter,
+            'limit' => $this->limit,
+            'offset' => $this->offset,
+            'keepEmptyRows' => $this->keepEmptyRows,
+        ]);
+
+        return $this->formatResponse($response);
     }
 
-    /*
-     * Get the underlying Google_Service_Analytics object. You can use this
-     * to basically call anything on the Google Analytics API.
-     */
-    public function getAnalyticsService(): Google_Service_Analytics
+    public function fetchMostVisitedPages(Period $period, int $maxResults = 20): Collection
     {
-        return $this->client->getAnalyticsService();
+        return $this->dateRange($period)
+            ->metrics('screenPageViews')
+            ->dimensions(['pageTitle', 'fullPageUrl'])
+            ->orderByMetricDesc('screenPageViews')
+            ->limit($maxResults)
+            ->get()
+            ->table;
+    }
+
+    public function fetchTopReferrers(Period $period, int $maxResults = 20): Collection
+    {
+        return $this->dateRange($period)
+            ->metrics('screenPageViews')
+            ->dimensions('sessionSource')
+            ->orderByMetricDesc('screenPageViews')
+            ->limit($maxResults)
+            ->get()
+            ->table;
+    }
+
+    public function fetchTopBrowsers(Period $period, int $maxResults = 10): Collection
+    {
+        return $this->dateRange($period)
+            ->metrics('sessions')
+            ->dimensions('browser')
+            ->orderByMetricDesc('sessions')
+            ->get()
+            ->table;
+    }
+
+    public function performQuery(Period $period, string|array $metrics, string|array $dimensions = []): Collection
+    {
+        $that = clone $this;
+
+        $query = $that
+            ->dateRange($period)
+            ->metrics($metrics);
+
+        if ($dimensions) {
+            $query = $query->dimensions($dimensions);
+        }
+
+        return $query->get()->table;
     }
 }

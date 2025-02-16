@@ -2,22 +2,18 @@
 
 namespace Botble\Member\Http\Requests;
 
+use Botble\Base\Facades\BaseHelper;
 use Botble\Support\Http\Requests\Request;
 
 class SettingRequest extends Request
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'first_name' => 'required|max:120',
-            'last_name'  => 'required|max:120',
-            'phone'      => 'max:20|sometimes',
-            'dob'        => 'max:20|sometimes',
+            'first_name' => ['required', 'string', 'max:120'],
+            'last_name' => ['required', 'string', 'max:120'],
+            'phone' => 'nullable|' . BaseHelper::getPhoneValidationRule(),
+            'dob' => ['nullable', 'date', 'max:20'],
         ];
     }
 }

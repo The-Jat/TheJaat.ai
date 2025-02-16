@@ -5,14 +5,19 @@ namespace TheSky\ProPosts\Http\Controllers;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
-use TheSky\ProPosts\Repositories\Interfaces\FavoritePostsInterface;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use SeoHelper;
 use Theme;
+use TheSky\ProPosts\Repositories\Interfaces\FavoritePostsInterface;
 
 class PublicController extends Controller
 {
+    public function __construct()
+    {
+        admin_bar()->setIsDisplay(false);
+    }
+
     public function getRecentlyViewedPosts()
     {
         SeoHelper::setTitle(__('Your currently viewed posts'));
@@ -29,17 +34,17 @@ class PublicController extends Controller
             $posts = app(PostInterface::class)->advancedGet([
                 'condition' => [
                     'posts.status' => BaseStatusEnum::PUBLISHED,
-                    'posts.id'     => [
+                    'posts.id' => [
                         'posts.id',
                         'IN',
-                        $postIds
+                        $postIds,
                     ],
                 ],
-                'paginate'  => [
-                    'per_page'      => 9,
-                    'current_paged' => (int)request()->input('page', 1),
+                'paginate' => [
+                    'per_page' => 9,
+                    'current_paged' => (int) request()->input('page', 1),
                 ],
-                'order_by'  => ['created_at' => 'DESC'],
+                'order_by' => ['created_at' => 'DESC'],
             ]);
 
             Theme::breadcrumb()->add('Total: ' . $posts->total());
@@ -61,17 +66,17 @@ class PublicController extends Controller
             $posts = app(PostInterface::class)->advancedGet([
                 'condition' => [
                     'posts.status' => BaseStatusEnum::PUBLISHED,
-                    'posts.id'     => [
+                    'posts.id' => [
                         'posts.id',
                         'IN',
-                        $favoritePostIds
+                        $favoritePostIds,
                     ],
                 ],
-                'paginate'  => [
-                    'per_page'      => 10,
-                    'current_paged' => (int)request()->input('page', 1),
+                'paginate' => [
+                    'per_page' => 10,
+                    'current_paged' => (int) request()->input('page', 1),
                 ],
-                'order_by'  => ['created_at' => 'DESC'],
+                'order_by' => ['created_at' => 'DESC'],
             ]);
 
             Theme::breadcrumb()->add('Total: ' . $posts->total());
@@ -95,14 +100,14 @@ class PublicController extends Controller
                     'posts.id' => [
                         'posts.id',
                         'IN',
-                        $bookmarkedPostIds
+                        $bookmarkedPostIds,
                     ],
                 ],
-                'paginate'  => [
-                    'per_page'      => 10,
-                    'current_paged' => (int)request()->input('page', 1),
+                'paginate' => [
+                    'per_page' => 10,
+                    'current_paged' => (int) request()->input('page', 1),
                 ],
-                'order_by'  => ['created_at' => 'DESC'],
+                'order_by' => ['created_at' => 'DESC'],
             ]);
 
             Theme::breadcrumb()->add('Total: ' . $posts->total());
@@ -137,7 +142,7 @@ class PublicController extends Controller
                 $favoritePostsRepository->create([
                     'post_id' => $postId,
                     'user_id' => $userId,
-                    'type'    => 'favorite'
+                    'type' => 'favorite',
                 ]);
 
                 $userFavoritePosts[] = $postId;
@@ -149,7 +154,7 @@ class PublicController extends Controller
                 $favoritePostsRepository->deleteBy([
                     'post_id' => $postId,
                     'user_id' => $userId,
-                    'type'    => 'favorite'
+                    'type' => 'favorite',
                 ]);
 
                 if (in_array($postId, $userFavoritePosts)) {
@@ -189,7 +194,7 @@ class PublicController extends Controller
                 $favoritePostsRepository->create([
                     'post_id' => $postId,
                     'user_id' => $userId,
-                    'type'    => 'bookmark'
+                    'type' => 'bookmark',
                 ]);
 
                 $userBookmarkPosts[] = $postId;
@@ -201,7 +206,7 @@ class PublicController extends Controller
                 $favoritePostsRepository->deleteBy([
                     'post_id' => $postId,
                     'user_id' => $userId,
-                    'type'    => 'bookmark'
+                    'type' => 'bookmark',
                 ]);
 
                 if (in_array($postId, $userBookmarkPosts)) {

@@ -2,23 +2,21 @@
 
 namespace Botble\Comment\Http\Resources;
 
+use Botble\Comment\Models\CommentUser;
 use Illuminate\Http\Resources\Json\JsonResource;
 use RvMedia;
 
+/**
+ * @mixin CommentUser
+ */
 class UserResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return array
-     */
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
-            'id'         => $this->id,
-            'name'       => $this->first_name . ' ' . $this->last_name,
-            'email'      => $this->email,
+            'id' => $this->id,
+            'name' => $this->first_name . ' ' . $this->last_name,
+            'email' => $this->email,
             'avatar_url' => $this->avatar_id ? RvMedia::getImageUrl(
                 $this->avatar_url,
                 'thumb',
