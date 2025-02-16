@@ -27,7 +27,7 @@ class DatabaseSeeder extends BaseSeeder
         $this->call([
             WidgetSeeder::class,
             ThemeOptionSeeder::class,
-            SettingSeeder::class,
+            SettingSeeder::class
         ]);
 
         $this->finished();

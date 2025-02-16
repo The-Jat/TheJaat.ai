@@ -21,7 +21,9 @@ class UltraNewsController extends PublicController
 {
     public function ajaxGetPanelInner(Request $request, BaseHttpResponse $response)
     {
-        abort_unless($request->ajax(), 404);
+        if (! $request->ajax()) {
+            abort(404);
+        }
 
         return $response->setData(Theme::partial('components.panel-inner'));
     }
@@ -30,7 +32,9 @@ class UltraNewsController extends PublicController
     {
         $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Member::class), Member::class);
 
-        abort_unless($slug, 404);
+        if (! $slug) {
+            abort(404);
+        }
 
         $condition = [
             'id' => $slug->reference_id,
@@ -45,7 +49,9 @@ class UltraNewsController extends PublicController
             ->with(['slugable'])
             ->first();
 
-        abort_unless($author, 404);
+        if (! $author) {
+            abort(404);
+        }
 
         SeoHelper::setTitle($author->name)->setDescription($author->description);
 

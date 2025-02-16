@@ -2,6 +2,7 @@
 
 namespace Botble\Comment\Providers;
 
+use Botble\Base\Facades\EmailHandler;
 use Botble\Base\Supports\Helper;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Blog\Models\Post;
@@ -19,7 +20,6 @@ use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Comment\Repositories\Interfaces\CommentLikeInterface;
 use Botble\Comment\Repositories\Interfaces\CommentRecommendInterface;
 use Botble\Page\Models\Page;
-use EmailHandler;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Routing\Events\RouteMatched;
@@ -65,7 +65,7 @@ class CommentServiceProvider extends ServiceProvider
 
         $this->app->register(EventServiceProvider::class);
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             $this->app->register(HookServiceProvider::class);
 
             if (is_plugin_active('blog')) {
@@ -79,7 +79,7 @@ class CommentServiceProvider extends ServiceProvider
             });
         });
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             dashboard_menu()
                 ->registerItem([
                     'id' => 'cms-plugins-comment',

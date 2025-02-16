@@ -3,7 +3,6 @@
 namespace Botble\Base\Forms\FieldOptions;
 
 use Botble\Base\Forms\FormFieldOptions;
-use Closure;
 use Illuminate\Support\Collection;
 
 class SelectFieldOption extends FormFieldOptions
@@ -20,9 +19,9 @@ class SelectFieldOption extends FormFieldOptions
 
     protected bool $allowClear = false;
 
-    public function choices(array|Collection|Closure $choices): static
+    public function choices(array|Collection $choices): static
     {
-        $this->choices = $choices instanceof Closure ? $choices() : $choices;
+        $this->choices = $choices;
 
         return $this;
     }
@@ -32,9 +31,9 @@ class SelectFieldOption extends FormFieldOptions
         return $this->choices;
     }
 
-    public function selected(array|string|bool|float|null|Closure $selected): static
+    public function selected(array|string|bool|float|null $selected): static
     {
-        $this->selected = $selected instanceof Closure ? $selected() : $selected;
+        $this->selected = $selected;
 
         return $this;
     }

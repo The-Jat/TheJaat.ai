@@ -15,7 +15,9 @@ class PublicController extends BaseController
     {
         $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Page::class));
 
-        abort_unless($slug, 404);
+        if (! $slug) {
+            abort(404);
+        }
 
         $data = $pageService->handleFrontRoutes($slug);
 

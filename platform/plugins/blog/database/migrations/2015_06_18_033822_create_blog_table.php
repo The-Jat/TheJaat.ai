@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table): void {
+        Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->string('name', 120);
             $table->foreignId('parent_id')->default(0);
@@ -23,7 +23,7 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('tags', function (Blueprint $table): void {
+        Schema::create('tags', function (Blueprint $table) {
             $table->id();
             $table->string('name', 120);
             $table->foreignId('author_id');
@@ -33,7 +33,7 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('posts', function (Blueprint $table): void {
+        Schema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('description', 400)->nullable();
@@ -48,12 +48,12 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('post_tags', function (Blueprint $table): void {
+        Schema::create('post_tags', function (Blueprint $table) {
             $table->foreignId('tag_id')->index();
             $table->foreignId('post_id')->index();
         });
 
-        Schema::create('post_categories', function (Blueprint $table): void {
+        Schema::create('post_categories', function (Blueprint $table) {
             $table->foreignId('category_id')->index();
             $table->foreignId('post_id')->index();
         });

@@ -12,10 +12,12 @@
                     {!! Theme::partial('components.post-card-2-block', ['post' => $post]) !!}
                 </article>
             @endforeach
+            <div>View All</div>
         </div>
 
+
         <!--pagination-->
-        <div class="pagination-area pt-30 text-center bt-1 border-color-1">
+        {{-- <div class="pagination-area pt-30 text-center bt-1 border-color-1">
             <div class="container">
                 <div class="row">
                     <div class="col-xl-12">
@@ -27,7 +29,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> --}}
     @else
         <p class="text-center">{{ __('No posts') }}</p>
     @endif

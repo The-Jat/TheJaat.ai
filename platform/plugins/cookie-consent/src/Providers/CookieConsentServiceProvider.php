@@ -24,13 +24,13 @@ class CookieConsentServiceProvider extends ServiceProvider
             ->loadAndPublishViews()
             ->publishAssets();
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             if (defined('THEME_FRONT_FOOTER') && theme_option('cookie_consent_enable', 'yes') == 'yes') {
-                $this->app->resolving(EncryptCookies::class, function (EncryptCookies $encryptCookies): void {
+                $this->app->resolving(EncryptCookies::class, function (EncryptCookies $encryptCookies) {
                     $encryptCookies->disableFor(config('plugins.cookie-consent.general.cookie_name'));
                 });
 
-                $this->app['view']->composer('plugins/cookie-consent::index', function (View $view): void {
+                $this->app['view']->composer('plugins/cookie-consent::index', function (View $view) {
                     $cookieConsentConfig = config('plugins.cookie-consent.general', []);
 
                     $view->with(compact('cookieConsentConfig'));
@@ -62,7 +62,7 @@ class CookieConsentServiceProvider extends ServiceProvider
             }
         });
 
-        $this->app['events']->listen(RenderingThemeOptionSettings::class, function (): void {
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
             theme_option()
                 ->setSection([
                     'title' => trans('plugins/cookie-consent::cookie-consent.theme_options.name'),

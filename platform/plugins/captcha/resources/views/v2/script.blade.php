@@ -18,11 +18,7 @@
 
         var onloadCallback = function() {
             window.recaptchaInputs.forEach(function(item) {
-                if (document.getElementById(item)) {
-                    grecaptcha.render(item);
-                } else {
-                    console.warn('reCAPTCHA placeholder element not found for ID:', item);
-                }
+                grecaptcha.render(item);
             });
         };
     </script>

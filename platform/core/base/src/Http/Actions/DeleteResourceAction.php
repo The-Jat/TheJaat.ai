@@ -81,12 +81,6 @@ class DeleteResourceAction implements Responsable
     protected function dispatchDelete(): void
     {
         if (! isset($this->deleteUsing)) {
-            if (! $this->model->exists) {
-                $this->httpResponse->setError()->setMessage(trans('core/base::notices.delete_failed_message'));
-
-                return;
-            }
-
             $this->model->delete();
 
             DeletedContentEvent::dispatch($this->model::class, $this->request, $this->model);

@@ -72,19 +72,14 @@ class Shortcode
         $this->compiler->modifyAdminConfig($key, $callback);
     }
 
-    public function generateShortcode(string $name, array $attributes = [], ?string $content = null, bool $lazy = false): string
+    public function generateShortcode(string $name, array $attributes = []): string
     {
         $parsedAttributes = '';
-
-        if ($lazy) {
-            $attributes = [...$attributes, 'enable_lazy_loading' => 'yes'];
-        }
-
         foreach ($attributes as $key => $attribute) {
             $parsedAttributes .= ' ' . $key . '="' . $attribute . '"';
         }
 
-        return '[' . $name . $parsedAttributes . ']' . $content . '[/' . $name . ']';
+        return '[' . $name . $parsedAttributes . '][/' . $name . ']';
     }
 
     public function getCompiler(): ShortcodeCompiler

@@ -74,12 +74,11 @@ class PostImporter extends Importer implements WithMapping
     {
         $posts = Post::query()
             ->take(5)
-            ->with(['categories', 'tags', 'slugable'])
+            ->with(['categories', 'tags'])
             ->get()
-            ->map(function (Post $post) { // @phpstan-ignore-line
+            ->map(function (Post $post) {
                 return [
                     ...$post->toArray(),
-                    'slug' => $post->slugable->key,
                     'description' => Str::limit($post->description, 50),
                     'content' => Str::limit($post->content),
                     'tags' => $post->tags->pluck('name')->implode(', '),
@@ -223,10 +222,7 @@ class PostImporter extends Importer implements WithMapping
         return str($items)
             ->explode(',')
             ->map(function ($item) use ($modelClass) {
-                /**
-                 * @var BaseModel $modelClass
-                 * @var Post $model
-                 */
+                /** @var BaseModel $modelClass */
                 $model = $modelClass::query()->firstOrCreate(['name' => trim($item)]);
 
                 if (SlugHelper::isSupportedModel($modelClass) && $model->wasRecentlyCreated) {

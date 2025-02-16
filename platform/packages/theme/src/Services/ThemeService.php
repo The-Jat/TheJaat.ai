@@ -47,7 +47,7 @@ class ThemeService
         try {
             $content = BaseHelper::getFileData($this->getPath($theme, 'theme.json'));
 
-            if ($inheritTheme && ! Theme::exists($inheritTheme)) {
+            if (! Theme::exists($inheritTheme)) {
                 return [
                     'error' => true,
                     'message' => trans('packages/theme::theme.theme_inherit_not_found', ['name' => $inheritTheme]),

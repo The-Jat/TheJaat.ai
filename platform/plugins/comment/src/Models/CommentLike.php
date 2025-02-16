@@ -14,15 +14,13 @@ class CommentLike extends BaseModel
         'comment_id',
     ];
 
-    protected static function boot(): void
+    protected static function booted(): void
     {
-        parent::boot();
-
-        static::created(function (CommentLike $like): void {
+        static::created(function (CommentLike $like) {
             static::updateCountLike($like);
         });
 
-        static::deleted(function (CommentLike $like): void {
+        static::deleted(function (CommentLike $like) {
             static::updateCountLike($like);
         });
     }

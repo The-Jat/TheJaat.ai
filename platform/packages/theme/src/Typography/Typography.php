@@ -100,20 +100,16 @@ class Typography
 
     public function renderCssVariables(): string
     {
-        if (empty($this->fontFamilies)) {
-            $fontFamily = new TypographyItem('primary', __('Primary'), theme_option('primary_font', 'Inter'));
-
-            $this->fontFamilies[$fontFamily->getName()] = $fontFamily;
+        if (empty($this->fontFamilies) && empty($this->fontSizes)) {
+            return '';
         }
-
-        $fontFamilies = $this->getFontFamilies();
 
         $fontFaces = '';
         $styles = '<style>:root{';
 
         $renderedFonts = [];
 
-        foreach ($fontFamilies as $fontFamily) {
+        foreach ($this->fontFamilies as $fontFamily) {
             $value = theme_option("tp_{$fontFamily->getName()}_font");
 
             if (! $value) {
@@ -124,28 +120,25 @@ class Typography
                 $value = $fontFamily->getDefault();
             }
 
-            if (! in_array($value, $renderedFonts) && $fontFamily->isGoogleFont()) {
-                $fontWeights = $fontFamily->getFontWeights() ?: ['300', '400', '500', '600', '700'];
-
-                $fontFaces .= BaseHelper::googleFonts('https://fonts.googleapis.com/' . sprintf(
-                    'css2?family=%s:wght@%s&display=swap',
-                    urlencode($value),
-                    implode(';', $fontWeights)
-                ));
-
-                $renderedFonts[] = $value;
+            if (in_array($value, $renderedFonts)) {
+                continue;
             }
+
+            $fontFaces .= BaseHelper::googleFonts('https://fonts.googleapis.com/' . sprintf(
+                'css2?family=%s:wght@300;400;500;600;700&display=swap',
+                urlencode($value),
+            ));
 
             $styles .= sprintf(
                 '--%s-font: "%s", sans-serif;',
                 $fontFamily->getName(),
                 $value
             );
+
+            $renderedFonts[] = $value;
         }
 
-        $fontSizes = $this->getFontSizes();
-
-        foreach ($fontSizes as $fontSize) {
+        foreach ($this->fontSizes as $fontSize) {
             $styles .= sprintf(
                 '--%s-size: %spx;',
                 $fontSize->getName(),
@@ -153,13 +146,13 @@ class Typography
             );
         }
 
-        if ($fontSizes) {
+        if ($this->fontSizes) {
             foreach (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'body'] as $tag) {
-                if (! isset($fontSizes[$tag])) {
+                if (! isset($this->fontSizes[$tag])) {
                     continue;
                 }
 
-                $fontSize = $fontSizes[$tag];
+                $fontSize = $this->fontSizes[$tag];
 
                 $styles .= sprintf(
                     '%s{font-size: var(--%s-size);}',
@@ -176,7 +169,7 @@ class Typography
 
     public function renderThemeOptions(): void
     {
-        Event::listen(RenderingThemeOptionSettings::class, function (): void {
+        Event::listen(RenderingThemeOptionSettings::class, function () {
             if (empty($this->fontFamilies) && empty($this->fontSizes)) {
                 return;
             }
@@ -215,11 +208,11 @@ class Typography
             }
 
             foreach ($this->fontFamilies as $fontFamily) {
-                $rules["tp_{$fontFamily->getName()}_font"] = ['sometimes', 'required', 'string'];
+                $rules["tp_{$fontFamily->getName()}_font"] = ['required', 'string'];
             }
 
             foreach ($this->fontSizes as $fontSize) {
-                $rules["tp_{$fontSize->getName()}_size"] = ['sometimes', 'required', 'numeric', 'gt:0'];
+                $rules["tp_{$fontSize->getName()}_size"] = ['required', 'numeric', 'gt:0'];
             }
 
             return $rules;

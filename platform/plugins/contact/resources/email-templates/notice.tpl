@@ -64,12 +64,6 @@
                                                     <td class="bb-font-strong bb-text-left"> {{ contact_phone }} </td>
                                                 </tr>
                                             {% endif %}
-                                            {% for key, value in contact_custom_fields %}
-                                            <tr>
-                                                <td>{{ key }}:</td>
-                                                <td class="bb-font-strong bb-text-left"> {{ value }} </td>
-                                            </tr>
-                                            {% endfor %}
                                             {% if contact_content %}
                                                 <tr>
                                                     <td colspan="2">Content:</td>

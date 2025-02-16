@@ -4,10 +4,6 @@ class TagsManager {
         $(document)
             .find('.tags')
             .each(function (index, element) {
-                if ($(element).hasClass('tagify')) {
-                    return
-                }
-
                 let tagify = new Tagify(element, {
                     keepInvalidTags:
                         $(element).data('keep-invalid-tags') !== undefined
@@ -18,7 +14,7 @@ class TagsManager {
                             ? $(element).data('enforce-whitelist')
                             : false,
                     delimiters: $(element).data('delimiters') !== undefined ? $(element).data('delimiters') : ',',
-                    whitelist: element.value ? element.value.trim().split(/\s*,\s*/) : [],
+                    whitelist: element.value.trim().split(/\s*,\s*/),
                     userInput: $(element).data('user-input') !== undefined ? $(element).data('user-input') : true,
                 })
 
@@ -39,7 +35,7 @@ class TagsManager {
             })
 
         document.querySelectorAll('.list-tagify').forEach((element) => {
-            if (! element.dataset.list || $(element).hasClass('tagify')) {
+            if (!element.dataset.list) {
                 return
             }
 

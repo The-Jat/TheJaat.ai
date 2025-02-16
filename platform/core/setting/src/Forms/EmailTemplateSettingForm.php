@@ -5,13 +5,11 @@ namespace Botble\Setting\Forms;
 use Botble\Base\Forms\FieldOptions\CodeEditorFieldOption;
 use Botble\Base\Forms\FieldOptions\EmailFieldOption;
 use Botble\Base\Forms\FieldOptions\MediaImageFieldOption;
-use Botble\Base\Forms\FieldOptions\NumberFieldOption;
 use Botble\Base\Forms\FieldOptions\RepeaterFieldOption;
 use Botble\Base\Forms\FieldOptions\TextFieldOption;
 use Botble\Base\Forms\Fields\CodeEditorField;
 use Botble\Base\Forms\Fields\EmailField;
 use Botble\Base\Forms\Fields\MediaImageField;
-use Botble\Base\Forms\Fields\NumberField;
 use Botble\Base\Forms\Fields\RepeaterField;
 use Botble\Base\Forms\Fields\TextField;
 use Botble\Setting\Http\Requests\EmailTemplateSettingRequest;
@@ -78,6 +76,7 @@ class EmailTemplateSettingForm extends SettingForm
                     )
                     ->addAttribute('accept', '.png, .jpg, .jpeg, .gif')
                     ->addAttribute('allow_thumb', false)
+                    ->toArray()
             )
             ->add(
                 'email_template_email_contact',
@@ -94,18 +93,7 @@ class EmailTemplateSettingForm extends SettingForm
                     ->label(trans('core/setting::setting.email.email_template_copyright_text'))
                     ->value(apply_filters('email_template_copyright_text', setting('email_template_copyright_text')))
                     ->helperText(apply_filters('email_template_copyright_helper_text', trans('core/setting::setting.email.email_template_copyright_text_helper_text')))
-            )
-            ->add(
-                'email_template_max_height_for_logo',
-                NumberField::class,
-                NumberFieldOption::make()
-                    ->label(__('Logo height (px)'))
-                    ->helperText(__('Set the height of the logo in pixels. The default value is :default.', ['default' => '40px']))
-                    ->attributes([
-                        'min' => 1,
-                        'max' => 150,
-                    ])
-                    ->value(setting('email_template_max_height_for_logo', 40))
+                    ->toArray()
             )
             ->add(
                 'email_template_custom_css',
@@ -114,6 +102,7 @@ class EmailTemplateSettingForm extends SettingForm
                     ->label(trans('core/setting::setting.email.email_template_custom_css'))
                     ->value(setting('email_template_custom_css'))
                     ->mode('css')
+                    ->toArray()
             )
             ->add(
                 'email_template_social_links',
@@ -122,6 +111,7 @@ class EmailTemplateSettingForm extends SettingForm
                     ->label(trans('core/setting::setting.email.email_template_social_links'))
                     ->value(setting('email_template_social_links', []))
                     ->fields($fields)
+                    ->toArray()
             )
         ;
     }

@@ -37,12 +37,14 @@ class CustomFieldForm extends FormAbstract
                     ->label(trans('plugins/contact::contact.custom_field.type'))
                     ->required()
                     ->choices(CustomFieldType::labels())
+                    ->toArray()
             )
             ->add(
                 'name',
                 TextField::class,
                 NameFieldOption::make()
                     ->required()
+                    ->toArray()
             )
             ->add(
                 'placeholder',
@@ -51,12 +53,14 @@ class CustomFieldForm extends FormAbstract
                     ->label(trans('plugins/contact::contact.custom_field.placeholder'))
                     ->placeholder(trans('plugins/contact::contact.custom_field.placeholder'))
                     ->maxLength(120)
+                    ->toArray()
             )
             ->add(
                 'required',
                 OnOffField::class,
                 OnOffFieldOption::make()
                     ->label(trans('plugins/contact::contact.custom_field.required'))
+                    ->toArray()
             )
             ->add(
                 'order',
@@ -65,8 +69,9 @@ class CustomFieldForm extends FormAbstract
                     ->label(trans('plugins/contact::contact.custom_field.order'))
                     ->required()
                     ->defaultValue(999)
+                    ->toArray()
             )
-            ->when(is_plugin_active('language'), function (FormAbstract $form): void {
+            ->when(is_plugin_active('language'), function (FormAbstract $form) {
                 $isDefaultLanguage = ! defined('LANGUAGE_ADVANCED_MODULE_SCREEN_NAME')
                     || ! request()->input('ref_lang')
                     || request()->input('ref_lang') === Language::getDefaultLocaleCode();

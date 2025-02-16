@@ -35,13 +35,12 @@ class HookServiceProvider extends ServiceProvider
             add_filter(BASE_FILTER_BEFORE_GET_FRONT_PAGE_ITEM, [$this, 'checkItemLanguageBeforeShow'], 1134, 2);
             add_filter(BASE_FILTER_BEFORE_GET_ADMIN_LIST_ITEM, [$this, 'checkItemLanguageBeforeGetAdminListItem'], 50, 2);
             add_filter('setting_permalink_meta_boxes', [$this, 'addPermalinkMetaBox'], 1134, 2);
-
-            add_filter(BASE_FILTER_BEFORE_RENDER_FORM, [$this, 'changeFormDataBeforeRendering'], 1134);
         }
 
         add_filter('stored_meta_box_key', [$this, 'storeMetaBoxKey'], 1134, 2);
         add_filter('slug_helper_get_slug_query', [$this, 'getSlugQuery'], 1134, 2);
         add_filter(['model_after_execute_get', 'model_after_execute_paginate'], function ($data, BaseModel $model) {
+
             if ($model instanceof LanguageModel) {
                 return $data;
             }
@@ -57,6 +56,8 @@ class HookServiceProvider extends ServiceProvider
 
             return $data;
         }, 1134, 2);
+
+        FormAbstract::beforeRendering([$this, 'changeFormDataBeforeRendering'], 1134);
     }
 
     public function addLanguageBox(string $priority, array|Model|string|null $object = null): void
@@ -275,7 +276,7 @@ class HookServiceProvider extends ServiceProvider
         LanguageAdvancedManager::initModelRelations();
 
         return $query->with([
-            'translations' => function ($query) use ($model, $currentLocale): void {
+            'translations' => function ($query) use ($model, $currentLocale) {
                 $query->where($model->getTable() . '_translations' . '.lang_code', $currentLocale);
             },
         ]);
@@ -329,8 +330,7 @@ class HookServiceProvider extends ServiceProvider
 
         return $form
             ->setFormOption('url', route('language-advanced.save', $model->getKey()) . $refLang)
-            ->add('model', 'hidden', ['value' => $model::class])
-            ->add('form', 'hidden', ['value' => $form::class]);
+            ->add('model', 'hidden', ['value' => $model::class]);
     }
 
     public function customizeMetaBoxes(string $context, array|string|Model|null $object = null): void

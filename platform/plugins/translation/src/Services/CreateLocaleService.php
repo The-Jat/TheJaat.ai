@@ -38,8 +38,6 @@ class CreateLocaleService
             $themeLocale = Arr::first(BaseHelper::scanFolder(theme_path($parentTheme . '/lang')));
 
             if ($themeLocale) {
-                File::ensureDirectoryExists(lang_path('vendor/themes/' . Theme::getThemeName()));
-
                 File::copy(
                     theme_path($parentTheme . '/lang/' . $themeLocale),
                     lang_path('vendor/themes/' . Theme::getThemeName() . '/' . $locale . '.json')
@@ -48,7 +46,7 @@ class CreateLocaleService
         }
     }
 
-    protected function createLocaleFiles(string $path, string $locale): void
+    protected function createLocaleFiles(string $locale, string $path): void
     {
         $folders = File::directories($path);
 

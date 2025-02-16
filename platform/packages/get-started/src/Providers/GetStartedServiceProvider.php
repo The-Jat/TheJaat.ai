@@ -21,8 +21,8 @@ class GetStartedServiceProvider extends ServiceProvider
             ->loadRoutes()
             ->loadAndPublishViews();
 
-        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
-            add_action(DASHBOARD_ACTION_REGISTER_SCRIPTS, function (): void {
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function () {
+            add_action(DASHBOARD_ACTION_REGISTER_SCRIPTS, function () {
                 if ($this->shouldShowGetStartedPopup()) {
                     Assets::addScriptsDirectly('vendor/core/packages/get-started/js/get-started.js')
                         ->addStylesDirectly('vendor/core/packages/get-started/css/get-started.css')
@@ -45,6 +45,9 @@ class GetStartedServiceProvider extends ServiceProvider
         return ! BaseHelper::hasDemoModeEnabled() &&
             is_in_admin(true) &&
             Auth::guard()->check() &&
-            setting('is_completed_get_started') != '1';
+            // setting('is_completed_get_started') != '1';
+            false;
+            // Now the "Welcome to your admin dashboard!" admin panel dialog box will never be shown.
+            // because of the false with the && operator.
     }
 }

@@ -8,7 +8,6 @@
         :label="BaseHelper::clean($value[2] ?? '')"
         :checked="$value[3] ?? false"
         :disabled="$value[4] ?? false"
-        :$inline
     />
 @endforeach
 @if (sizeof($values) > 1)

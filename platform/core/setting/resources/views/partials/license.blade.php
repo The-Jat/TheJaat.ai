@@ -16,7 +16,7 @@
     v-slot="{ initialized, loading, verified, license, deactivateLicense, resetLicense }"
     v-cloak
 >
-    <template v-if="initialized && (! verified || ! license)">
+    <template v-if="initialized && !verified">
         <x-core-setting::section
             :title="$licenseTitle"
             :description="$licenseDescription"
@@ -27,16 +27,16 @@
         </x-core-setting::section>
     </template>
 
-    <template v-if="initialized && verified && license">
+    <template v-if="initialized && verified">
         @if(! config('core.base.general.hide_activated_license_info', false))
             <x-core-setting::section
                 :title="$licenseTitle"
                 :description="$licenseDescription"
             >
                 <p class="text-info">
-                    <span v-if="license.licensed_to">Licensed to <span v-text="license.licensed_to"></span>.
-                    </span>Activated
-                        since <span v-text="license.activated_at"></span>.
+                <span v-if="license.licensed_to">Licensed to <span v-text="license.licensed_to"></span>.
+                </span>Activated
+                    since <span v-text="license.activated_at"></span>.
                 </p>
 
                 <div>

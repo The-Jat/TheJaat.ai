@@ -3,7 +3,6 @@
 namespace Botble\Base\Models;
 
 use Botble\Base\Casts\SafeContent;
-use Botble\Support\Services\Cache\Cache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Query\Builder;
@@ -71,18 +70,10 @@ class AdminNotification extends BaseModel
 
     protected static function booted(): void
     {
-        static::creating(function (self $notification): void {
+        static::creating(function (AdminNotification $notification) {
             if ($notification->action_url) {
                 $notification->action_url = str_replace(url(''), '', $notification->action_url);
             }
-        });
-
-        static::saved(function (): void {
-            Cache::make(static::class)->flush();
-        });
-
-        static::deleted(function (): void {
-            Cache::make(static::class)->flush();
         });
     }
 

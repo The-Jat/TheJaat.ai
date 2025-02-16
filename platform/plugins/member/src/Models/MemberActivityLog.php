@@ -25,7 +25,7 @@ class MemberActivityLog extends BaseModel
 
     protected static function booted(): void
     {
-        self::creating(function ($model): void {
+        self::creating(function ($model) {
             $model->user_agent = $model->user_agent ?: request()->userAgent();
             $model->ip_address = $model->ip_address ?: request()->ip();
             $model->member_id = $model->member_id ?: auth('member')->id();

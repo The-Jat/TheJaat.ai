@@ -11,7 +11,9 @@ class AIWriterController extends BaseController
 {
     public function ajaxGetAIContent(Request $request, BaseHttpResponse $response)
     {
-        abort_unless($request->ajax(), 404);
+        if (! $request->ajax()) {
+            abort(404);
+        }
 
         $apiKey = setting('openai_api_key', '');
 

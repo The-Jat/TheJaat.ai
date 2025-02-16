@@ -13,28 +13,34 @@ $.ajaxSetup({
 })
 
 $(() => {
-    setTimeout(() => {
-        if (typeof siteAuthorizedUrl === 'undefined' || typeof isAuthenticated === 'undefined' || !isAuthenticated) {
-            return
-        }
+    // This arrow function gets called in any of the admin panel page and can be handy
+    // in future for doing any cool stuff in the admin panel using js.
+    // console.log("Hi admin");
 
-        const $reminder = $('[data-bb-toggle="authorized-reminder"]')
 
-        if ($reminder.length) {
-            return
-        }
 
-        $httpClient
-            .makeWithoutErrorHandler()
-            .get(siteAuthorizedUrl, { verified: true })
-            .then(() => null)
-            .catch((error) => {
-                if (!error.response || error.response.status !== 200) {
-                    return
-                }
+    // setTimeout(() => {
+    //     if (typeof siteAuthorizedUrl === 'undefined' || typeof isAuthenticated === 'undefined' || !isAuthenticated) {
+    //         return
+    //     }
 
-                $(error.response.data.data.html).prependTo('body')
-                $(document).find('.alert-license').slideDown()
-            })
-    }, 1000)
+    //     const $reminder = $('[data-bb-toggle="authorized-reminder"]')
+
+    //     if ($reminder.length) {
+    //         return
+    //     }
+
+    //     $httpClient
+    //         .makeWithoutErrorHandler()
+    //         .get(siteAuthorizedUrl, { verified: true })
+    //         .then(() => null)
+    //         .catch((error) => {
+    //             if (!error.response || error.response.status !== 200) {
+    //                 return
+    //             }
+
+    //             $(error.response.data.data.html).prependTo('body')
+    //             $(document).find('.alert-license').slideDown()
+    //         })
+    // }, 1000)
 })

@@ -85,14 +85,8 @@
             }
 
             .gallery-title {
+                text-transform: uppercase;
                 font-weight: bold;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                overflow: hidden;
-            }
-
-            .gallery-author {
-                font-size: 12px;
             }
         }
 

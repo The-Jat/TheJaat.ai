@@ -19,11 +19,7 @@ class ThemeManagement {
 
         $(document).on('click', '.btn-trigger-remove-theme', (event) => {
             event.preventDefault()
-            let _self = $(event.currentTarget)
-            $('#confirm-remove-theme-button')
-                .data('theme', _self.data('theme'))
-                .data('url', _self.data('url'))
-
+            $('#confirm-remove-theme-button').data('theme', $(event.currentTarget).data('theme'))
             $('#remove-theme-modal').modal('show')
         })
 

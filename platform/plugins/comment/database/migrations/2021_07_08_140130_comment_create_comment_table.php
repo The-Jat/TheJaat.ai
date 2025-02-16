@@ -3,12 +3,13 @@
 use Botble\ACL\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class () extends Migration {
     public function up(): void
     {
         if (! Schema::hasTable('bb_comments')) {
-            Schema::create('bb_comments', function (Blueprint $table): void {
+            Schema::create('bb_comments', function (Blueprint $table) {
                 $table->id();
                 $table->longText('comment')->nullable();
                 $table->foreignId('reference_id');
@@ -24,7 +25,7 @@ return new class () extends Migration {
         }
 
         if (! Schema::hasTable('bb_comment_users')) {
-            Schema::create('bb_comment_users', function (Blueprint $table): void {
+            Schema::create('bb_comment_users', function (Blueprint $table) {
                 $table->id();
                 $table->string('name', 255);
                 $table->string('email')->unique();
@@ -37,7 +38,7 @@ return new class () extends Migration {
         }
 
         if (! Schema::hasTable('bb_comment_likes')) {
-            Schema::create('bb_comment_likes', function (Blueprint $table): void {
+            Schema::create('bb_comment_likes', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('comment_id')->index();
                 $table->foreignId('user_id')->index();
@@ -46,7 +47,7 @@ return new class () extends Migration {
         }
 
         if (! Schema::hasTable('bb_comment_recommends')) {
-            Schema::create('bb_comment_recommends', function (Blueprint $table): void {
+            Schema::create('bb_comment_recommends', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('reference_id');
                 $table->string('reference_type', 120);

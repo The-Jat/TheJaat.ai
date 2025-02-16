@@ -12,11 +12,9 @@ class SiteMapManager
 {
     protected array $keys = ['sitemap', 'pages'];
 
-    protected array $removedKeys = [];
-
     protected string $extension = 'xml';
 
-    protected string $defaultDate = '2024-11-01 00:00';
+    protected string $defaultDate = '2023-06-01 00:00';
 
     public function __construct(protected Sitemap $siteMap)
     {
@@ -45,9 +43,7 @@ class SiteMapManager
 
     public function addSitemap(string $loc, ?string $lastModified = null): self
     {
-        $removedLoc = array_map(fn ($item) => $this->route($item), $this->removedKeys);
-
-        if (! $this->isCached() && ! in_array($loc, $removedLoc)) {
+        if (! $this->isCached()) {
             $this->siteMap->addSitemap($loc, $lastModified ?: $this->defaultDate);
         }
 
@@ -86,7 +82,7 @@ class SiteMapManager
 
     public function getKeys(): array
     {
-        return array_filter($this->keys, fn ($item) => ! in_array($item, $this->removedKeys));
+        return $this->keys;
     }
 
     public function registerKey(string|array $key, ?string $value = null): self
@@ -96,16 +92,6 @@ class SiteMapManager
         } else {
             $this->keys[$key] = $value ?: $key;
         }
-
-        return $this;
-    }
-
-    public function removeKey(array|string $key): self
-    {
-        $this->removedKeys = [
-            ...$this->removedKeys,
-            ...(array) $key,
-        ];
 
         return $this;
     }

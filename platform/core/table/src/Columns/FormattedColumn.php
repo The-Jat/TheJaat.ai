@@ -5,9 +5,7 @@ namespace Botble\Table\Columns;
 use Botble\Base\Contracts\BaseModel;
 use Botble\Base\Supports\Renderable;
 use Botble\Table\Abstracts\TableAbstract;
-use Botble\Table\Columns\Concerns\Blurrable;
 use Botble\Table\Columns\Concerns\Copyable;
-use Botble\Table\Columns\Concerns\HasColor;
 use Botble\Table\Columns\Concerns\HasEmptyState;
 use Botble\Table\Columns\Concerns\HasIcon;
 use Botble\Table\Columns\Concerns\Maskable;
@@ -18,10 +16,8 @@ use stdClass;
 
 class FormattedColumn extends Column implements FormattedColumnContract
 {
-    use Blurrable;
     use Copyable;
     use HasEmptyState;
-    use HasColor;
     use HasIcon;
     use Renderable;
     use Maskable;
@@ -42,7 +38,7 @@ class FormattedColumn extends Column implements FormattedColumnContract
     {
         return parent::make($data, $name)
             ->renderUsing(fn (FormattedColumn $column, $value) => $column->formattedValue($value))
-            ->getValueUsing(fn (FormattedColumn $column, mixed $value) => $column->applyLimitIfAvailable($value));
+            ->getValueUsing(fn (FormattedColumn $column) => $column->applyLimitIfAvailable($column->getOriginalValue()));
     }
 
     public function limit(int $length = 5): static
@@ -161,8 +157,6 @@ class FormattedColumn extends Column implements FormattedColumnContract
 
         $rendered = $this->renderEmptyStateIfAvailable($rendered);
 
-        $rendered = $this->renderPrepends() . $rendered . $this->renderAppends();
-
-        return $this->applyColor($rendered);
+        return $this->renderPrepends() . $rendered . $this->renderAppends();
     }
 }

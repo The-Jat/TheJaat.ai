@@ -24,8 +24,6 @@ class Icon extends Component
             unset($attributes['class']);
 
             if (str_starts_with($this->name, 'ti ti-')) {
-                $class = rtrim($class) . ' svg-icon-' . str_replace(' ', '-', $this->name);
-
                 return IconFacade::render(
                     Str::after($this->name, '-'),
                     ['class' => $class, ...$attributes]

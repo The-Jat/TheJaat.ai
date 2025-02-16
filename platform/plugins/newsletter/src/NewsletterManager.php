@@ -14,15 +14,6 @@ use Botble\Newsletter\Forms\Fronts\NewsletterForm;
 use Botble\Theme\Events\RenderingThemeOptionSettings;
 use Botble\Theme\Facades\Theme;
 use Botble\Theme\Facades\ThemeOption;
-use Botble\Theme\ThemeOption\Fields\MediaImageField;
-use Botble\Theme\ThemeOption\Fields\MultiCheckListField;
-use Botble\Theme\ThemeOption\Fields\NumberField;
-use Botble\Theme\ThemeOption\Fields\TextareaField;
-use Botble\Theme\ThemeOption\Fields\TextField;
-use Botble\Theme\ThemeOption\Fields\ToggleField;
-use Botble\Theme\ThemeOption\ThemeOptionSection;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Manager;
 use InvalidArgumentException;
 
@@ -51,108 +42,137 @@ class NewsletterManager extends Manager implements Factory
 
     public function registerNewsletterPopup(bool $keepHtmlDomOnClose = false): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
-            ThemeOption::setSection(
-                ThemeOptionSection::make('opt-text-subsection-newsletter-popup')
-                    ->title(__('Newsletter Popup'))
-                    ->icon('ti ti-mail-opened')
-                    ->fields([
-                        ToggleField::make()
-                            ->name('newsletter_popup_enable')
-                            ->label(__('Enable Newsletter Popup')),
-                        MediaImageField::make()
-                            ->name('newsletter_popup_image')
-                            ->label(__('Popup Image')),
-                        TextField::make()
-                            ->name('newsletter_popup_title')
-                            ->label(__('Popup Title')),
-                        TextField::make()
-                            ->name('newsletter_popup_subtitle')
-                            ->label(__('Popup Subtitle')),
-                        TextareaField::make()
-                            ->name('newsletter_popup_description')
-                            ->label(__('Popup Description')),
-                        NumberField::make()
-                            ->name('newsletter_popup_delay')
-                            ->label(__('Popup Delay (seconds)'))
-                            ->defaultValue(5)
-                            ->helperText(__('Set the delay time to show the popup after the page is loaded. Set 0 to show the popup immediately.'))
-                            ->attributes([
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
+            ThemeOption::setSection([
+                'title' => __('Newsletter Popup'),
+                'id' => 'opt-text-subsection-newsletter-popup',
+                'subsection' => true,
+                'icon' => 'ti ti-mail-opened',
+                'fields' => [
+                    [
+                        'id' => 'newsletter_popup_enable',
+                        'type' => 'onOff',
+                        'label' => __('Enable Newsletter Popup'),
+                        'attributes' => [
+                            'name' => 'newsletter_popup_enable',
+                            'value' => false,
+                        ],
+                    ],
+                    [
+                        'id' => 'newsletter_popup_image',
+                        'type' => 'mediaImage',
+                        'label' => __('Popup image'),
+                        'attributes' => [
+                            'name' => 'newsletter_popup_image',
+                        ],
+                    ],
+                    [
+                        'id' => 'newsletter_popup_title',
+                        'type' => 'text',
+                        'label' => __('Popup title'),
+                        'attributes' => [
+                            'name' => 'newsletter_popup_title',
+                            'value' => null,
+                            'options' => [
+                                'class' => 'form-control',
+                            ],
+                        ],
+                    ],
+                    [
+                        'id' => 'newsletter_popup_subtitle',
+                        'type' => 'text',
+                        'label' => __('Popup subtitle'),
+                        'attributes' => [
+                            'name' => 'newsletter_popup_subtitle',
+                            'value' => null,
+                            'options' => [
+                                'class' => 'form-control',
+                            ],
+                        ],
+                    ],
+                    [
+                        'id' => 'newsletter_popup_description',
+                        'type' => 'textarea',
+                        'label' => __('Popup description'),
+                        'attributes' => [
+                            'name' => 'newsletter_popup_description',
+                            'value' => null,
+                            'options' => [
+                                'class' => 'form-control',
+                                'rows' => 2,
+                            ],
+                        ],
+                    ],
+                    [
+                        'id' => 'newsletter_popup_delay',
+                        'type' => 'number',
+                        'label' => __('Popup delay (seconds)'),
+                        'attributes' => [
+                            'name' => 'newsletter_popup_delay',
+                            'value' => 5,
+                            'options' => [
+                                'class' => 'form-control',
                                 'min' => 0,
-                            ]),
-                        MultiCheckListField::make()
-                            ->name('newsletter_popup_display_pages')
-                            ->label(__('Display on pages'))
-                            ->inline()
-                            ->defaultValue(['public.index'])
-                            ->options(apply_filters('newsletter_popup_display_pages', [
-                                'public.index' => __('Homepage'),
-                                'all' => __('All Pages'),
-                            ])),
-                    ])
-            );
+                            ],
+                        ],
+                        'helper' => __('Set the delay time to show the popup after the page is loaded. Set 0 to show the popup immediately.'),
+                    ],
+                ],
+            ]);
         });
 
-        app('events')->listen(RouteMatched::class, function () use ($keepHtmlDomOnClose): void {
-            if (
-                is_plugin_active('newsletter')
-                && theme_option('newsletter_popup_enable', false)
-                && ($keepHtmlDomOnClose || ! isset($_COOKIE['newsletter_popup']))
-                && ! AdminHelper::isInAdmin()
-            ) {
-                $displayPages = json_decode(theme_option('newsletter_popup_display_pages', '[]'), true) ?: ['public.index'];
+        if (
+            is_plugin_active('newsletter')
+            && theme_option('newsletter_popup_enable', false)
+            && ($keepHtmlDomOnClose || ! isset($_COOKIE['newsletter_popup']))
+            && ! AdminHelper::isInAdmin()
+        ) {
 
-                if (
-                    ! in_array('all', $displayPages)
-                    && ! in_array(Route::currentRouteName(), $displayPages)
-                ) {
-                    return;
-                }
+            $ignoredBots = [
+                'googlebot',        // Googlebot
+                'bingbot',          // Microsoft Bingbot
+                'slurp',            // Yahoo! Slurp
+                'ia_archiver',      // Alexa
+                'Chrome-Lighthouse', // Google Lighthouse
+            ];
 
-                $ignoredBots = [
-                    'googlebot', // Googlebot
-                    'bingbot', // Microsoft Bingbot
-                    'slurp', // Yahoo! Slurp
-                    'ia_archiver', // Alexa
-                    'Chrome-Lighthouse', // Google Lighthouse
-                ];
-
-                if (in_array(strtolower(request()->userAgent()), $ignoredBots)) {
-                    return;
-                }
-
-                Theme::asset()
-                    ->add('newsletter', asset('vendor/core/plugins/newsletter/css/newsletter.css'));
-
-                Theme::asset()
-                    ->container('footer')
-                    ->add('newsletter', asset('vendor/core/plugins/newsletter/js/newsletter.js'), ['jquery']);
-
-                add_filter(THEME_FRONT_BODY, function (?string $html): string {
-                    $newsletterForm = NewsletterForm::create()
-                        ->remove(['wrapper_before', 'wrapper_after', 'email'])
-                        ->addBefore(
-                            'submit',
-                            'email',
-                            EmailField::class,
-                            EmailFieldOption::make()
-                                ->label(__('Email Address'))
-                                ->maxLength(-1)
-                                ->placeholder(__('Enter Your Email'))
-                                ->required()
-                        )
-                        ->addAfter(
-                            'submit',
-                            'dont_show_again',
-                            CheckboxField::class,
-                            CheckboxFieldOption::make()
-                                ->label(__("Don't show this popup again"))
-                                ->value(false)
-                        );
-
-                    return $html . view('plugins/newsletter::partials.newsletter-popup', compact('newsletterForm'));
-                });
+            if (in_array(strtolower(request()->userAgent()), $ignoredBots)) {
+                return;
             }
-        });
+
+            Theme::asset()
+                ->add('newsletter', asset('vendor/core/plugins/newsletter/css/newsletter.css'));
+
+            Theme::asset()
+                ->container('footer')
+                ->add('newsletter', asset('vendor/core/plugins/newsletter/js/newsletter.js'), ['jquery']);
+
+            add_filter(THEME_FRONT_BODY, function (?string $html): string {
+                $newsletterForm = NewsletterForm::create()
+                    ->remove(['wrapper_before', 'wrapper_after', 'email'])
+                    ->addBefore(
+                        'submit',
+                        'email',
+                        EmailField::class,
+                        EmailFieldOption::make()
+                            ->label(__('Email Address'))
+                            ->maxLength(-1)
+                            ->placeholder(__('Enter Your Email'))
+                            ->required()
+                            ->toArray()
+                    )
+                    ->addAfter(
+                        'submit',
+                        'dont_show_again',
+                        CheckboxField::class,
+                        CheckboxFieldOption::make()
+                            ->label(__("Don't show this popup again"))
+                            ->value(false)
+                            ->toArray()
+                    );
+
+                return $html . view('plugins/newsletter::partials.newsletter-popup', compact('newsletterForm'));
+            });
+        }
     }
 }

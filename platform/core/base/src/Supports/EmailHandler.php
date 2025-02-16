@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\URL;
 use Symfony\Component\ErrorHandler\ErrorRenderer\HtmlErrorRenderer;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Throwable;
-use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 use Twig\Extension\DebugExtension;
 use Twig\TwigFilter;
 
@@ -125,20 +124,8 @@ class EmailHandler
             'site_admin_email' => $siteEmail,
             'site_copyright' => $this->getSiteCopyright(),
             'site_social_links' => $this->getSiteSocialLinks(),
-            'css' => $this->getCssContent(),
-            'max_height_for_logo' => setting('email_template_max_height_for_logo', 40),
+            'css' => view('core/base::partials.email-templates.css')->render(),
         ];
-    }
-
-    public function getCssContent(): string
-    {
-        $css = File::get(core_path('base/resources/email-templates/default.css'));
-
-        if ($customCSS = setting('email_template_custom_css')) {
-            $css .= $customCSS;
-        }
-
-        return (string) apply_filters('email_template_css', $css);
     }
 
     protected function getSiteLogo(): string
@@ -258,13 +245,6 @@ class EmailHandler
                 $type . '/' . $module . '/resources/email-templates/' . $key . '.tpl'
             );
         }
-
-        return $this;
-    }
-
-    public function removeTemplateSettings(string $module, string $type = 'plugins'): self
-    {
-        Arr::forget($this->templates, $type . '.' . $module);
 
         return $this;
     }
@@ -521,11 +501,7 @@ class EmailHandler
 
     public function getContent(): string
     {
-        $content = $this->prepareData(get_setting_email_template_content($this->type, $this->module, $this->template));
-
-        $inlineCss = new CssToInlineStyles();
-
-        return $inlineCss->convert($content, $this->getCssContent());
+        return $this->prepareData(get_setting_email_template_content($this->type, $this->module, $this->template));
     }
 
     public function getSubject(): string

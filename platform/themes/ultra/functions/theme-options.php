@@ -1,7 +1,22 @@
 <?php
 
-app()->booted(function (): void {
+app()->booted(function () {
     theme_option()
+        ->setField([
+            'id' => 'logo_enabled',
+            'section_id' => 'opt-text-subsection-logo',
+            'type' => 'customSelect',
+            'label' => 'Enable Logo',
+            'priority' => 0,
+            'attributes' => [
+                'name' => 'logo_enabled',
+                'list' => [
+                    '1' => __('Yes'),
+                    '0' => __('No'),
+                ],
+                'value' => '1',
+            ],
+        ])
         ->setField([
             'id' => 'logo_mobile',
             'section_id' => 'opt-text-subsection-logo',
@@ -69,13 +84,42 @@ app()->booted(function (): void {
             ],
         ])
         ->setField([
+            'id' => 'custom_blog_template',
+            'section_id' => 'opt-text-subsection-blog',
+            'type' => 'customSelect',
+            'label' => 'Enable Custom Template',
+            // 'priority' => 0,
+            'attributes' => [
+                'name' => 'custom_blog_template',
+                'list' => [
+                    '1' => __('Yes'),
+                    '0' => __('No'),
+                ],
+                'value' => '0',
+            ],
+        ])
+        ->setField([
+            'id' => 'blog_post_template',
+            'section_id' => 'opt-text-subsection-blog',
+            'type' => 'select',
+            'label' => __('Blog Post Template'),
+            'attributes' => [
+                'name' => 'blog_post_template',
+                'list' => ['' => trans('plugins/blog::base.select')] + get_post_template('blog'),
+                'value' => '',
+                'options' => [
+                    'class' => 'form-control',
+                ],
+            ],
+        ])
+        ->setField([
             'id' => 'copyright',
             'section_id' => 'opt-text-subsection-general',
             'type' => 'text',
             'label' => __('Copyright'),
             'attributes' => [
                 'name' => 'copyright',
-                'value' => '©2021 UltraNews - Theme for magazine/news site.',
+                'value' => '©2024 TheJat',
                 'options' => [
                     'class' => 'form-control',
                     'placeholder' => __('Change copyright'),
@@ -157,6 +201,23 @@ app()->booted(function (): void {
                 'options' => [
                     'class' => 'form-control',
                     'data-counter' => 255,
+                ],
+            ],
+        ])
+        ->setField([
+            'id' => 'allow_address_in_about_me',
+            'section_id' => 'opt-text-subsection-general',
+            'type' => 'select',
+            'label' => __('Allow adddress in about me?'),
+            'attributes' => [
+                'name' => 'allow_address_in_about_me',
+                'list' => [
+                    'no' => trans('core/base::base.no'),
+                    'yes' => trans('core/base::base.yes'),
+                ],
+                'value' => 'no',
+                'options' => [
+                    'class' => 'form-control',
                 ],
             ],
         ])

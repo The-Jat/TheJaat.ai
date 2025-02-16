@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Botble\Menu\Menu addMenuLocation(string $location, string $description)
  * @method static array getMenuLocations()
  * @method static \Botble\Menu\Menu removeMenuLocation(string $location)
- * @method static string|null renderMenuLocation(string $location, array $attributes = [])
+ * @method static string renderMenuLocation(string $location, array $attributes = [])
  * @method static bool isLocationHasMenu(string $location)
  * @method static void load(bool $force = false)
  * @method static string|null generateMenu(array $args = [])

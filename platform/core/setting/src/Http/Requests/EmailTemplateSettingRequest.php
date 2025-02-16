@@ -27,7 +27,6 @@ class EmailTemplateSettingRequest extends Request
             'email_template_social_links.*.*.key' => ['nullable', 'string', Rule::in(['name', 'url', 'image', ])],
             'email_template_copyright_text' => ['nullable', 'string'],
             'email_template_custom_css' => ['nullable', 'string', 'max:10000'],
-            'email_template_max_height_for_logo' => ['nullable', 'integer', 'min:1', 'max:150'],
         ];
     }
 }

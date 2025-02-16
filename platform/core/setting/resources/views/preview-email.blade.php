@@ -13,17 +13,6 @@
     >
     <title>{{ trans('core/setting::setting.preview') }}</title>
 
-    @if (setting('admin_favicon') || config('core.base.general.favicon'))
-        <link
-            href="{{ $favicon = setting('admin_favicon') ? RvMedia::getImageUrl(setting('admin_favicon')) : url(config('core.base.general.favicon')) }}"
-            rel="icon shortcut"
-        >
-        <meta
-            property="og:image"
-            content="{{ $favicon }}"
-        >
-    @endif
-
     <style>
         body {
             font-family: Roboto, Helvetica, Arial, sans-serif;

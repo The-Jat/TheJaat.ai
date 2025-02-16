@@ -35,11 +35,9 @@ class LanguageAdvancedServiceProvider extends ServiceProvider
 
         $this->app->register(EventServiceProvider::class);
 
-        if (! $this->app->runningInConsole()) {
-            add_filter('slug_helper_get_permalink_setting_key', [$this, 'getPermalinkSettingKey'], 1134, 2);
-        }
+        add_filter('slug_helper_get_permalink_setting_key', [$this, 'getPermalinkSettingKey'], 1134, 2);
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             LanguageAdvancedManager::initModelRelations();
 
             $this->app->register(HookServiceProvider::class);
@@ -68,7 +66,7 @@ class LanguageAdvancedServiceProvider extends ServiceProvider
             $config->set(['plugins.language.general.supported' => $supportedModels]);
         }
 
-        $this->app['events']->listen('eloquent.deleted: ' . LanguageModel::class, function (LanguageModel $language): void {
+        $this->app['events']->listen('eloquent.deleted: ' . LanguageModel::class, function (LanguageModel $language) {
             foreach (LanguageAdvancedManager::getSupported() as $model => $columns) {
                 if (class_exists($model)) {
                     DB::table((new $model())->getTable() . '_translations')
@@ -79,7 +77,7 @@ class LanguageAdvancedServiceProvider extends ServiceProvider
         });
 
         foreach (LanguageAdvancedManager::getSupported() as $model => $columns) {
-            $this->app['events']->listen('eloquent.deleted: ' . $model, function (Model $model): void {
+            $this->app['events']->listen('eloquent.deleted: ' . $model, function (Model $model) {
                 DB::table($model->getTable() . '_translations')
                     ->where($model->getTable() . '_id', $model->getKey())
                     ->delete();

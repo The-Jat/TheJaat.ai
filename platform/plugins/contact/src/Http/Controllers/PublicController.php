@@ -72,18 +72,10 @@ class PublicController extends BaseController
                 ->all();
         }
 
-        if (is_array($receiverEmails)) {
-            $receiverEmails = array_filter($receiverEmails);
-
-            if (count($receiverEmails) === 1) {
-                $receiverEmails = Arr::first($receiverEmails);
-            }
-        }
-
         try {
             $form = ContactForm::create();
 
-            $form->saving(function (ContactForm $form) use ($receiverEmails): void {
+            $form->saving(function (ContactForm $form) use ($receiverEmails) {
                 $data = $form->getRequestData();
 
                 if (Arr::has($data, 'contact_custom_fields')) {
@@ -111,12 +103,16 @@ class PublicController extends BaseController
                         })->all();
                 }
 
+                $form
+                    ->getModel()
+                    ->fill($data)
+                    ->save();
+
                 /**
                  * @var Contact $contact
                  */
-                $contact = $form->getModel();
-
-                $contact->fill($data)->save();
+                $contact = $form
+                    ->getModel();
 
                 event(new SentContactEvent($contact));
 
@@ -126,7 +122,7 @@ class PublicController extends BaseController
                     $args = ['replyTo' => [$contact->name => $contact->email]];
                 }
 
-                $emailHandler = EmailHandler::setModule(CONTACT_MODULE_SCREEN_NAME)
+                EmailHandler::setModule(CONTACT_MODULE_SCREEN_NAME)
                     ->setVariableValues([
                         'contact_name' => $contact->name,
                         'contact_subject' => $contact->subject,
@@ -134,15 +130,9 @@ class PublicController extends BaseController
                         'contact_phone' => $contact->phone,
                         'contact_address' => $contact->address,
                         'contact_content' => $contact->content,
-                        'contact_custom_fields' => $data['custom_fields'] ?? [],
-                    ]);
-
-                $emailHandler->sendUsingTemplate('notice', $receiverEmails ?: null, $args);
-
-                $args = ['replyTo' => is_array($receiverEmails) ? Arr::first($receiverEmails) : $receiverEmails];
-
-                $emailHandler->sendUsingTemplate('sender-confirmation', $contact->email, $args);
-            }, true);
+                    ])
+                    ->sendUsingTemplate('notice', $receiverEmails ?: null, $args);
+            });
 
             return $this
                 ->httpResponse()

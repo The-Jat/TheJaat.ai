@@ -204,3 +204,10 @@ if (! function_exists('get_blog_page_url')) {
         return $blogPage->url;
     }
 }
+
+if (! function_exists('get_all_posts_paginated')) {
+    function get_all_posts_paginated($perPage): Collection|LengthAwarePaginator
+    {
+        return app(PostInterface::class)->getAllPostsPaginated($perPage);
+    }
+}

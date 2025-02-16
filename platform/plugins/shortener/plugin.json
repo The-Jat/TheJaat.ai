@@ -1,0 +1,10 @@
+{
+    "id": "thejat/Shortener",
+    "name": "Shortener",
+    "namespace": "Botble\\Shortener\\",
+    "provider": "Botble\\Shortener\\Providers\\ShortenerServiceProvider",
+    "author": "The Jat",
+    "url": "https://thejat.in",
+    "version": "2.0.0",
+    "description": "Shortens the links"
+}

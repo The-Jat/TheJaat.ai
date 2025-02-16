@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('translations', function (Blueprint $table): void {
+        Schema::create('translations', function (Blueprint $table) {
             $table->id();
             $table->integer('status')->default(0);
             $table->string('locale', 20);

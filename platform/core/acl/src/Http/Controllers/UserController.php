@@ -56,10 +56,10 @@ class UserController extends BaseSystemController
         $form = UserForm::create();
         $user = null;
 
-        $form->saving(function (UserForm $form) use ($service, $request, &$user): void {
+        $form->saving(function (UserForm $form) use ($service, $request, &$user) {
             $user = $service->execute($request);
 
-            $form->setModel($user);
+            $form->setupModel($user);
         });
 
         return $this
@@ -72,7 +72,7 @@ class UserController extends BaseSystemController
     public function destroy(User $user)
     {
         return DeleteResourceAction::make($user)
-            ->beforeDeleting(function (DeleteResourceAction $action): void {
+            ->beforeDeleting(function (DeleteResourceAction $action) {
                 $request = $action->getRequest();
                 $model = $action->getModel();
 
@@ -196,10 +196,7 @@ class UserController extends BaseSystemController
     public function updatePreferences(User $user, PreferenceRequest $request)
     {
         PreferenceForm::createFromModel($user)
-            ->saving(function (PreferenceForm $form) use ($request): void {
-                /**
-                 * @var User $model
-                 */
+            ->saving(function (PreferenceForm $form) use ($request) {
                 $model = $form->getModel();
                 $model->setMeta('locale', $request->input('locale'));
                 $model->setMeta('locale_direction', $request->input('locale_direction'));

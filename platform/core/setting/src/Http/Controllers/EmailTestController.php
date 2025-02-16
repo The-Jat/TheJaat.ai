@@ -12,18 +12,8 @@ class EmailTestController extends BaseController
     public function __invoke(EmailSendTestRequest $request)
     {
         try {
-            $content = file_get_contents(core_path('setting/resources/email-templates/test.tpl'));
-
-            if ($template = $request->input('template')) {
-                [$type, $module, $template] = explode('.', $template);
-
-                if ($type && $module && $template) {
-                    $content = get_setting_email_template_content($type, $module, $template);
-                }
-            }
-
             EmailHandler::send(
-                $content,
+                file_get_contents(core_path('setting/resources/email-templates/test.tpl')),
                 'Test',
                 $request->input('email'),
                 [],

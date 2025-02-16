@@ -3,16 +3,16 @@
 namespace Botble\Comment\Providers;
 
 use Botble\Base\Facades\Html;
+use Botble\Base\Facades\MetaBox;
 use Botble\Base\Models\BaseModel;
 use Botble\Blog\Models\Post;
 use Botble\Comment\Facades\BbComment;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
+use Botble\Media\Facades\RvMedia;
+use Botble\Slug\Facades\SlugHelper;
+use Botble\Theme\Facades\Theme;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
-use MetaBox;
-use RvMedia;
-use SlugHelper;
-use Theme;
 
 class HookServiceProvider extends ServiceProvider
 {
@@ -37,13 +37,13 @@ class HookServiceProvider extends ServiceProvider
                 return $form;
             }, 127, 2);
 
-            add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object): void {
+            add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object) {
                 if (get_class($object) == Post::class) {
                     MetaBox::saveMetaBoxData($object, 'comment_status', $request->input('comment_status'));
                 }
             }, 230, 3);
 
-            add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object): void {
+            add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object) {
                 if (get_class($object) == Post::class) {
                     MetaBox::saveMetaBoxData($object, 'comment_status', $request->input('comment_status'));
                 }

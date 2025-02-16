@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Illuminate\Http\Response render(string $type = 'xml')
  * @method static array getKeys()
  * @method static \Botble\Theme\Supports\SiteMapManager registerKey(array|string $key, string|null $value = null)
- * @method static \Botble\Theme\Supports\SiteMapManager removeKey(array|string $key)
  * @method static array allowedExtensions()
  *
  * @see \Botble\Theme\Supports\SiteMapManager

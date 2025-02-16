@@ -7,7 +7,6 @@ use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Supports\Breadcrumb;
 use Botble\Setting\Http\Requests\EmailTemplateRequest;
 use Illuminate\Contracts\View\View;
-use Throwable;
 
 class EmailTemplateController extends SettingController
 {
@@ -35,15 +34,8 @@ class EmailTemplateController extends SettingController
 
         $routeParams = [$type, $module, $template];
 
-        abort_if(count($routeParams) !== 3, 404);
-
-        try {
-            $updateUrl = route('settings.email.template.update', $routeParams);
-            $restoreUrl = route('settings.email.template.restore', $routeParams);
-        } catch (Throwable $exception) {
-            BaseHelper::logError($exception);
-            abort(404);
-        }
+        $updateUrl = route('settings.email.template.update', $routeParams);
+        $restoreUrl = route('settings.email.template.restore', $routeParams);
 
         return view('core/setting::email-template-edit', compact('emailContent', 'emailSubject', 'pluginData', 'updateUrl', 'restoreUrl'));
     }

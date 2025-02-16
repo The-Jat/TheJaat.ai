@@ -8,11 +8,39 @@
                     <div class="letter-background">{!! clean($shortcode->subtitle) !!}</div>
                 </div>
                 <div class="loop-list">
-                    @foreach (get_recent_posts($shortcode->limit ?? 4) as $post)
+                    {{-- @foreach (get_recent_posts($shortcode->limit ?? 4) as $post) --}}
+                    @php
+                        // This will result all the posts in a paginated way default of the laravel.
+                        $posts = get_all_posts_paginated($shortcode->limit ?? 5);
+                    @endphp
+                    @foreach ($posts as $post)
                         <article class="row mb-50">
                             {!! Theme::partial('components.post-card-2-block', ['post' => $post]) !!}
                         </article>
                     @endforeach
+                    {{-- Todo: style the default laravel pagination links --}}
+                    {{ $posts->links() }}
+
+                    {{-- View All Blog Post --}}
+                     <div style="display: flex; justify-content: center;">
+                        <a href="{{ route('public.viewAllBlogPost', ['search' => '', 'field' => 'DATE', 'order' => 'DESC', 'first' => 12]) }}"
+                           class="page_speed_997071029" 
+                           style="
+                             border: 1px solid #dee2e6; 
+                             padding: 0.5rem 1rem; 
+                             display: inline-flex; 
+                             align-items: center;
+                             color: #6c757d;
+                           ">
+                          View all
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+                               stroke-width="1.5" stroke="currentColor" 
+                               class="ms-2" style="width: 20px; height: 20px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" 
+                                  d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"></path>
+                          </svg>
+                        </a>
+                      </div>
                 </div>
             </div>
 

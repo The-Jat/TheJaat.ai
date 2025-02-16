@@ -34,7 +34,7 @@
                                         <tr>
                                             <td align="center" valign="top" class="lh-1">
                                                 <a href="{{ reset_link }}" class="bb-btn bb-bg-blue bb-border-blue">
-                                                    <span class="btn-span">Reset password</span>
+                                                    <span class="btn-span">Reset&nbsp;password</span>
                                                 </a>
                                             </td>
                                         </tr>

@@ -66,8 +66,10 @@ class SocialLink
             'href' => $this->getUrl(),
             'title' => $this->getName(),
             'target' => '_blank',
-            'style' => ($backgroundColor ? sprintf('background-color: %s !important;', $backgroundColor) : null) .
-                ($color ? sprintf('color: %s !important;', $color) : null),
+            'style' =>
+                ($backgroundColor ? sprintf('background-color: %s !important;', $backgroundColor) : null) .
+                ($color ? sprintf('color: %s !important;', $color) : null)
+            ,
             ...$attributes,
         ];
 
@@ -81,12 +83,6 @@ class SocialLink
     public function getIconHtml(array $attributes = []): ?HtmlString
     {
         if ($this->image) {
-
-            $attributes = [
-                'loading' => false,
-                ...$attributes,
-            ];
-
             return RvMedia::image($this->image, $this->name, attributes: $attributes);
         }
 
@@ -97,7 +93,7 @@ class SocialLink
         if (BaseHelper::hasIcon($this->icon)) {
             $icon = BaseHelper::renderIcon($this->icon, attributes: $attributes);
         } else {
-            $icon = BaseHelper::clean(sprintf('<i class="%s"></i>', $this->icon));
+            $icon = sprintf('<i class="%s"></i>', $this->icon);
         }
 
         return new HtmlString($icon);

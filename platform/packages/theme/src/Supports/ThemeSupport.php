@@ -3,7 +3,6 @@
 namespace Botble\Theme\Supports;
 
 use Botble\Base\Facades\AdminHelper;
-use Botble\Base\Facades\Assets;
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Facades\Html;
 use Botble\Base\Forms\Fields\NumberField;
@@ -23,7 +22,6 @@ use Botble\Theme\Http\Requests\UpdateOptionsRequest;
 use Botble\Theme\ThemeOption\Fields\ColorField;
 use Botble\Theme\ThemeOption\Fields\IconField;
 use Botble\Theme\ThemeOption\Fields\MediaImageField;
-use Botble\Theme\ThemeOption\Fields\NumberField as NumberFieldOption;
 use Botble\Theme\ThemeOption\Fields\RepeaterField;
 use Botble\Theme\ThemeOption\Fields\SelectField;
 use Botble\Theme\ThemeOption\ThemeOptionSection;
@@ -186,7 +184,7 @@ class ThemeSupport
             return $html . apply_filters('theme_preloader', $preloader);
         }, 16);
 
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             theme_option()
                 ->setField([
                     'id' => 'preloader_enabled',
@@ -247,7 +245,7 @@ class ThemeSupport
 
     public static function registerThemeIconFields(array $icons, array $css = [], array $js = []): void
     {
-        app()->booted(function () use ($icons): void {
+        app()->booted(function () use ($icons) {
             app('form')->component(
                 'themeIcon',
                 $icons ? 'packages/theme::forms.fields.icons-field' : 'core/base::forms.partials.core-icon',
@@ -286,30 +284,12 @@ class ThemeSupport
             add_filter('theme_icon_list_icons', function (array $defaultIcons) use ($icons) {
                 return array_merge($defaultIcons, $icons);
             });
-
-            if ($css) {
-                Assets::addStylesDirectly($css);
-            }
-
-            add_filter('core_icons', function (array $coreIcons) use ($icons) {
-                $themeIcons = [];
-
-                foreach ($icons as $icon) {
-                    $themeIcons[$icon] = [
-                        'name' => $icon,
-                        'basename' => $icon,
-                        'path' => null,
-                    ];
-                }
-
-                return array_merge($coreIcons, $themeIcons);
-            }, 120);
         }
     }
 
     public static function registerFacebookIntegration(): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             theme_option()
                 ->setSection([
                     'title' => __('Facebook Integration'),
@@ -451,14 +431,7 @@ class ThemeSupport
                 return $html;
             }
 
-            if (
-                theme_option('facebook_comment_enabled_in_post', 'no') == 'yes'
-                || (theme_option('facebook_chat_enabled', 'no') == 'yes' && theme_option('facebook_page_id'))
-            ) {
-                return $html . view('packages/theme::partials.facebook-integration')->render();
-            }
-
-            return $html;
+            return $html . view('packages/theme::partials.facebook-integration')->render();
         }, 1180);
 
         add_filter(BASE_FILTER_PUBLIC_COMMENT_AREA, function ($html) {
@@ -476,7 +449,7 @@ class ThemeSupport
 
     public static function registerSocialLinks(): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             ThemeOption::setSection(
                 ThemeOptionSection::make('opt-text-subsection-social-links')
                     ->title(__('Social Links'))
@@ -619,12 +592,12 @@ class ThemeSupport
                 ['key' => 'url', 'value' => 'https://www.facebook.com'],
             ],
             [
-                ['key' => 'name', 'value' => 'X (Twitter)'],
+                ['key' => 'name', 'value' => 'X'],
                 ['key' => 'icon', 'value' => 'ti ti-brand-x'],
                 ['key' => 'url', 'value' => 'https://x.com'],
             ],
             [
-                ['key' => 'name', 'value' => 'YouTube'],
+                ['key' => 'name', 'value' => 'Youtube'],
                 ['key' => 'icon', 'value' => 'ti ti-brand-youtube'],
                 ['key' => 'url', 'value' => 'https://www.youtube.com'],
             ],
@@ -643,7 +616,7 @@ class ThemeSupport
 
     public static function registerSiteCopyright(): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             ThemeOption::setField([
                 'id' => 'copyright',
                 'section_id' => 'opt-text-subsection-general',
@@ -669,10 +642,7 @@ class ThemeSupport
         $copyright = theme_option('copyright');
 
         if ($copyright) {
-            $year = Carbon::now()->format('Y');
-
-            $copyright = str_replace('%Y', $year, $copyright);
-            $copyright = str_replace(':year', $year, $copyright);
+            $copyright = str_replace('%Y', Carbon::now()->format('Y'), $copyright);
         }
 
         $copyright = apply_filters('theme_site_copyright', $copyright);
@@ -686,7 +656,7 @@ class ThemeSupport
 
     public static function registerLazyLoadImages(): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             ThemeOption::setField([
                 'id' => 'lazy_load_images',
                 'section_id' => 'opt-text-subsection-general',
@@ -723,7 +693,7 @@ class ThemeSupport
         ) {
             if (
                 AdminHelper::isInAdmin()
-                || Arr::get($attributes, 'data-bb-lazy') !== 'true'
+                || Arr::get($attributes, 'loading') !== 'lazy'
             ) {
                 return $html;
             }
@@ -754,7 +724,7 @@ class ThemeSupport
                         window.Theme = window.Theme || {};
 
                         Theme.lazyLoadInstance = new LazyLoad({
-                            elements_selector: '[data-bb-lazy="true"]',
+                            elements_selector: '[loading="lazy"]',
                         });
                     });
 
@@ -768,7 +738,7 @@ class ThemeSupport
 
     public static function registerSocialSharing(): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             ThemeOption::setSection(
                 ThemeOptionSection::make('opt-text-subsection-social-sharing')
                     ->title(__('Social Sharing'))
@@ -870,15 +840,15 @@ class ThemeSupport
                 continue;
             }
 
-            $encodedTitle = match ($social) {
+            $title = match ($social) {
                 'linkedin' => rawurldecode(strip_tags($title)),
                 'email' => $title,
                 'x' => Str::limit(strip_tags($title), 200),
                 default => strip_tags($title),
             };
 
-            $encodedUrl = match ($social) {
-                'x', 'whatsapp' => $url,
+            $url = match ($social) {
+                'x' => $url,
                 default => urlencode($url),
             };
 
@@ -893,21 +863,21 @@ class ThemeSupport
                     'email' => __('Email'),
                     default => __('Unknown'),
                 },
-                'icon' => $image ? Html::image(RvMedia::getImageUrl($image), $name, attributes: ['loading' => false]) : BaseHelper::renderIcon($icon),
+                'icon' => $image ? Html::image(RvMedia::getImageUrl($image), $name) : BaseHelper::renderIcon($icon),
                 'url' => match ($social) {
-                    'facebook' => sprintf('https://www.facebook.com/sharer.php?u=%s', $encodedUrl),
-                    'x' => sprintf('https://x.com/intent/tweet?url=%s&text=%s', $encodedUrl, $encodedTitle),
-                    'linkedin' => sprintf('https://www.linkedin.com/sharing/share-offsite?url=%s&sumary=%s', $encodedUrl, $encodedTitle),
+                    'facebook' => sprintf('https://www.facebook.com/sharer.php?u=%s', $url),
+                    'x' => sprintf('https://x.com/intent/tweet?url=%s&text=%s', $url, $title),
+                    'linkedin' => sprintf('https://www.linkedin.com/sharing/share-offsite?url=%s&sumary=%s', $url, $title),
                     'pinterest' => sprintf(
                         'https://pinterest.com/pin/create/button/?url=%s&description=%s&media=%s',
-                        $encodedUrl,
-                        $encodedTitle,
+                        $url,
+                        $title,
                         $thumbnail
                     ),
-                    'whatsapp' => sprintf('https://api.whatsapp.com/send?text=%s %s', $encodedTitle, $encodedUrl),
-                    'telegram' => sprintf('https://t.me/share/url?url=%s&text=%s', $encodedUrl, $encodedTitle),
-                    'email' => sprintf('mailto:?subject=%s&body=%s', $encodedTitle, $encodedUrl),
-                    default => $encodedUrl,
+                    'whatsapp' => sprintf('https://api.whatsapp.com/send?text=%s %s', $title, $url),
+                    'telegram' => sprintf('https://t.me/share/url?url=%s&text=%s', $url, $title),
+                    'email' => sprintf('mailto:?subject=%s&body=%s', $title, $url),
+                    default => $url,
                 },
                 'color' => $color === 'transparent' ? null : $color,
                 'background_color' => $backgroundColor === 'transparent' ? null : $backgroundColor,
@@ -957,7 +927,7 @@ class ThemeSupport
 
     public static function registerDateFormatOption(): void
     {
-        app('events')->listen(RenderingThemeOptionSettings::class, function (): void {
+        app('events')->listen(RenderingThemeOptionSettings::class, function () {
             ThemeOption::setField(
                 SelectField::make()
                     ->sectionId('opt-text-subsection-general')
@@ -978,7 +948,7 @@ class ThemeSupport
                 return $rules;
             }
 
-            $rules['date_format'] = ['sometimes', 'required', 'string', Rule::in(self::supportedDateFormats())];
+            $rules['date_format'] = ['required', 'string', Rule::in(self::supportedDateFormats())];
 
             return $rules;
         }, 999, 2);
@@ -1026,24 +996,5 @@ class ThemeSupport
         }
 
         return '';
-    }
-
-    public static function registerSiteLogoHeight(int $defaultValue = 50): void
-    {
-        app('events')->listen(RenderingThemeOptionSettings::class, function () use ($defaultValue): void {
-            ThemeOption::setField(
-                NumberFieldOption::make()
-                    ->sectionId('opt-text-subsection-logo')
-                    ->name('logo_height')
-                    ->label(__('Logo height (px)'))
-                    ->helperText(__('Set the height of the logo in pixels. The default value is :default.', ['default' => $defaultValue . 'px']))
-                    ->attributes([
-                        'min' => 0,
-                        'max' => 150,
-                    ])
-                    ->defaultValue($defaultValue)
-                    ->priority(100)
-            );
-        });
     }
 }

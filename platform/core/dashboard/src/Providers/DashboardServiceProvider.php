@@ -3,7 +3,6 @@
 namespace Botble\Dashboard\Providers;
 
 use Botble\Base\Facades\DashboardMenu;
-use Botble\Base\Supports\DashboardMenuItem;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Dashboard\Models\DashboardWidget;
@@ -42,17 +41,16 @@ class DashboardServiceProvider extends ServiceProvider
             ->publishAssets()
             ->loadMigrations();
 
-        DashboardMenu::default()->beforeRetrieving(function (): void {
+        DashboardMenu::default()->beforeRetrieving(function () {
             DashboardMenu::make()
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('cms-core-dashboard')
-                        ->priority(-9999)
-                        ->name('core/base::layouts.dashboard')
-                        ->icon('ti ti-home')
-                        ->route('dashboard.index')
-                        ->permissions(false)
-                );
+                ->registerItem([
+                    'id' => 'cms-core-dashboard',
+                    'priority' => -9999,
+                    'name' => 'core/base::layouts.dashboard',
+                    'icon' => 'ti ti-home',
+                    'route' => 'dashboard.index',
+                    'permissions' => false,
+                ]);
         });
     }
 }

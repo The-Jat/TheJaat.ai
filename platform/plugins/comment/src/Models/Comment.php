@@ -44,11 +44,9 @@ class Comment extends BaseModel
         'user',
     ];
 
-    protected static function boot()
+    protected static function booted(): void
     {
-        parent::boot();
-
-        static::created(function (Comment $comment): void {
+        static::created(function (Comment $comment) {
             if ((int) $comment->parent_id !== 0) {
                 $parent = Comment::where(['id' => $comment->parent_id])->first();
                 $parent->reply_count = Comment::where(['parent_id' => $parent->id])->count();
@@ -56,7 +54,7 @@ class Comment extends BaseModel
             }
         });
 
-        static::deleted(function (Comment $comment): void {
+        static::deleted(function (Comment $comment) {
             Comment::where(['parent_id' => $comment->id])->delete();
         });
     }

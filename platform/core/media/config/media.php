@@ -1,9 +1,7 @@
 <?php
 
 return [
-    'sizes' => [
-        'thumb' => '150x150',
-    ],
+   
     'permissions' => [
         'folders.create',
         'folders.edit',
@@ -31,7 +29,7 @@ return [
     ],
     'allowed_mime_types' => env(
         'RV_MEDIA_ALLOWED_MIME_TYPES',
-        'jpg,jpeg,png,gif,txt,docx,zip,mp3,bmp,csv,xls,xlsx,ppt,pptx,pdf,mp4,m4v,doc,mpga,wav,webp,webm,mov,jfif,avif'
+        'jpg,jpeg,png,gif,txt,docx,zip,mp3,bmp,csv,xls,xlsx,ppt,pptx,pdf,mp4,doc,mpga,wav,webp,webm,mov'
     ),
     'mime_types' => [
         'image' => [
@@ -41,11 +39,9 @@ return [
             'image/bmp',
             'image/svg+xml',
             'image/webp',
-            'image/avif',
         ],
         'video' => [
             'video/mp4',
-            'video/m4v',
             'video/mov',
             'video/quicktime',
         ],
@@ -61,17 +57,6 @@ return [
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/vnd.ms-powerpoint',
             'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        ],
-        'zip' => [
-            'application/zip',
-            'application/x-zip-compressed',
-            'application/x-compressed',
-            'multipart/x-zip',
-        ],
-        'audio' => [
-            'audio/mpeg',
-            'audio/mp3',
-            'audio/wav',
         ],
     ],
     'default_image' => env('RV_MEDIA_DEFAULT_IMAGE', '/vendor/core/core/base/images/placeholder.png'),
@@ -146,7 +131,7 @@ return [
         ],
     ],
     'default_upload_folder' => env('RV_MEDIA_DEFAULT_UPLOAD_FOLDER'),
-    'default_upload_url' => env('RV_MEDIA_DEFAULT_UPLOAD_URL'),
+    'default_upload_url' => env('RV_MEDIA_DEFAULT_UPLOAD_URL', url('storage')),
     'generate_thumbnails_enabled' => env('RV_MEDIA_GENERATE_THUMBNAILS_ENABLED', true),
     'generate_thumbnails_chunk_limit' => env('RV_MEDIA_GENERATE_THUMBNAILS_CHUNK_LIMIT', 50),
     'folder_colors' => [

@@ -1,7 +1,7 @@
 <?php
 
-Route::group(['namespace' => 'TheSky\ProPosts\Http\Controllers', 'middleware' => ['web']], function (): void {
-    Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function (): void {
+Route::group(['namespace' => 'TheSky\ProPosts\Http\Controllers', 'middleware' => ['web']], function () {
+    Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function () {
         Route::get('recently-viewed-posts', [
             'as' => 'public.recently-viewed-posts',
             'uses' => 'PublicController@getRecentlyViewedPosts',

@@ -36,7 +36,7 @@ class OptimizeServiceProvider extends ServiceProvider
             AliasLoader::getInstance()->alias('OptimizerHelper', OptimizerHelper::class);
         }
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SettingCommonPanelSection::class,
                 fn () => PanelSectionItem::make('common')
@@ -48,7 +48,7 @@ class OptimizeServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             if (OptimizerHelper::isEnabled()) {
                 /**
                  * @var Router $router

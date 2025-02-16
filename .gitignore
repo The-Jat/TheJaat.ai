@@ -52,6 +52,3 @@ resources/docs
 storage/framework/laravel-excel/
 /.scribe
 /.env.testing
-.phpactor.json
-
-storage/framework/maintenance.php

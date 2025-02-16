@@ -5,7 +5,6 @@ namespace Botble\Media\Http\Controllers;
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Media\Facades\RvMedia;
-use Botble\Media\Http\Requests\MediaListRequest;
 use Botble\Media\Http\Resources\FileResource;
 use Botble\Media\Http\Resources\FolderResource;
 use Botble\Media\Models\MediaFile;
@@ -27,8 +26,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use League\Flysystem\UnableToWriteFile;
-use Throwable;
 
 /**
  * @since 19/08/2015 08:05 AM
@@ -54,7 +51,7 @@ class MediaController extends BaseController
         return view('core/media::popup')->render();
     }
 
-    public function getList(MediaListRequest $request)
+    public function getList(Request $request)
     {
         $files = [];
         $folders = [];
@@ -106,7 +103,7 @@ class MediaController extends BaseController
             ];
         }
 
-        $folderId = $request->input('folder_id', 0);
+        $folderId = $request->input('folder_id');
 
         switch ($request->input('view_in')) {
             case 'all_media':
@@ -545,25 +542,13 @@ class MediaController extends BaseController
                     $fileUrl = str_replace('?' . $parsedUrl['query'], '', $fileUrl);
                 }
 
-                try {
-                    $thumbnailService
-                        ->setImage(RvMedia::getRealPath($fileUrl))
-                        ->setSize((int) $cropData['width'], (int) $cropData['height'])
-                        ->setCoordinates((int) $cropData['x'], (int) $cropData['y'])
-                        ->setDestinationPath(File::dirname($fileUrl))
-                        ->setFileName(File::name($fileUrl) . '.' . File::extension($fileUrl))
-                        ->save('crop');
-                } catch (UnableToWriteFile $exception) {
-                    $message = $exception->getMessage();
-
-                    if (! RvMedia::isUsingCloud()) {
-                        $message = trans('core/media::media.unable_to_write', ['folder' => RvMedia::getUploadPath()]);
-                    }
-
-                    return RvMedia::responseError($message);
-                } catch (Throwable $exception) {
-                    return RvMedia::responseError($exception->getMessage());
-                }
+                $thumbnailService
+                    ->setImage(RvMedia::getRealPath($fileUrl))
+                    ->setSize((int) $cropData['width'], (int) $cropData['height'])
+                    ->setCoordinates((int) $cropData['x'], (int) $cropData['y'])
+                    ->setDestinationPath(File::dirname($fileUrl))
+                    ->setFileName(File::name($fileUrl) . '.' . File::extension($fileUrl))
+                    ->save('crop');
 
                 $file->url = $fileUrl . '?v=' . time();
                 $file->save();
@@ -578,8 +563,9 @@ class MediaController extends BaseController
                 Validator::validate($request->input(), [
                     'selected' => ['required', 'array'],
                     'selected.*.id' => ['required', 'string'],
-                    'selected.*.name' => ['required', 'string', 'max:120'],
+                    'selected.*.name' => ['required', 'string'],
                     'selected.*.is_folder' => ['required', 'boolean'],
+                    'selected.*.rename_physical_file' => ['sometimes', 'boolean'],
                 ]);
 
                 foreach ($request->input('selected') as $item) {
@@ -620,12 +606,6 @@ class MediaController extends BaseController
                 break;
 
             case 'alt_text':
-                Validator::validate($request->input(), [
-                    'selected' => ['required', 'array'],
-                    'selected.*.id' => ['required', 'exists:media_files,id'],
-                    'selected.*.alt' => ['nullable', 'string', 'max:220'],
-                ]);
-
                 foreach ($request->input('selected') as $item) {
                     if (! $item['id']) {
                         continue;
@@ -729,7 +709,7 @@ class MediaController extends BaseController
 
                 return response()->make(Http::withoutVerifying()->get($filePath)->body(), 200, [
                     'Content-type' => $file->mime_type,
-                    'Content-Disposition' => sprintf('attachment; filename="%s"', File::basename($filePath)),
+                    'Content-Disposition' => 'attachment; filename="' . $file->name . '.' . File::extension($file->url) . '"',
                 ]);
             }
         } else {

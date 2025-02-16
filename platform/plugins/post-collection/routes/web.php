@@ -1,8 +1,8 @@
 <?php
 
-Route::group(['namespace' => 'Botble\PostCollection\Http\Controllers', 'middleware' => ['web', 'core']], function (): void {
-    Route::group(['prefix' => BaseHelper::getAdminPrefix(), 'middleware' => 'auth'], function (): void {
-        Route::group(['prefix' => 'post-collections', 'as' => 'post-collection.'], function (): void {
+Route::group(['namespace' => 'Botble\PostCollection\Http\Controllers', 'middleware' => ['web', 'core']], function () {
+    Route::group(['prefix' => BaseHelper::getAdminPrefix(), 'middleware' => 'auth'], function () {
+        Route::group(['prefix' => 'post-collections', 'as' => 'post-collection.'], function () {
             Route::resource('', 'PostCollectionController')->parameters(['' => 'post-collection']);
             Route::delete('items/destroy', [
                 'as' => 'deletes',

@@ -1,4 +1,4 @@
-@if (Captcha::isEnabled() && (! $form || Captcha::formSetting($form, 'enable_recaptcha', 1)))
+@if (Captcha::isEnabled() && (! $form || Captcha::formSetting($form, 'enable_captcha', 1)))
     <div style="margin-top: 10px; margin-bottom: 10px">
         {!! Captcha::display() !!}
     </div>

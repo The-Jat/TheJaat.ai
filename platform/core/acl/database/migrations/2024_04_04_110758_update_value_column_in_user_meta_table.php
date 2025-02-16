@@ -10,7 +10,7 @@ return new class () extends Migration {
      */
     public function up(): void
     {
-        Schema::table('user_meta', function (Blueprint $table): void {
+        Schema::table('user_meta', function (Blueprint $table) {
             $table->text('value')->nullable()->change();
         });
     }

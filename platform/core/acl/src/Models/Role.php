@@ -37,11 +37,11 @@ class Role extends BaseModel
 
     protected static function booted(): void
     {
-        self::saving(function (self $model): void {
+        self::saving(function (self $model) {
             $model->slug = self::createSlug($model->slug ?: $model->name, $model->getKey());
         });
 
-        self::deleted(function (self $model): void {
+        self::deleted(function (self $model) {
             $model->users()->detach();
 
             Helper::clearCache();
@@ -86,6 +86,6 @@ class Role extends BaseModel
             }
         }
 
-        return apply_filters('core_acl_role_permissions', $permissions);
+        return $permissions;
     }
 }

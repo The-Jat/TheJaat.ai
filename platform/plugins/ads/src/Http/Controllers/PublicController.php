@@ -26,40 +26,41 @@ class PublicController extends BaseController
 
     public function getAdsImage(string $randomHash, string $adsKey, string $size, string $hashName, BaseHttpResponse $response)
     {
-        /**
-         * @var Ads $ads
-         */
         $ads = Ads::query()->where('key', $adsKey)->firstOrFail();
 
-        abort_unless($ads, 404);
+        if (! $ads) {
+            abort(404);
+        }
 
         abort_if($randomHash !== $ads->random_hash, 404);
+
+        abort_if(! Str::of(
+            $ads->parseImageUrl($size)
+        )->endsWith($hashName), 404);
 
         if ($size === 'tablet') {
             $image = $ads->tablet_image ?: $ads->image;
         } elseif ($size === 'mobile') {
-            $image = ($ads->mobile_image ?: $ads->tablet_image) ?: $ads->image;
+            $image = ($ads->mobile_image ?: $ads->mobile_image) ?: $ads->image;
         } else {
             $image = $ads->image;
         }
 
-        abort_unless($image, 404);
+        if (! $image) {
+            abort(404);
+        }
 
         $realPath = RvMedia::getRealPath($image);
-
-        abort_if(! Str::of(
-            $ads->parseImageUrl($size)
-        )->endsWith($hashName . '.jpg'), 404);
 
         if (Str::startsWith($realPath, ['http://', 'https://'])) {
             return $response->setNextUrl($realPath);
         }
 
-        abort_unless(File::exists($realPath), 404);
+        if (! File::exists($realPath)) {
+            abort(404);
+        }
 
-        return response()->file($realPath, [
-            'Content-Type' => File::mimeType($realPath),
-        ]);
+        return response()->file($realPath);
     }
 
     public function getAdsClickAlternative(string $randomHash, string $adsKey)

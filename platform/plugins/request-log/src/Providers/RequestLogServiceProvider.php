@@ -37,7 +37,7 @@ class RequestLogServiceProvider extends ServiceProvider
             ->loadMigrations()
             ->publishAssets();
 
-        PanelSectionManager::group('system')->beforeRendering(function (): void {
+        PanelSectionManager::group('system')->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SystemPanelSection::class,
                 fn () => PanelSectionItem::make('request-logs')
@@ -52,7 +52,7 @@ class RequestLogServiceProvider extends ServiceProvider
         $this->app->register(EventServiceProvider::class);
         $this->app->register(CommandServiceProvider::class);
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             $this->app->register(HookServiceProvider::class);
         });
     }

@@ -2,6 +2,7 @@
 
 namespace Botble\Blog\Http\Controllers;
 
+use Botble\ACL\Models\User;
 use Botble\Base\Http\Actions\DeleteResourceAction;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Base\Http\Responses\BaseHttpResponse;
@@ -13,6 +14,7 @@ use Botble\Blog\Services\StoreCategoryService;
 use Botble\Blog\Services\StoreTagService;
 use Botble\Blog\Tables\PostTable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PostController extends BaseController
 {
@@ -42,18 +44,31 @@ class PostController extends BaseController
         StoreTagService $tagService,
         StoreCategoryService $categoryService
     ) {
-        $form = PostForm::create()->setRequest($request)->save();
+        $postForm = PostForm::create();
 
-        $post = $form->getModel();
+        $postForm->saving(function (PostForm $form) use ($request, $tagService, $categoryService) {
+            $form
+                ->getModel()
+                ->fill([
+                    ...$request->input(),
+                    'author_id' => Auth::guard()->id(),
+                    'author_type' => User::class,
+                ])
+                ->save();
 
-        $tagService->execute($request, $post);
+            $post = $form->getModel();
 
-        $categoryService->execute($request, $post);
+            $form->fireModelEvents($post);
+
+            $tagService->execute($request, $post);
+
+            $categoryService->execute($request, $post);
+        });
 
         return $this
             ->httpResponse()
             ->setPreviousRoute('posts.index')
-            ->setNextRoute('posts.edit', $post->getKey())
+            ->setNextRoute('posts.edit', $postForm->getModel()->getKey())
             ->withCreatedSuccessMessage();
     }
 
@@ -70,18 +85,21 @@ class PostController extends BaseController
         StoreTagService $tagService,
         StoreCategoryService $categoryService,
     ) {
-        $form = PostForm::createFromModel($post)
+        PostForm::createFromModel($post)
             ->setRequest($request)
-            ->save();
+            ->saving(function (PostForm $form) use ($categoryService, $tagService) {
+                $request = $form->getRequest();
 
-        /**
-         * @var Post $post
-         */
-        $post = $form->getModel();
+                $post = $form->getModel();
+                $post->fill($request->input());
+                $post->save();
 
-        $tagService->execute($request, $post);
+                $form->fireModelEvents($post);
 
-        $categoryService->execute($request, $post);
+                $tagService->execute($request, $post);
+
+                $categoryService->execute($request, $post);
+            });
 
         return $this
             ->httpResponse()
@@ -89,7 +107,7 @@ class PostController extends BaseController
             ->withUpdatedSuccessMessage();
     }
 
-    public function destroy(Post $post): DeleteResourceAction
+    public function destroy(Post $post)
     {
         return DeleteResourceAction::make($post);
     }

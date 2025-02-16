@@ -4,7 +4,6 @@ namespace Botble\Installer\Http\Controllers;
 
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Http\Controllers\BaseController;
-use Botble\Base\Supports\Core;
 use Botble\Installer\Events\EnvironmentSaved;
 use Botble\Installer\Http\Requests\SaveEnvironmentRequest;
 use Botble\Installer\Services\ImportDatabaseService;
@@ -14,8 +13,6 @@ use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 
 class EnvironmentController extends BaseController
@@ -49,34 +46,16 @@ class EnvironmentController extends BaseController
             ]),
         ]);
 
-        $results = $environmentManager->save($request);
-
-        event(new EnvironmentSaved($request));
-
-        if (class_exists(Manager::class) && count(Manager::getThemes()) > 1) {
+        if (count(Manager::getThemes()) > 1) {
             $nextRouteName = 'installers.themes.index';
         } else {
             $nextRouteName = 'installers.accounts.index';
-
-            $databaseFilePath = base_path('database.sql');
-
-            if (File::exists($databaseFilePath) && File::size($databaseFilePath) > 1024) {
-                $importDatabaseService->handle($databaseFilePath);
-            } else {
-                if (! Schema::hasTable('migrations')) {
-                    Schema::create('migrations', function ($table): void {
-                        // The migrations table is responsible for keeping track of which of the
-                        // migrations have actually run for the application. We'll create the
-                        // table to hold the migration file's path as well as the batch ID.
-                        $table->increments('id');
-                        $table->string('migration');
-                        $table->integer('batch');
-                    });
-                }
-
-                Core::make()->runMigrationFiles();
-            }
+            $importDatabaseService->handle(base_path('database.sql'));
         }
+
+        $results = $environmentManager->save($request);
+
+        event(new EnvironmentSaved($request));
 
         BaseHelper::saveFileData(storage_path(INSTALLING_SESSION_NAME), Carbon::now()->toDateTimeString());
 

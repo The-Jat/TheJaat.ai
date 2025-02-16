@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 
 class GallerySupport
 {
-    public function registerModule(string|array $model): static
+    public function registerModule(string|array $model): self
     {
         if (! is_array($model)) {
             $model = [$model];
@@ -33,7 +33,7 @@ class GallerySupport
         return config('plugins.gallery.general.supported', []);
     }
 
-    public function removeModule(string|array $model): static
+    public function removeModule(string|array $model): self
     {
         $models = $this->getSupportedModules();
 
@@ -114,7 +114,7 @@ class GallerySupport
         return true;
     }
 
-    public function registerAssets(): static
+    public function registerAssets(): self
     {
         Theme::asset()
             ->usePath(false)
@@ -171,17 +171,5 @@ class GallerySupport
             ->select(['id', 'name'])
             ->with(['slugable'])
             ->first();
-    }
-
-    public function isEnabledGalleryImagesMetaBox(): bool
-    {
-        return config('plugins.gallery.general.enable_gallery_images_meta_box', true);
-    }
-
-    public function disableGalleryImagesMetaBox(): static
-    {
-        config()->set('plugins.gallery.general.enable_gallery_images_meta_box', false);
-
-        return $this;
     }
 }

@@ -22,13 +22,14 @@ class RobotsTxtEditorForm extends FormAbstract
             ->setUrl(route('theme.robots-txt.post'))
             ->setValidatorClass(RobotsTxtRequest::class)
             ->setActionButtons(view('core/base::forms.partials.form-actions', ['onlySave' => true])->render())
-            ->when(! $isRobotsTxtWritable, function (FormAbstract $form) use ($path): void {
+            ->when(! $isRobotsTxtWritable, function (FormAbstract $form) use ($path) {
                 $form->add(
                     'robots_txt_not_writable',
                     AlertField::class,
                     AlertFieldOption::make()
                         ->type('warning')
                         ->content(trans('packages/theme::theme.robots_txt_not_writable', ['path' => $path]))
+                        ->toArray()
                 );
             })
             ->add(
@@ -44,6 +45,7 @@ class RobotsTxtEditorForm extends FormAbstract
                             ['link' => Html::link(url('robots.txt'), attributes: ['target' => '_blank'])]
                         )
                     )
+                    ->toArray()
             )
             ->add(
                 'robots_txt_file',

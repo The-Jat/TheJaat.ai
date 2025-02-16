@@ -2,50 +2,30 @@
 
 namespace Botble\Theme\Providers;
 
-use Botble\Base\Facades\AdminAppearance;
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Facades\Html;
-use Botble\Base\Forms\FieldOptions\MediaFileFieldOption;
-use Botble\Base\Forms\FieldOptions\SelectFieldOption;
-use Botble\Base\Forms\FieldOptions\TextareaFieldOption;
-use Botble\Base\Forms\Fields\MediaFileField;
 use Botble\Base\Forms\Fields\NumberField;
-use Botble\Base\Forms\Fields\OnOffCheckboxField;
-use Botble\Base\Forms\Fields\RadioField;
-use Botble\Base\Forms\Fields\SelectField;
-use Botble\Base\Forms\Fields\TextareaField;
 use Botble\Base\Forms\Fields\TextField;
-use Botble\Base\Forms\FormAbstract;
-use Botble\Base\Rules\OnOffRule;
-use Botble\Base\Supports\Language;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Dashboard\Events\RenderingDashboardWidgets;
 use Botble\Dashboard\Supports\DashboardWidgetInstance;
 use Botble\Media\Facades\RvMedia;
 use Botble\Page\Models\Page;
 use Botble\Page\Tables\PageTable;
-use Botble\Setting\Forms\AdminAppearanceSettingForm;
-use Botble\Setting\Forms\GeneralSettingForm;
-use Botble\Setting\Http\Requests\AdminAppearanceRequest;
-use Botble\Setting\Http\Requests\GeneralSettingRequest;
 use Botble\Shortcode\Compilers\Shortcode;
 use Botble\Shortcode\Compilers\ShortcodeCompiler;
 use Botble\Shortcode\Forms\ShortcodeForm;
-use Botble\Support\Http\Requests\Request;
 use Botble\Theme\Events\RenderingThemeOptionSettings;
 use Botble\Theme\Facades\AdminBar;
 use Botble\Theme\Facades\Theme;
 use Botble\Theme\Supports\ThemeSupport;
 use Botble\Theme\Supports\Vimeo;
 use Botble\Theme\Supports\Youtube;
-use Botble\Theme\ThemeOption\Fields\RadioField as ThemeOptionRadioField;
 use Botble\Theme\ThemeOption\ThemeOptionSection;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
@@ -53,7 +33,7 @@ class HookServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        PageTable::beforeRendering(function (): void {
+        PageTable::beforeRendering(function () {
             add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, function (string $name, Page $page) {
                 if (BaseHelper::isHomepage($page->getKey())) {
                     $name .= Html::tag('span', ' — ' . trans('packages/page::pages.front_page'), [
@@ -65,7 +45,7 @@ class HookServiceProvider extends ServiceProvider
             }, 10, 2);
         });
 
-        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function () {
             if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
                 return;
             }
@@ -105,7 +85,7 @@ class HookServiceProvider extends ServiceProvider
 
         Theme::typography()->renderThemeOptions();
 
-        $this->app['events']->listen(RenderingThemeOptionSettings::class, function (): void {
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
             theme_option()
                 ->setSection(
                     ThemeOptionSection::make('opt-text-subsection-general')
@@ -169,39 +149,12 @@ class HookServiceProvider extends ServiceProvider
                                 ],
                             ],
                             [
-                                'id' => 'seo_index',
-                                'type' => 'customRadio',
-                                'label' => trans('packages/theme::theme.theme_option_seo_index'),
-                                'attributes' => [
-                                    'name' => 'seo_index',
-                                    'values' => [
-                                        true => trans('packages/theme::theme.seo_index_options.index'),
-                                        false => trans('packages/theme::theme.seo_index_options.no_index'),
-                                    ],
-                                    'value' => true,
-                                ],
-                                'helper' => trans('packages/theme::theme.theme_option_seo_index_helper'),
-                            ],
-                            [
                                 'id' => 'seo_og_image',
                                 'type' => 'mediaImage',
                                 'label' => trans('packages/theme::theme.theme_option_seo_open_graph_image'),
                                 'attributes' => [
                                     'name' => 'seo_og_image',
                                     'value' => null,
-                                ],
-                            ],
-                            [
-                                'id' => 'term_and_privacy_policy_url',
-                                'type' => 'text',
-                                'label' => trans('packages/theme::theme.term_and_privacy_policy_url'),
-                                'attributes' => [
-                                    'name' => 'term_and_privacy_policy_url',
-                                    'value' => null,
-                                    'options' => [
-                                        'class' => 'form-control',
-                                        'placeholder' => 'https://example.com/term-and-privacy-policy',
-                                    ],
                                 ],
                             ],
                         ])
@@ -212,15 +165,20 @@ class HookServiceProvider extends ServiceProvider
                         ->icon('ti ti-directions')
                         ->priority(0)
                         ->fields([
-                            ThemeOptionRadioField::make()
-                                ->name('theme_breadcrumb_enabled')
-                                ->label(trans('packages/theme::theme.breadcrumb_enabled'))
-                                ->priority(0)
-                                ->defaultValue(true)
-                                ->options([
-                                    true => __('Yes'),
-                                    false => __('No'),
-                                ]),
+                            [
+                                'id' => 'theme_breadcrumb_enabled',
+                                'type' => 'customSelect',
+                                'label' => trans('packages/theme::theme.breadcrumb_enabled'),
+                                'priority' => 0,
+                                'attributes' => [
+                                    'name' => 'theme_breadcrumb_enabled',
+                                    'list' => [
+                                        '1' => __('Yes'),
+                                        '0' => __('No'),
+                                    ],
+                                    'value' => '1',
+                                ],
+                            ],
                         ])
                 )
                 ->setSection(
@@ -253,7 +211,7 @@ class HookServiceProvider extends ServiceProvider
                 );
         });
 
-        add_shortcode('media', __('Media - Video'), __('Support native video, YouTube, Vimeo, TikTok, X (Twitter)'), function (Shortcode $shortcode) {
+        add_shortcode('media', 'Media', 'Media', function (Shortcode $shortcode) {
             $url = $shortcode->url;
 
             if (! $url) {
@@ -334,7 +292,7 @@ class HookServiceProvider extends ServiceProvider
                 ->add('url', TextField::class, [
                     'label' => __('Media URL'),
                     'attr' => [
-                        'placeholder' => __('YouTube, Vimeo, TikTok, ...'),
+                        'placeholder' => 'YouTube, Vimeo, TikTok, ...',
                     ],
                 ])
                 ->add('width', NumberField::class, [
@@ -344,40 +302,6 @@ class HookServiceProvider extends ServiceProvider
                 ->add('height', NumberField::class, [
                     'label' => __('Height'),
                     'default_value' => 315,
-                ]);
-        });
-
-        add_shortcode('audio', __('Media - Audio'), __('Support native audio'), function (Shortcode $shortcode) {
-            $url = $shortcode->url;
-
-            if (! $url) {
-                return null;
-            }
-
-            $url = rtrim($url, '/');
-
-            if (! $url) {
-                return null;
-            }
-
-            $data = [
-                'url' => $url,
-                'type' => $shortcode->type ?: 'audio/mpeg',
-            ];
-
-            return view('packages/theme::shortcodes.audio', ['data' => $data])->render();
-        });
-
-        shortcode()->setAdminConfig('audio', function (array $attributes) {
-            return ShortcodeForm::createFromArray($attributes)
-                ->add('url', MediaFileField::class, MediaFileFieldOption::make()->label(__('Audio File')))
-                ->add('type', SelectField::class, [
-                    'label' => __('Type'),
-                    'choices' => [
-                        'audio/mpeg' => 'audio/mpeg',
-                        'audio/ogg' => 'audio/ogg',
-                        'audio/wav' => 'audio/wav',
-                    ],
                 ]);
         });
 
@@ -408,16 +332,15 @@ class HookServiceProvider extends ServiceProvider
 
                 shortcode()->setAdminConfig('custom-html', function (array $attributes, ?string $content) {
                     return ShortcodeForm::createFromArray($attributes)
-                        ->add(
-                            'content',
-                            TextareaField::class,
-                            TextareaFieldOption::make()
-                                ->label(__('Content'))
-                                ->placeholder(__('HTML code'))
-                                ->rows(3)
-                                ->addAttribute('data-shortcode-attribute', 'content')
-                                ->value($content)
-                        );
+                        ->add('content', 'textarea', [
+                            'label' => __('Content'),
+                            'attr' => [
+                                'placeholder' => __('HTML code'),
+                                'rows' => 3,
+                                'data-shortcode-attribute' => 'content',
+                            ],
+                            'value' => $content,
+                        ]);
                 });
             }
 
@@ -499,93 +422,12 @@ class HookServiceProvider extends ServiceProvider
             4
         );
 
-        add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, function (): void {
+        add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, function () {
             if (BaseHelper::getRichEditor() === 'ckeditor') {
                 Theme::asset()
                     ->add('ckeditor-content-styles', 'vendor/core/core/base/libraries/ckeditor/content-styles.css');
             }
         }, 15);
-
-        GeneralSettingForm::extend(function (GeneralSettingForm $form): void {
-            $availableLocales = Language::getAvailableLocales();
-
-            $form
-                ->when(! empty($availableLocales), function (FormAbstract $form) use ($availableLocales): void {
-                    $defaultLocale = setting('locale', App::getLocale());
-
-                    if (
-                        BaseHelper::hasDemoModeEnabled()
-                        && session('site-locale')
-                        && array_key_exists(session('site-locale'), $availableLocales)
-                    ) {
-                        $defaultLocale = session('site-locale');
-                    }
-
-                    $form
-                        ->addAfter(
-                            'time_zone',
-                            'locale',
-                            SelectField::class,
-                            SelectFieldOption::make()
-                                ->label(trans('core/setting::setting.general.locale'))
-                                ->choices(collect($availableLocales)
-                                    ->pluck('name', 'locale')
-                                    ->map(fn ($item, $key) => $item . ' - ' . $key)
-                                    ->all())
-                                ->selected($defaultLocale)
-                                ->searchable()
-                        );
-                })
-                ->addAfter('time_zone', 'locale_direction', RadioField::class, [
-                    'label' => trans('core/setting::setting.general.locale_direction'),
-                    'value' => setting('locale_direction', 'ltr'),
-                    'values' => [
-                        'ltr' => trans('core/setting::setting.locale_direction_ltr'),
-                        'rtl' => trans('core/setting::setting.locale_direction_rtl'),
-                    ],
-                ])
-                ->addAfter('enable_send_error_reporting_via_email', 'redirect_404_to_homepage', OnOffCheckboxField::class, [
-                    'label' => trans('core/setting::setting.general.redirect_404_to_homepage'),
-                    'value' => setting('redirect_404_to_homepage', false),
-                ]);
-        }, 110);
-
-        add_filter('core_request_rules', function ($rules, Request $request) {
-            if ($request instanceof GeneralSettingRequest) {
-                $rules = [
-                    ...$rules,
-                    'locale' => ['sometimes', Rule::in(array_keys(Language::getAvailableLocales()))],
-                    'locale_direction' => ['sometimes', 'in:ltr,rtl'],
-                    'redirect_404_to_homepage' => [new OnOffRule()],
-                ];
-            }
-
-            return $rules;
-        }, 110, 2);
-
-        AdminAppearanceSettingForm::extend(function (AdminAppearanceSettingForm $form): void {
-            $form
-                ->addAfter(AdminAppearance::getSettingKey('show_menu_item_icon'), 'show_admin_bar', OnOffCheckboxField::class, [
-                    'label' => trans('core/setting::setting.admin_appearance.form.show_admin_bar'),
-                    'value' => setting('show_admin_bar', true),
-                ])
-                ->addAfter('show_admin_bar', 'show_theme_guideline_link', OnOffCheckboxField::class, [
-                    'label' => trans('core/setting::setting.admin_appearance.form.show_guidelines'),
-                    'value' => setting('show_theme_guideline_link', false),
-                ]);
-        }, 110);
-
-        add_filter('core_request_rules', function ($rules, Request $request) {
-            if ($request instanceof AdminAppearanceRequest) {
-                $rules = [
-                    ...$rules,
-                    'show_admin_bar' => $onOffRule = new OnOffRule(),
-                    'show_theme_guideline_link' => $onOffRule,
-                ];
-            }
-
-            return $rules;
-        }, 110, 2);
     }
 
     public function addStatsWidgets(array $widgets, Collection $widgetSettings): array

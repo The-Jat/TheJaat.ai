@@ -2,7 +2,7 @@
     $values = Arr::wrap($values ?? []);
 @endphp
 
-<div class="position-relative form-check-group">
+<div class="position-relative form-check-group mb-3">
     @foreach ($values as $key => $option)
         <x-core::form.radio
             :name="$name"

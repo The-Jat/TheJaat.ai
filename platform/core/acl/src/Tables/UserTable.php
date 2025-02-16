@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation as EloquentRelation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class UserTable extends TableAbstract
 {
@@ -81,7 +82,7 @@ class UserTable extends TableAbstract
                     ->width(100),
             ])
             ->addHeaderAction(CreateHeaderAction::make()->route('users.create'))
-            ->when(Auth::guard()->user()->isSuperUser(), function (): void {
+            ->when(Auth::guard()->user()->isSuperUser(), function () {
                 $this->addActions([
                     Action::make('make-super')
                         ->route('users.make-super')
@@ -107,15 +108,19 @@ class UserTable extends TableAbstract
             ->addBulkActions([
                 DeleteBulkAction::make()
                     ->permission('users.destroy')
-                    ->beforeDispatch(function (User $user, array $ids): void {
+                    ->beforeDispatch(function (User $user, array $ids) {
                         foreach ($ids as $id) {
-                            abort_if(Auth::guard()->id() == $id, 403, trans('core/acl::users.delete_user_logged_in'));
+                            if (Auth::guard()->id() == $id) {
+                                abort(403, trans('core/acl::users.delete_user_logged_in'));
+                            }
 
                             /**
                              * @var User $user
                              */
                             $user = User::query()->findOrFail($id);
-                            abort_if(! Auth::guard()->user()->isSuperUser() && $user->isSuperUser(), 403, trans('core/acl::users.cannot_delete_super_user'));
+                            if (! Auth::guard()->user()->isSuperUser() && $user->isSuperUser()) {
+                                abort(403, trans('core/acl::users.cannot_delete_super_user'));
+                            }
                         }
                     }),
             ])
@@ -124,7 +129,9 @@ class UserTable extends TableAbstract
                     ->name('username')
                     ->title(trans('core/acl::users.username')),
                 EmailBulkChange::make(),
-                StatusBulkChange::make()->choices(UserStatusEnum::labels()),
+                StatusBulkChange::make()
+                    ->choices(UserStatusEnum::labels())
+                    ->validate(['required', Rule::in(UserStatusEnum::values())]),
                 CreatedAtBulkChange::make(),
             ])
             ->queryUsing(function (Builder $query) {

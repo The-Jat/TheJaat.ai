@@ -16,15 +16,11 @@
             @endif
 
             @if ($showLabel && $options['label'] !== false && $options['label_show'])
-                @if (isset($label))
-                    {!! $label !!}
-                @else
-                    <x-core::form.label
-                        :for="$name"
-                        :label="$options['label']"
-                        :attributes="new Illuminate\View\ComponentAttributeBag($options['label_attr'])"
-                    />
-                @endif
+                <x-core::form.label
+                    :for="$name"
+                    :label="$options['label']"
+                    :attributes="new Illuminate\View\ComponentAttributeBag($options['label_attr'])"
+                />
             @endif
 
             @if ($showField)

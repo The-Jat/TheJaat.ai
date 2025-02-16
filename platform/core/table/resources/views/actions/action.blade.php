@@ -7,5 +7,5 @@
 >
     @include('core/table::actions.includes.action-icon')
 
-    <span @class(['sr-only' => $action->hasIcon() && $action->isIconOnly()])>{{ $action->getLabel() }}</span>
+    <span @class(['sr-only' => $action->hasIcon()])>{{ $action->getLabel() }}</span>
 </{{ $action->getType() }}>

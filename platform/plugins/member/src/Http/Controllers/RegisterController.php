@@ -40,7 +40,9 @@ class RegisterController extends BaseController
 
     public function confirm(int|string $id, Request $request)
     {
-        abort_unless(URL::hasValidSignature($request), 404);
+        if (! URL::hasValidSignature($request)) {
+            abort(404);
+        }
 
         $member = Member::query()->findOrFail($id);
 

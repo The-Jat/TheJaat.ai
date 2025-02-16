@@ -8,17 +8,9 @@
                 {!! Form::label($name, $options['label'], $options['label_attr']) !!}
             @endif
 
-            @php
-                if (Arr::get($options, 'choices')) {
-                    $classAppend = 'list-tagify';
-                } else {
-                    $classAppend = 'tags';
-                }
-            @endphp
-
             @if ($showField)
                 @php
-                    $options['attr']['class'] = (rtrim(Arr::get($options, 'attr.class'), ' ') ?: '') . ' ' . $classAppend;
+                    $options['attr']['class'] = (rtrim(Arr::get($options, 'attr.class'), ' ') ?: '') . ' list-tagify';
 
                     if (Arr::has($options, 'choices')) {
                         $choices = $options['choices'];

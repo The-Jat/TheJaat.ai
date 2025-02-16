@@ -38,7 +38,7 @@ class FormServiceProvider extends ServiceProvider
             ],
         ]);
 
-        $this->app['events']->listen(FormComponentRegistering::class, function (FormComponentRegistering $event): void {
+        $this->app['events']->listen(FormComponentRegistering::class, function (FormComponentRegistering $event) {
             $form = $event->form;
             $form->component('mediaImage', 'core/base::forms.partials.image', [
                 'name',
@@ -96,7 +96,6 @@ class FormServiceProvider extends ServiceProvider
                  * ]
                  */
                 'values',
-                'inline',
             ]);
 
             /**
@@ -148,6 +147,16 @@ class FormServiceProvider extends ServiceProvider
             ]);
 
             $form->component('customSelect', 'core/base::forms.partials.custom-select', [
+                'name',
+                'choices' => [],
+                'selected' => null,
+                'selectAttributes' => [],
+                'optionsAttributes' => [],
+                'optgroupsAttributes' => [],
+            ]);
+
+            // For Courses package.
+            $form->component('customSelectParentChild', 'core/base::forms.partials.custom-select-parent-child', [
                 'name',
                 'choices' => [],
                 'selected' => null,

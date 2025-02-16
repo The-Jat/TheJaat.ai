@@ -1,6 +1,5 @@
-@once
+@if (theme_option('facebook_comment_enabled_in_post', 'no') == 'yes' || (theme_option('facebook_chat_enabled', 'no') == 'yes' && theme_option('facebook_page_id')))
     <div id="fb-root"></div>
-
     <script>
         window.fbAsyncInit = function() {
             FB.init({
@@ -26,4 +25,4 @@
             chatbox.setAttribute("attribution", "biz_inbox");
         </script>
     @endif
-@endonce
+@endif

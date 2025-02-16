@@ -21,7 +21,7 @@ class PasswordForm extends FormAbstract
             ->when(
                 $this->getModel()->exists &&
                 $this->getRequest()->user()->is($this->getModel()),
-                function (FormAbstract $form): void {
+                function (FormAbstract $form) {
                     $form->add(
                         'old_password',
                         'password',
@@ -30,6 +30,7 @@ class PasswordForm extends FormAbstract
                             ->required()
                             ->maxLength(60)
                             ->colspan(2)
+                            ->toArray()
                     );
                 }
             )
@@ -40,6 +41,7 @@ class PasswordForm extends FormAbstract
                     ->label(trans('core/acl::users.new_password'))
                     ->required()
                     ->maxLength(60)
+                    ->toArray()
             )
             ->add(
                 'password_confirmation',
@@ -48,6 +50,7 @@ class PasswordForm extends FormAbstract
                     ->label(trans('core/acl::users.confirm_new_password'))
                     ->required()
                     ->maxLength(60)
+                    ->toArray()
             )
             ->setActionButtons(view('core/acl::users.profile.actions')->render());
     }

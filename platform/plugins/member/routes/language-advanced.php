@@ -8,6 +8,6 @@ Route::group([
     'middleware' => ['web', 'core', 'member'],
     'prefix' => 'account',
     'as' => 'public.member.language-advanced.',
-], function (): void {
+], function () {
     Route::post('language-advanced/save/{id}', ['as' => 'save', 'uses' => 'save'])->wherePrimaryKey();
 });

@@ -369,7 +369,7 @@ return [
             'HTML.SafeIframe' => 'true',
             // Add to .env if you want to allow all.
             // CMS_IFRAME_FILTER_URL_REGEX=/^(.*)/
-            'URI.SafeIframeRegexp' => env('CMS_IFRAME_FILTER_URL_REGEX', '%^(http://|https://|//)(' . env('CMS_IFRAME_ALLOWED_URLS', 'www.youtube.com/embed/|player.vimeo.com/video/|maps.google.com/maps|www.google.com/maps|docs.google.com/|drive.google.com/|view.officeapps.live.com/op/embed.aspx|onedrive.live.com/embed|open.spotify.com/embed|' . parse_url(env('APP_URL'), PHP_URL_HOST)) . ')%'),
+            'URI.SafeIframeRegexp' => env('CMS_IFRAME_FILTER_URL_REGEX', '%^(http://|https://|//)(' . env('CMS_IFRAME_ALLOWED_URLS', 'www.youtube.com/embed/|player.vimeo.com/video/|maps.google.com/maps|www.google.com/maps|docs.google.com/|drive.google.com/|view.officeapps.live.com/op/embed.aspx|onedrive.live.com/embed') . ')%'),
             'Attr.AllowedFrameTargets' => ['_blank'],
             'CSS.AllowedProperties' => [
                 'font',
@@ -445,9 +445,8 @@ return [
             ['button', 'data-value', 'Text'],
         ],
     ],
-    'enable_system_updater' => env('CMS_ENABLE_SYSTEM_UPDATER', true),
+    'enable_system_updater' => env('CMS_ENABLE_SYSTEM_UPDATER', false),
     'phone_validation_rule' => env('CMS_PHONE_VALIDATION_RULE', 'min:8|max:15|regex:/^([0-9\s\-\+\(\)]*)$/'),
-    'zipcode_validation_rule' => env('CMS_ZIPCODE_VALIDATION_RULE', 'string|min:4|max:9'),
     'disable_verify_csrf_token' => env('CMS_DISABLE_VERIFY_CSRF_TOKEN', false),
     'enable_less_secure_web' => env('CMS_ENABLE_LESS_SECURE_WEB', false),
     'db_strict_mode' => env('DB_STRICT', true),
@@ -464,7 +463,4 @@ return [
     'type_id' => env('CMS_USING_TYPE_ID', 'BIGINT'),
     'csv_import_input_encoding' => env('CMS_CSV_IMPORT_INPUT_ENCODING', 'UTF-8'),
     'google_fonts_key' => env('CMS_GOOGLE_FONTS_KEY'),
-    'demo_mode_enabled' => env('CMS_DEMO_MODE_ENABLED', false),
-    'enable_email_configuration_from_admin_panel' => env('CMS_ENABLE_EMAIL_CONFIGURATION_FROM_ADMIN_PANEL', true),
-    'cms_session_cookie_key_name' => env('CMS_SESSION_COOKIE_KEY_NAME', 'botble_session'),
 ];

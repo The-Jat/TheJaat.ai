@@ -8,7 +8,7 @@
             />
         @else
             <img
-                src="{{ setting('admin_favicon') ? RvMedia::getImageUrl(setting('admin_favicon')) : asset(RvMedia::getDefaultImage()) }}"
+                src="{{ asset(RvMedia::getDefaultImage()) }}"
                 class="avatar"
                 alt="{{ trans('plugins/audit-log::history.system') }}"
             />
@@ -30,7 +30,7 @@
                 {{ $history->action }}
             @endif
 
-            @if ($history->module != 'user' || empty($history->user) || $history->user->id != Auth::guard()->id())
+            @if ($history->module)
                 @if (Lang::has("plugins/audit-log::history.$history->module"))
                     {{ trans("plugins/audit-log::history.$history->module") }}
                 @else

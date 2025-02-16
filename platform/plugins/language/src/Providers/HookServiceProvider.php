@@ -50,7 +50,7 @@ class HookServiceProvider extends ServiceProvider
         add_filter(BASE_FILTER_SITE_LANGUAGE_DIRECTION, fn () => Language::getCurrentLocaleRTL() ? 'rtl' : 'ltr', 1);
         add_filter(MENU_FILTER_NODE_URL, [$this, 'updateMenuNodeUrl'], 1);
 
-        $this->app['events']->listen(RenderingThemeOptionSettings::class, function (): void {
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
             add_filter('theme-options-action-meta-boxes', [$this, 'addLanguageMetaBoxForThemeOptionsAndWidgets'], 55, 2);
         });
 
@@ -63,14 +63,10 @@ class HookServiceProvider extends ServiceProvider
 
         FormAbstract::beforeRendering([$this, 'changeDataBeforeRenderingForm'], 1134);
 
-        GeneralSettingForm::extend(function (GeneralSettingForm $form): void {
+        GeneralSettingForm::extend(function (GeneralSettingForm $form) {
             $form
-                ->addAfter(
-                    'locale_direction',
-                    'language_instruction',
-                    HtmlField::class,
-                    HtmlFieldOption::make()->view('plugins/language::forms.general-setting-form-label')
-                );
+                ->remove('locale_direction')
+                ->modify('locale', HtmlField::class, HtmlFieldOption::make()->view('plugins/language::forms.general-setting-form-label')->toArray());
         });
 
         add_filter('cms_language_flag', function (?string $flag, ?string $name = null) {
@@ -78,7 +74,7 @@ class HookServiceProvider extends ServiceProvider
                 return $flag;
             }
 
-            if ($languageFlag = Language::getActiveLanguage()->where('lang_name', $name)->value('lang_flag')) {
+            if ($languageFlag = LanguageModel::query()->where('lang_name', $name)->value('lang_flag')) {
                 return $languageFlag;
             }
 
@@ -154,7 +150,19 @@ class HookServiceProvider extends ServiceProvider
 
     public function addLanguageMetaBoxForThemeOptionsAndWidgets(?string $data, string $screen): ?string
     {
-        if (! in_array($screen, [THEME_OPTIONS_MODULE_SCREEN_NAME, WIDGET_MANAGER_MODULE_SCREEN_NAME])) {
+        $route = null;
+        switch ($screen) {
+            case THEME_OPTIONS_MODULE_SCREEN_NAME:
+                $route = 'theme.options';
+
+                break;
+            case WIDGET_MANAGER_MODULE_SCREEN_NAME:
+                $route = 'widgets.index';
+
+                break;
+        }
+
+        if (empty($route)) {
             return $data;
         }
 
@@ -164,15 +172,9 @@ class HookServiceProvider extends ServiceProvider
             return $data;
         }
 
-        $params = [];
-
-        if ($screen === THEME_OPTIONS_MODULE_SCREEN_NAME) {
-            $params = ['id' => Route::current()->parameter('id')];
-        }
-
         return $data . view(
             'plugins/language::partials.admin-list-language-chooser',
-            compact('languages', 'params')
+            compact('route', 'languages')
         )->render();
     }
 
@@ -184,7 +186,7 @@ class HookServiceProvider extends ServiceProvider
             $currentLocale = Language::getCurrentLocale();
         }
 
-        if ($currentLocale && (! setting('language_hide_default') || $currentLocale != Language::getDefaultLocaleCode())) {
+        if ($currentLocale && (! setting('language_hide_default') || $currentLocale != Language::getDefaultLocale())) {
             if (! $prefix) {
                 return $currentLocale;
             }
@@ -451,7 +453,7 @@ class HookServiceProvider extends ServiceProvider
             Language::initModelRelations();
 
             return $data
-                ->whereHas('languageMeta', function (Builder $query) use ($languageCode): void {
+                ->whereHas('languageMeta', function (Builder $query) use ($languageCode) {
                     $query->where('lang_meta_code', $languageCode);
                 });
         }
@@ -555,7 +557,7 @@ class HookServiceProvider extends ServiceProvider
             $language = [
                 'language' => [
                     'extend' => 'collection',
-                    'text' => $flag . Html::tag('span', trans('plugins/language::language.change_language'), attributes: ['class' => 'ms-1'])->toHtml(),
+                    'text' => $flag . Html::tag('span', trans('plugins/language::language.change_language'))->toHtml(),
                     'buttons' => $languageButtons,
                 ],
             ];
@@ -581,7 +583,7 @@ class HookServiceProvider extends ServiceProvider
             Language::initModelRelations();
 
             return $query
-                ->whereHas('languageMeta', function (Builder $query) use ($languageCode): void {
+                ->whereHas('languageMeta', function (Builder $query) use ($languageCode) {
                     $query->where('lang_meta_code', $languageCode);
                 });
         }

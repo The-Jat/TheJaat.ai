@@ -144,7 +144,6 @@ $(() => {
 
                 Botble.initResources()
                 Botble.initMediaIntegrate()
-                Botble.initFieldCollapse()
 
                 document.dispatchEvent(new CustomEvent('core-shortcode-config-loaded'))
             })

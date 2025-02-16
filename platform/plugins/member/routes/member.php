@@ -7,18 +7,18 @@ Route::group([
     'middleware' => ['web', 'core', 'member'],
     'prefix' => 'account',
     'as' => 'public.member.',
-], function (): void {
+], function () {
     require core_path('table/routes/web-actions.php');
 });
 
 if (defined('THEME_MODULE_SCREEN_NAME')) {
-    Theme::registerRoutes(function (): void {
+    Theme::registerRoutes(function () {
         Route::group([
             'namespace' => 'Botble\Member\Http\Controllers',
             'middleware' => ['web', 'core'],
             'as' => 'public.member.',
-        ], function (): void {
-            Route::group(['middleware' => ['member.guest']], function (): void {
+        ], function () {
+            Route::group(['middleware' => ['member.guest']], function () {
                 Route::get('login', 'LoginController@showLoginForm')->name('login');
                 Route::post('login', 'LoginController@login')->name('login.post');
 
@@ -41,7 +41,7 @@ if (defined('THEME_MODULE_SCREEN_NAME')) {
                         config('plugins.member.general.verify_email')
                     ) ? 'member.guest' : 'member',
                 ],
-            ], function (): void {
+            ], function () {
                 Route::get(
                     'register/confirm/resend',
                     'RegisterController@resendConfirmation'
@@ -54,10 +54,10 @@ if (defined('THEME_MODULE_SCREEN_NAME')) {
             'namespace' => 'Botble\Member\Http\Controllers',
             'middleware' => ['web', 'core', 'member'],
             'as' => 'public.member.',
-        ], function (): void {
+        ], function () {
             Route::group([
                 'prefix' => 'account',
-            ], function (): void {
+            ], function () {
                 Route::post('logout', 'LoginController@logout')->name('logout');
 
                 Route::get('dashboard', [
@@ -86,7 +86,7 @@ if (defined('THEME_MODULE_SCREEN_NAME')) {
                 ]);
             });
 
-            Route::group(['prefix' => 'ajax/members'], function (): void {
+            Route::group(['prefix' => 'ajax/members'], function () {
                 Route::get('activity-logs', [
                     'as' => 'activity-logs',
                     'uses' => 'PublicController@getActivityLogs',
@@ -107,11 +107,11 @@ if (defined('THEME_MODULE_SCREEN_NAME')) {
                 Route::group([
                     'prefix' => 'account/posts',
                     'as' => 'posts.',
-                ], function (): void {
+                ], function () {
                     Route::resource('', 'PostController')->parameters(['' => 'post']);
                 });
 
-                Route::group(['prefix' => 'ajax/members'], function (): void {
+                Route::group(['prefix' => 'ajax/members'], function () {
                     Route::get('tags/all', [
                         'as' => 'tags.all',
                         'uses' => 'PostController@getAllTags',

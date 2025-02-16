@@ -36,14 +36,14 @@ return [
         // Before event inherit from package config and the theme that call before,
         // you can use this event to set meta, breadcrumb template or anything
         // you want inheriting.
-        'before' => function ($theme): void {
+        'before' => function ($theme) {
             // You can remove this line anytime.
         },
 
         // Listen on event before render a theme,
         // this event should call to assign some assets,
         // breadcrumb template.
-        'beforeRenderTheme' => function (Theme $theme): void {
+        'beforeRenderTheme' => function (Theme $theme) {
             $themeInfo = json_decode(file_get_contents(dirname(__FILE__) . '/theme.json'), true);
             $version = $themeInfo['version'];
 
@@ -88,7 +88,7 @@ return [
             $theme->asset()->container('footer')->usePath()->add('script', 'js/script.js', ['jquery'], [], $version);
 
             if (function_exists('shortcode')) {
-                $theme->composer(['page', 'post'], function (View $view): void {
+                $theme->composer(['page', 'post'], function (View $view) {
                     $view->withShortcodes();
                 });
             }
@@ -98,7 +98,7 @@ return [
         // this should call to assign style, script for a layout.
         'beforeRenderLayout' => [
 
-            'default' => function ($theme): void {
+            'default' => function ($theme) {
                 // $theme->asset()->usePath()->add('ipad', 'css/layouts/ipad.css');
             },
         ],

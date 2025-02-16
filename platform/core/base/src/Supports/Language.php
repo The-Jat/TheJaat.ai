@@ -445,48 +445,12 @@ class Language
 
     public static function getLocales(): array
     {
-        $locales = collect(static::getListLanguages())->pluck('2', '0')->unique()->all();
-
-        $locales = [
-            ...$locales,
-            'de_CH' => 'Deutsch (Schweiz)',
-            'pt_BR' => 'Português (Brasil)',
-            'sr_Cyrl' => 'Српски (ћирилица)',
-            'sr_Latn' => 'Srpski (latinica)',
-            'sr_Latn_ME' => 'Srpski (latinica, Crna Gora)',
-            'uz_Cyrl' => 'Ўзбек (Ўзбекистон)',
-            'uz_Latn' => 'O‘zbek',
-            'zh_CN' => '中文 (中国)',
-            'zh_TW' => '中文 (台灣)',
-            'zh_HK' => '中文 (香港)',
-        ];
-
-        ksort($locales);
-
-        return $locales;
+        return collect(static::getListLanguages())->pluck('2', '0')->unique()->all();
     }
 
     public static function getLocaleKeys(): array
     {
-        $locales = array_unique(array_keys(static::getLocales()));
-
-        $locales = [
-            ...$locales,
-            'de_CH',
-            'pt_BR',
-            'sr_Cyrl',
-            'sr_Latn',
-            'sr_Latn_ME',
-            'uz_Cyrl',
-            'uz_Latn',
-            'zh_CN',
-            'zh_TW',
-            'zh_HK',
-        ];
-
-        sort($locales);
-
-        return apply_filters('core_locales', $locales);
+        return array_unique(array_keys(static::getLocales()));
     }
 
     public static function getLanguageCodes(): array

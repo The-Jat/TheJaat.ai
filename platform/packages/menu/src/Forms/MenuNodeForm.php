@@ -25,6 +25,7 @@ class MenuNodeForm extends FormAbstract
                 TextFieldOption::make()
                     ->value($this->request->route('menu'))
                     ->attributes(['class' => 'menu_id'])
+                    ->toArray()
             )
             ->add(
                 'title',
@@ -40,6 +41,7 @@ class MenuNodeForm extends FormAbstract
                         'data-old' => $this->model->title,
                         'id' => 'menu-node-title-' . $id,
                     ])
+                    ->toArray()
             );
 
         if (! $this->model->reference_id) {
@@ -58,6 +60,7 @@ class MenuNodeForm extends FormAbstract
                             'data-old' => $this->model->url,
                             'id' => 'menu-node-url-' . $id,
                         ])
+                        ->toArray()
                 );
         }
 
@@ -76,6 +79,7 @@ class MenuNodeForm extends FormAbstract
                         'data-old' => $this->model->icon_font,
                         'id' => 'menu-node-icon-font-' . $id,
                     ])
+                    ->toArray()
             )
             ->add(
                 'css_class',
@@ -91,6 +95,7 @@ class MenuNodeForm extends FormAbstract
                         'data-old' => $this->model->css_class,
                         'id' => 'menu-node-css-class-' . $id,
                     ])
+                    ->toArray()
             )
             ->add(
                 'target',
@@ -109,6 +114,7 @@ class MenuNodeForm extends FormAbstract
                         'data-old' => $this->model->target,
                         'id' => 'menu-node-target-' . $id,
                     ])
+                    ->toArray()
             );
     }
 }

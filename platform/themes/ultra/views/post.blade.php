@@ -1,4 +1,5 @@
 @php
+ddd("ultra");
     Theme::layout('full');
     $totalComment = get_total_comment($post);
     MetaBox::getMetaData($post, 'time_to_read', true);

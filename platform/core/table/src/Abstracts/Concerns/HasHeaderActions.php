@@ -21,8 +21,6 @@ trait HasHeaderActions
             $this->addHeaderAction($action);
         }
 
-        $this->earlyTable = true;
-
         return $this;
     }
 

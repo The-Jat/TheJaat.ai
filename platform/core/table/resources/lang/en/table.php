@@ -42,5 +42,4 @@ return [
     'search' => 'Search...',
     'copied' => 'Copied',
     'copy' => 'Copy',
-    'clear' => 'Clear',
 ];

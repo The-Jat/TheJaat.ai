@@ -57,7 +57,7 @@
 
         @foreach ($fields as $field)
             @if (!in_array($field->getName(), $exclude))
-                @if (in_array($field->getType(), ['hidden', \Botble\Base\Forms\Fields\HiddenField::class]))
+                @if ($field->getType() === 'hidden')
                     {!! $field->render() !!}
                 @else
                     <x-core::card class="meta-boxes">

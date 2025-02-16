@@ -25,7 +25,7 @@ class AddFormJsValidation
         Theme::asset()
             ->container('footer')
             ->usePath(false)
-            ->add('js-validation', 'vendor/core/core/js-validation/js/js-validation.js', ['jquery'], version: '1.0.1');
+            ->add('js-validation', 'vendor/core/core/js-validation/js/js-validation.js', ['jquery']);
 
         $formSelector = $form->getDomSelector();
 

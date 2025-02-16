@@ -6,7 +6,6 @@ use Botble\Base\Casts\SafeContent;
 use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
 use Botble\Base\Models\Concerns\HasSlug;
-use Botble\Support\Services\Cache\Cache;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends BaseModel
@@ -28,23 +27,15 @@ class Menu extends BaseModel
 
     protected static function booted(): void
     {
-        static::deleted(function (self $model): void {
+        static::deleted(function (self $model) {
             $model->menuNodes()->delete();
             $model->locations()->delete();
         });
 
-        static::saving(function (self $model): void {
+        self::saving(function (self $model) {
             if (! $model->slug) {
                 $model->slug = self::createSlug($model->name, $model->getKey());
             }
-        });
-
-        static::saved(function (): void {
-            Cache::make(static::class)->flush();
-        });
-
-        static::deleted(function (): void {
-            Cache::make(static::class)->flush();
         });
     }
 

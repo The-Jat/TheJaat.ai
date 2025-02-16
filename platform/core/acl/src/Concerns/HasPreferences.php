@@ -3,7 +3,6 @@
 namespace Botble\ACL\Concerns;
 
 use Botble\ACL\Models\UserMeta;
-use Botble\Support\Services\Cache\Cache;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
@@ -45,24 +44,7 @@ trait HasPreferences
     public function loadMeta(bool $force = false): void
     {
         if (! $this->loadedMetaValues || $force) {
-            $cache = Cache::make(UserMeta::class);
-
-            $cacheKey = 'user-meta-' . $this->getKey();
-
-            if ($cache->has($cacheKey)) {
-                $metaValues = $cache->get($cacheKey);
-
-                if ($metaValues instanceof Collection) {
-                    $this->metaValues = $metaValues;
-                } else {
-                    $this->metaValues = $this->meta()->get();
-                    $cache->put($cacheKey, $this->metaValues);
-                }
-            } else {
-                $this->metaValues = $this->meta()->get();
-                $cache->put($cacheKey, $this->metaValues);
-            }
-
+            $this->metaValues = $this->meta()->get();
             $this->loadedMetaValues = true;
         }
     }

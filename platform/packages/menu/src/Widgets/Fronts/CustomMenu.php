@@ -24,7 +24,7 @@ class CustomMenu extends AbstractWidget
     protected function settingForm(): WidgetForm|string|null
     {
         return WidgetForm::createFromArray($this->getConfig())
-            ->add('name', TextField::class, NameFieldOption::make())
+            ->add('name', TextField::class, NameFieldOption::make()->toArray())
             ->add(
                 'menu_id',
                 SelectField::class,
@@ -32,6 +32,7 @@ class CustomMenu extends AbstractWidget
                     ->label(__('Menu'))
                     ->choices(Menu::query()->pluck('name', 'slug')->all())
                     ->searchable()
+                    ->toArray()
             );
     }
 }

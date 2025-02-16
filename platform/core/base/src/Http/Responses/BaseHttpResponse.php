@@ -6,20 +6,12 @@ use Botble\Base\Facades\BaseHelper;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
-use Illuminate\Support\Traits\Conditionable;
-use Illuminate\Support\Traits\Tappable;
 use Symfony\Component\HttpFoundation\Response;
 
 class BaseHttpResponse extends Response implements Responsable
 {
-    use Conditionable;
-    use Tappable;
-
     protected bool $error = false;
 
     protected mixed $data = null;
@@ -38,8 +30,6 @@ class BaseHttpResponse extends Response implements Responsable
 
     public string $saveAction = 'save';
 
-    protected array $with = [];
-
     public static function make(): static
     {
         return app(static::class);
@@ -48,13 +38,6 @@ class BaseHttpResponse extends Response implements Responsable
     public function setData(mixed $data): static
     {
         $this->data = $data;
-
-        return $this;
-    }
-
-    public function with(array $with): static
-    {
-        $this->with = $with;
 
         return $this;
     }
@@ -83,22 +66,6 @@ class BaseHttpResponse extends Response implements Responsable
         return $this->setNextUrl(route($name, $parameters, $absolute));
     }
 
-    public function usePreviousRouteName(): static
-    {
-        $this
-            ->when(URL::previous(), function (self $httpReponse, string $previousUrl): void {
-                $previousRouteName = optional(Route::getRoutes()->match(Request::create($previousUrl)))->getName();
-                if ($previousRouteName && Str::endsWith($previousRouteName, '.edit')) {
-                    $indexRouteName = Str::replaceLast('.edit', '.index', $previousRouteName);
-                    if (Route::has($indexRouteName)) {
-                        $httpReponse->setPreviousRoute($indexRouteName);
-                    }
-                }
-            });
-
-        return $this;
-    }
-
     public function withInput(bool $withInput = true): static
     {
         $this->withInput = $withInput;
@@ -122,13 +89,9 @@ class BaseHttpResponse extends Response implements Responsable
         return $this->message;
     }
 
-    public function setMessage(?string $message, bool $cleanHtmlTags = true): static
+    public function setMessage(?string $message): static
     {
-        if ($cleanHtmlTags) {
-            $message = BaseHelper::clean($message);
-        }
-
-        $this->message = $message;
+        $this->message = BaseHelper::clean($message);
 
         return $this;
     }
@@ -213,21 +176,16 @@ class BaseHttpResponse extends Response implements Responsable
 
     protected function responseRedirect(string $url): RedirectResponse
     {
-        $with = [
-            ...$this->with,
-            ...($this->error ? ['error_msg' => $this->message] : ['success_msg' => $this->message]),
-        ];
-
         if ($this->withInput) {
             return redirect()
                 ->to($url)
-                ->with($with)
+                ->with($this->error ? 'error_msg' : 'success_msg', $this->message)
                 ->withInput();
         }
 
         return redirect()
             ->to($url)
-            ->with($with);
+            ->with($this->error ? 'error_msg' : 'success_msg', $this->message);
     }
 
     public function isSaving(): bool

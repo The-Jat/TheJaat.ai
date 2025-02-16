@@ -17,7 +17,6 @@ use Botble\Slug\Repositories\Eloquent\SlugRepository;
 use Botble\Slug\Repositories\Interfaces\SlugInterface;
 use Botble\Slug\SlugCompiler;
 use Botble\Slug\SlugHelper;
-use Illuminate\Database\Eloquent\Model;
 
 class SlugServiceProvider extends ServiceProvider
 {
@@ -51,7 +50,7 @@ class SlugServiceProvider extends ServiceProvider
         $this->app->register(EventServiceProvider::class);
         $this->app->register(CommandServiceProvider::class);
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SettingCommonPanelSection::class,
                 fn () => PanelSectionItem::make('permalink')
@@ -64,12 +63,10 @@ class SlugServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             $this->app->register(FormServiceProvider::class);
 
-            $supportedModels = array_keys($this->app->make(SlugHelper::class)->supportedModels());
-
-            foreach ($supportedModels as $item) {
+            foreach (array_keys($this->app->make(SlugHelper::class)->supportedModels()) as $item) {
                 if (! class_exists($item)) {
                     continue;
                 }
@@ -111,7 +108,7 @@ class SlugServiceProvider extends ServiceProvider
                         'getUrlAttribute',
                         function () {
                             /**
-                             * @var BaseModel $model
+                             * @var BaseModel $this
                              */
                             $model = $this;
 
@@ -137,13 +134,6 @@ class SlugServiceProvider extends ServiceProvider
                         }
                     );
                 }
-
-                $this->app['events']->listen('eloquent.deleted: ' . $item, function (Model $model): void {
-                    Slug::query()
-                        ->where('reference_type', $model::class)
-                        ->where('reference_id', $model->getKey())
-                        ->each(fn (Slug $slug) => $slug->delete());
-                });
             }
 
             $this->app->register(HookServiceProvider::class);

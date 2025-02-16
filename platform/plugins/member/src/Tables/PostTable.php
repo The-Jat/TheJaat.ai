@@ -55,11 +55,13 @@ class PostTable extends TableAbstract
             ])
             ->addBulkActions([
                 DeleteBulkAction::make()
-                    ->beforeDispatch(function (Post $model, array $ids): void {
+                    ->beforeDispatch(function (Post $model, array $ids) {
                         foreach ($ids as $id) {
                             $post = Post::query()->findOrFail($id);
 
-                            abort_if(auth('member')->id() !== $post->author_id, 403);
+                            if (auth('member')->id() !== $post->author_id) {
+                                abort(403);
+                            }
                         }
                     }),
             ])

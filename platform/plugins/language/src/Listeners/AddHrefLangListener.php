@@ -32,14 +32,18 @@ class AddHrefLangListener
 
                 $defaultLocale = Language::getDefaultLocale();
 
+                $currentLocale = Language::getCurrentLocale();
+
                 $currentLocaleCode = Language::getCurrentLocaleCode();
 
                 if ($event->slug->reference_type == Page::class && BaseHelper::isHomepage($event->slug->reference_id)) {
                     foreach (Language::getSupportedLocales() as $localeCode => $properties) {
-                        $urls[] = [
-                            'url' => Language::getLocalizedURL($localeCode, url()->current(), [], false),
-                            'lang_code' => $localeCode,
-                        ];
+                        if ($localeCode != $currentLocale) {
+                            $urls[] = [
+                                'url' => Language::getLocalizedURL($localeCode, url()->current(), [], false),
+                                'lang_code' => $localeCode,
+                            ];
+                        }
                     }
                 } else {
                     $languageMeta = LanguageMeta::query()->where(
@@ -60,20 +64,18 @@ class AddHrefLangListener
                         ->get();
 
                     foreach ($slug as $item) {
-                        if (empty($languageMeta[$item->reference_id])) {
-                            continue;
+                        if (! empty($languageMeta[$item->reference_id])) {
+                            $locale = Language::getLocaleByLocaleCode($languageMeta[$item->reference_id]);
+
+                            if ($locale == $defaultLocale && Language::hideDefaultLocaleInURL()) {
+                                $locale = null;
+                            }
+
+                            $urls[] = [
+                                'url' => url($locale . ($item->prefix ? '/' . $item->prefix : '') . '/' . $item->key),
+                                'lang_code' => $languageMeta[$item->reference_id],
+                            ];
                         }
-
-                        $locale = Language::getLocaleByLocaleCode($languageMeta[$item->reference_id]);
-
-                        if ($locale == $defaultLocale && Language::hideDefaultLocaleInURL()) {
-                            $locale = null;
-                        }
-
-                        $urls[] = [
-                            'url' => url($locale . ($item->prefix ? '/' . $item->prefix : '') . '/' . $item->key),
-                            'lang_code' => $languageMeta[$item->reference_id],
-                        ];
                     }
                 }
 

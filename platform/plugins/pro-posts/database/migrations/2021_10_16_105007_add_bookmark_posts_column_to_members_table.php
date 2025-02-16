@@ -13,7 +13,7 @@ class AddBookmarkPostsColumnToMembersTable extends Migration
      */
     public function up()
     {
-        Schema::table('members', function (Blueprint $table): void {
+        Schema::table('members', function (Blueprint $table) {
             $table->json('favorite_posts')->nullable();
             $table->json('bookmark_posts')->nullable();
         });
@@ -26,7 +26,7 @@ class AddBookmarkPostsColumnToMembersTable extends Migration
      */
     public function down()
     {
-        Schema::table('members', function (Blueprint $table): void {
+        Schema::table('members', function (Blueprint $table) {
             $table->dropColumn(['favorite_posts', 'bookmark_posts']);
         });
     }

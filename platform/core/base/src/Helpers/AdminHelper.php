@@ -42,9 +42,4 @@ class AdminHelper
 
         return Auth::user()->getMeta('theme_mode', $default);
     }
-
-    public function isPreviewing(): bool
-    {
-        return Auth::check() && app('request')->input('preview');
-    }
 }

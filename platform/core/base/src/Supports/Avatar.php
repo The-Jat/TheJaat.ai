@@ -4,7 +4,6 @@ namespace Botble\Base\Supports;
 
 use Botble\Media\Facades\RvMedia;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
@@ -127,10 +126,8 @@ class Avatar
 
     public function toBase64(): string
     {
-        $cacheEnabled = setting('cache_user_avatar_enabled', true);
-
         $key = $this->cacheKey();
-        if ($cacheEnabled && $base64 = Cache::get($key)) {
+        if ($base64 = Cache::get($key)) {
             return $base64;
         }
 
@@ -138,9 +135,7 @@ class Avatar
 
         $base64 = $this->image->toJpeg()->toDataUri();
 
-        if ($cacheEnabled) {
-            Cache::forever($key, $base64);
-        }
+        Cache::forever($key, $base64);
 
         return $base64;
     }
@@ -177,9 +172,9 @@ class Avatar
         if (extension_loaded('imagick') || app()->isLocal()) {
             $this->image->text(
                 $this->make($this->name, $this->chars, $this->uppercase, $this->ascii),
-                (int) ($this->width / 2),
-                (int) ($this->height / 2),
-                function (FontFactory $font): void {
+                $this->width / 2,
+                $this->height / 2,
+                function (FontFactory $font) {
                     $font->filename($this->font);
                     $font->size($this->fontSize);
                     $font->color($this->foreground);
@@ -187,23 +182,6 @@ class Avatar
                     $font->valign('middle');
                 }
             );
-        } else {
-            try {
-                $favicon = setting('admin_favicon');
-
-                if ($favicon) {
-                    $favicon = Storage::path($favicon);
-                } else {
-                    $favicon = public_path(config('core.base.general.favicon'));
-                }
-
-                $watermark = RvMedia::imageManager()->read($favicon);
-                $watermark->resize((int) ($this->width * 0.75), (int) ($this->height * 0.75));
-
-                $this->image->place($watermark, 'center');
-            } catch (Throwable) {
-                // do nothing
-            }
         }
 
         return $this;
@@ -239,7 +217,7 @@ class Avatar
         } else {
             // otherwise, use initial char from each word
             $initials = collect();
-            $words->each(function ($word) use ($initials): void {
+            $words->each(function ($word) use ($initials) {
                 $initials->push(Str::substr($word, 0, 1));
             });
 
@@ -296,7 +274,7 @@ class Avatar
         $this->image->drawCircle(
             intval($this->width / 2),
             intval($this->height / 2),
-            function (CircleFactory $draw): void {
+            function (CircleFactory $draw) {
                 $draw->radius($this->width - $this->borderSize);
                 $draw->background($this->background);
                 $draw->border($this->getBorderColor(), $this->borderSize);
@@ -326,7 +304,7 @@ class Avatar
         $this->image->drawRectangle(
             $edge,
             $edge,
-            function (RectangleFactory $draw) use ($height, $width): void {
+            function (RectangleFactory $draw) use ($height, $width) {
                 $draw->size($width, $height);
                 $draw->background($this->background);
                 $draw->border($this->getBorderColor(), $this->borderSize);

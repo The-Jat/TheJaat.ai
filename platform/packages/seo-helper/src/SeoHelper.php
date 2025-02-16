@@ -97,9 +97,7 @@ class SeoHelper implements SeoHelperContract
 
     public function setDescription($description): static
     {
-        if ($description) {
-            $description = Str::limit(strip_tags(BaseHelper::cleanShortcodes($description)), 250);
-        }
+        $description = BaseHelper::cleanShortcodes($description);
 
         $this->meta()->setDescription($description);
         $this->openGraph()->setDescription($description);

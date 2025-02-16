@@ -3,15 +3,15 @@
 use Botble\Base\Facades\AdminHelper;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['namespace' => 'Botble\Dashboard\Http\Controllers'], function (): void {
-    AdminHelper::registerRoutes(function (): void {
+Route::group(['namespace' => 'Botble\Dashboard\Http\Controllers'], function () {
+    AdminHelper::registerRoutes(function () {
         Route::get('', [
             'as' => 'dashboard.index',
             'uses' => 'DashboardController@getDashboard',
             'permission' => false,
         ]);
 
-        Route::group(['prefix' => 'widgets', 'permission' => false], function (): void {
+        Route::group(['prefix' => 'widgets', 'permission' => false], function () {
             Route::get('hide', [
                 'as' => 'dashboard.hide_widget',
                 'uses' => 'DashboardController@getHideWidget',

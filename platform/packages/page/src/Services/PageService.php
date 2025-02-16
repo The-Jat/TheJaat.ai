@@ -8,27 +8,31 @@ use Botble\Base\Supports\RepositoryHelper;
 use Botble\Media\Facades\RvMedia;
 use Botble\Page\Models\Page;
 use Botble\SeoHelper\Facades\SeoHelper;
+use Botble\SeoHelper\SeoOpenGraph;
 use Botble\Slug\Models\Slug;
-use Botble\Theme\Events\RenderingSingleEvent;
 use Botble\Theme\Facades\Theme;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 
 class PageService
 {
-    public function handleFrontRoutes(Slug|array|null $slug): Slug|array
+    public function handleFrontRoutes(Slug|array $slug): Slug|array
     {
-        if ($slug && (! $slug instanceof Slug || $slug->reference_type !== Page::class)) {
+        if (! $slug instanceof Slug) {
             return $slug;
         }
 
         $condition = [
-            'id' => $slug ? $slug->reference_id : BaseHelper::getHomepageId(),
+            'id' => $slug->reference_id,
             'status' => BaseStatusEnum::PUBLISHED,
         ];
 
         if (Auth::guard()->check() && request()->input('preview')) {
             Arr::forget($condition, 'status');
+        }
+
+        if ($slug->reference_type !== Page::class) {
+            return $slug;
         }
 
         $page = Page::query()
@@ -38,32 +42,40 @@ class PageService
         $page = RepositoryHelper::applyBeforeExecuteQuery($page, new Page(), true)->first();
 
         if (empty($page)) {
-            if (! $slug || $slug->reference_id == BaseHelper::getHomepageId()) {
+            if ($slug->reference_id == BaseHelper::getHomepageId()) {
                 return [];
             }
 
             abort(404);
         }
 
+        $meta = new SeoOpenGraph();
+
+        if ($page->image) {
+            $meta->setImage(RvMedia::getImageUrl($page->image));
+        }
+
         if (! BaseHelper::isHomepage($page->getKey())) {
             SeoHelper::setTitle($page->name)
                 ->setDescription($page->description);
 
-            Theme::breadcrumb()->add($page->name, $page->url);
+            $meta->setTitle($page->name);
+            $meta->setDescription($page->description);
         } else {
             $siteTitle = theme_option('seo_title') ?: theme_option('site_title');
             $seoDescription = theme_option('seo_description');
 
             SeoHelper::setTitle($siteTitle)
                 ->setDescription($seoDescription);
+
+            $meta->setTitle($siteTitle);
+            $meta->setDescription($seoDescription);
         }
 
-        if ($page->image) {
-            SeoHelper::openGraph()->setImage(RvMedia::getImageUrl($page->image));
-        }
+        $meta->setUrl($page->url);
+        $meta->setType('article');
 
-        SeoHelper::openGraph()->setUrl($page->url);
-        SeoHelper::openGraph()->setType('article');
+        SeoHelper::setSeoOpenGraph($meta);
 
         SeoHelper::meta()->setUrl($page->url);
 
@@ -74,12 +86,7 @@ class PageService
 
         if (function_exists('admin_bar')) {
             admin_bar()
-                ->registerLink(
-                    trans('packages/page::pages.edit_this_page'),
-                    route('pages.edit', $page->getKey()),
-                    null,
-                    'pages.edit'
-                );
+                ->registerLink(trans('packages/page::pages.edit_this_page'), route('pages.edit', $page->getKey()), null, 'pages.edit');
         }
 
         if (function_exists('shortcode')) {
@@ -88,7 +95,7 @@ class PageService
 
         do_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, PAGE_MODULE_SCREEN_NAME, $page);
 
-        event(new RenderingSingleEvent($slug ?: new Slug()));
+        Theme::breadcrumb()->add($page->name, $page->url);
 
         return [
             'view' => 'page',

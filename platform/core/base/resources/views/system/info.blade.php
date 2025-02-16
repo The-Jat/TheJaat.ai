@@ -1,7 +1,6 @@
 @extends(BaseHelper::getAdminMasterLayoutTemplate())
 
 @section('content')
-    @php $serverIp = Botble\Base\Supports\Helper::getIpFromThirdParty(); @endphp
     <x-core::alert
         type="primary"
         :title="trans('core/base::system.report_description')"
@@ -30,7 +29,6 @@
                 - {{ trans('core/base::system.cms_version') }}: {{ get_cms_version() }}
                 - {{ trans('core/base::system.framework_version') }}: {{ $systemEnv['version'] }}
                 - {{ trans('core/base::system.timezone') }}: {{ $systemEnv['timezone'] }}
-                - {{ trans('core/base::system.server_ip') }}: {{ $serverIp }}
                 - {{ trans('core/base::system.debug_mode_off') }}: {!! !$systemEnv['debug_mode'] ? '&#10004;' : '&#10008;' !!}
                 - {{ trans('core/base::system.storage_dir_writable') }}: {!! $systemEnv['storage_dir_writable'] ? '&#10004;' : '&#10008;' !!}
                 - {{ trans('core/base::system.cache_dir_writable') }}: {!! $systemEnv['cache_dir_writable'] ? '&#10004;' : '&#10008;' !!}
@@ -69,16 +67,10 @@
             <x-core::button
                 type="button"
                 id="copy-report"
+                color="info"
                 size="sm"
                 class="mt-2"
-                data-bb-toggle="clipboard"
-                data-clipboard-action="copy"
-                data-clipboard-message="Copied"
-                data-clipboard-target="#txt-report"
             >
-                <x-core::icon name="ti ti-clipboard" data-clipboard-icon="true" />
-                <x-core::icon name="ti ti-check" data-clipboard-success-icon="true" class="text-success d-none" />
-
                 {{ trans('core/base::system.copy_report') }}
             </x-core::button>
         </div>
@@ -111,9 +103,6 @@
                         {{ trans('core/base::system.timezone') }}: {{ $systemEnv['timezone'] }}
                     </li>
                     <li class="list-group-item">
-                        {{ trans('core/base::system.server_ip') }}: <span class="me-1">{{ $serverIp }}</span> <x-core::copy :copyableState="$serverIp" />
-                    </li>
-                    <li class="list-group-item">
                         {{ trans('core/base::system.debug_mode_off') }}: @include('core/base::system.partials.status-icon', ['status' => !$systemEnv['debug_mode']])
                     </li>
                     <li class="list-group-item">
@@ -122,7 +111,7 @@
                         {{ trans('core/base::system.cache_dir_writable') }}: @include('core/base::system.partials.status-icon', ['status' => $systemEnv['cache_dir_writable']])
                     </li>
                     <li class="list-group-item">
-                        {{ trans('core/base::system.app_size') }}: <span id="system-app-size"><span class="spinner-border spinner-border-sm text-secondary" role="status"></span></span>
+                        {{ trans('core/base::system.app_size') }}: <span id="system-app-size"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></span>
                     </li>
                 </ul>
             </x-core::card>

@@ -19,7 +19,7 @@ class IdColumn extends FormattedColumn implements FormattedColumnContract
     public function formattedValue($value): ?string
     {
         return $this
-            ->when(BaseModel::isUsingStringId(), function (IdColumn $column) {
+            ->when(BaseModel::getTypeOfId() !== 'BIGINT', function (IdColumn $column) {
                 return $column->limit();
             })
             ->applyLimitIfAvailable($value);

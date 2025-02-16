@@ -75,10 +75,6 @@ class PermalinkField {
             const form = $slugBox.closest('form')
             const $slugId = $slugBox.find('.slug-data')
 
-            if (! $slugBox.length || ! $slugId.length || ! form.length) {
-                return
-            }
-
             toggleInputSlugState()
 
             $httpClient

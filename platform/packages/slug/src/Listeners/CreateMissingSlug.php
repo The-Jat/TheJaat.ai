@@ -11,7 +11,7 @@ class CreateMissingSlug
         foreach (SlugHelper::supportedModels() as $model => $name) {
             $model = app($model);
 
-            $model->query()->get()->each(function ($item): void {
+            $model->query()->get()->each(function ($item) {
                 SlugHelper::createSlug($item);
             });
         }

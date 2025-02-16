@@ -134,7 +134,7 @@ class UpdateCommand extends Command
             ]));
             $process->start();
 
-            $process->wait(function ($type, $buffer): void {
+            $process->wait(function ($type, $buffer) {
                 $this->components->info($buffer);
             });
         }

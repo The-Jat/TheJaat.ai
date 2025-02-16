@@ -2,10 +2,9 @@
 
 namespace Botble\Blog\Models;
 
-use Botble\ACL\Models\User;
 use Botble\Base\Casts\SafeContent;
+use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\BaseModel;
-use Botble\Blog\Enums\PostStatusEnum;
 use Botble\Revision\RevisionableTrait;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -42,19 +41,14 @@ class Post extends BaseModel
 
     protected static function booted(): void
     {
-        static::deleted(function (self $post): void {
+        static::deleted(function (Post $post) {
             $post->categories()->detach();
             $post->tags()->detach();
-        });
-
-        static::creating(function (self $post): void {
-            $post->author_id = $post->author_id ?: auth()->id();
-            $post->author_type = $post->author_type ?: User::class;
         });
     }
 
     protected $casts = [
-        'status' => PostStatusEnum::class,
+        'status' => BaseStatusEnum::class,
         'name' => SafeContent::class,
         'description' => SafeContent::class,
     ];
@@ -100,41 +94,6 @@ class Post extends BaseModel
                 }
 
                 return number_format(ceil(str_word_count(strip_tags($this->content)) / 200));
-            }
-        );
-    }
-
-    protected function authorUrl(): Attribute
-    {
-        return Attribute::make(
-            get: function (): ?string {
-                if (! $this->author_id || ! class_exists($this->author_type)) {
-                    return null;
-                }
-
-                /**
-                 * @var BaseModel $author
-                 */
-                $author = $this->author;
-
-                if ($author && method_exists($author, 'url')) {
-                    return $author->url;
-                }
-
-                return null;
-            }
-        );
-    }
-
-    protected function authorName(): Attribute
-    {
-        return Attribute::make(
-            get: function (): ?string {
-                if (! $this->author_id || ! class_exists($this->author_type)) {
-                    return null;
-                }
-
-                return $this->author?->name;
             }
         );
     }

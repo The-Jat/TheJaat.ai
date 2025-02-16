@@ -42,7 +42,7 @@ class MemberController extends BaseController
     {
         $form = MemberForm::create();
         $form
-            ->saving(function (MemberForm $form) use ($request): void {
+            ->saving(function (MemberForm $form) use ($request) {
                 $member = $form->getModel();
                 $member->fill($request->input());
                 $member->confirmed_at = Carbon::now();
@@ -78,7 +78,7 @@ class MemberController extends BaseController
     public function update(Member $member, MemberEditRequest $request)
     {
         MemberForm::createFromModel($member)
-            ->saving(function (MemberForm $form) use ($request): void {
+            ->saving(function (MemberForm $form) use ($request) {
                 $member = $form->getModel();
                 $member->fill($request->except('password'));
 

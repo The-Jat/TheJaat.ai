@@ -88,3 +88,19 @@ if (! function_exists('admin_bar')) {
         return AdminBar::getFacadeRoot();
     }
 }
+
+// Return the app version
+if (!function_exists('app_version')) {
+    function app_version(): string
+    {
+        $version = config('version');
+
+        return sprintf(
+            '%d.%d.%d+%d',
+            $version['major'],
+            $version['minor'],
+            $version['patch'],
+            $version['build']
+        );
+    }
+}

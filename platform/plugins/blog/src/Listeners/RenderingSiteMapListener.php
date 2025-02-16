@@ -19,7 +19,8 @@ class RenderingSiteMapListener
                     $categories = Category::query()
                         ->with('slugable')
                         ->wherePublished()
-                        ->select(['id', 'name', 'updated_at'])->latest()
+                        ->select(['id', 'name', 'updated_at'])
+                        ->orderByDesc('created_at')
                         ->get();
 
                     foreach ($categories as $category) {

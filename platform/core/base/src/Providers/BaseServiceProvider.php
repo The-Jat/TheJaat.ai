@@ -21,7 +21,6 @@ use Botble\Base\Repositories\Interfaces\MetaBoxInterface;
 use Botble\Base\Supports\Action;
 use Botble\Base\Supports\Breadcrumb;
 use Botble\Base\Supports\CustomResourceRegistrar;
-use Botble\Base\Supports\DashboardMenuItem;
 use Botble\Base\Supports\Database\Blueprint;
 use Botble\Base\Supports\Filter;
 use Botble\Base\Supports\GoogleFonts;
@@ -88,7 +87,7 @@ class BaseServiceProvider extends ServiceProvider
 
         $this->prepareAliasesIfMissing();
 
-        config()->set(['session.cookie' => config('core.base.general.session_cookie', 'botble_session')]);
+        config()->set(['session.cookie' => 'botble_session']);
 
         $this->overrideDefaultConfigs();
 
@@ -110,7 +109,7 @@ class BaseServiceProvider extends ServiceProvider
 
         $this->overridePackagesConfigs();
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             do_action(BASE_ACTION_INIT);
         });
 
@@ -135,31 +134,29 @@ class BaseServiceProvider extends ServiceProvider
 
     protected function registerDashboardMenus(): void
     {
-        DashboardMenu::default()->beforeRetrieving(function (): void {
+        DashboardMenu::default()->beforeRetrieving(function () {
             DashboardMenu::make()
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('cms-core-system')
-                        ->priority(10000)
-                        ->name('core/base::layouts.platform_admin')
-                        ->icon('ti ti-user-shield')
-                        ->route('system.index')
-                        ->permission('core.system')
-                )
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('cms-core-tools')
-                        ->priority(9000)
-                        ->name('core/base::layouts.tools')
-                        ->icon('ti ti-tool')
-                        ->permission('core.tools')
-                );
+                ->registerItem([
+                    'id' => 'cms-core-system',
+                    'priority' => 10000,
+                    'name' => 'core/base::layouts.platform_admin',
+                    'icon' => 'ti ti-user-shield',
+                    'route' => 'system.index',
+                    'permissions' => ['core.system'],
+                ])
+                ->registerItem([
+                    'id' => 'cms-core-tools',
+                    'priority' => 9000,
+                    'name' => 'core/base::layouts.tools',
+                    'icon' => 'ti ti-tool',
+                    'permission' => ['core.tools'],
+                ]);
         });
     }
 
     protected function registerPanelSections(): void
     {
-        PanelSectionManagerFacade::group('system')->beforeRendering(function (): void {
+        PanelSectionManagerFacade::group('system')->beforeRendering(function () {
             PanelSectionManagerFacade::setGroupName(trans('core/base::layouts.platform_admin'))
                 ->register(SystemPanelSection::class);
         });
@@ -332,16 +329,6 @@ class BaseServiceProvider extends ServiceProvider
             }
 
             return $this->whereNumber($name);
-        });
-
-        Route::macro('permission', function (array|string|bool|null $value) {
-            /**
-             * @var Route $this
-             */
-            $action = $this->getAction();
-            Arr::set($action, 'permission', $value);
-
-            return $this->setAction($action);
         });
     }
 

@@ -21,6 +21,7 @@ use Botble\Table\Columns\NameColumn;
 use Botble\Table\Columns\PhoneColumn;
 use Botble\Table\Columns\StatusColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
 
 class ContactTable extends TableAbstract
 {
@@ -48,7 +49,9 @@ class ContactTable extends TableAbstract
             ->addBulkChanges([
                 NameBulkChange::make(),
                 EmailBulkChange::make(),
-                StatusBulkChange::make()->choices(ContactStatusEnum::labels()),
+                StatusBulkChange::make()
+                    ->choices(ContactStatusEnum::labels())
+                    ->validate(['required', Rule::in(ContactStatusEnum::values())]),
                 CreatedAtBulkChange::make(),
                 PhoneBulkChange::make()->title(trans('plugins/contact::contact.sender_phone')),
             ])

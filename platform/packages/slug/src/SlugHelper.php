@@ -5,7 +5,6 @@ namespace Botble\Slug;
 use Botble\Base\Contracts\BaseModel;
 use Botble\Page\Models\Page;
 use Botble\Slug\Models\Slug;
-use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
@@ -13,65 +12,49 @@ class SlugHelper
 {
     protected array $canEmptyPrefixes = [Page::class];
 
-    protected array $registering = [];
-
-    protected array $supportedModels = [];
-
-    protected array $prefixes = [];
-
     public function __construct(protected SlugCompiler $translator)
     {
-        $this->supportedModels[Page::class] = fn () => trans('packages/page::pages.pages');
     }
 
-    public function registerModule(string|array $model, string|null|Closure $name = null): self
+    public function registerModule(string|array $model, ?string $name = null): self
     {
-        foreach ((array) $model as $item) {
-            $this->supportedModels[$item] = $name ?: $item;
+        $supported = $this->supportedModels();
+
+        if (! is_array($model)) {
+            $supported[$model] = $name ?: $model;
+        } else {
+            foreach ($model as $item) {
+                $supported[$item] = $name ?: $item;
+            }
         }
+
+        config(['packages.slug.general.supported' => $supported]);
 
         return $this;
-    }
-
-    public function registering(Closure $callback): static
-    {
-        $this->registering[] = $callback;
-
-        return $this;
-    }
-
-    protected function dispatchRegistering(): void
-    {
-        if (empty($this->registering)) {
-            return;
-        }
-
-        foreach ($this->registering as $callback) {
-            call_user_func($callback, $this);
-        }
     }
 
     public function removeModule(string|array $model): self
     {
-        foreach ((array) $model as $item) {
-            unset($this->supportedModels[$item]);
-        }
+        $supported = $this->supportedModels();
+
+        Arr::forget($supported, $model);
+
+        config(['packages.slug.general.supported' => $supported]);
 
         return $this;
     }
 
     public function supportedModels(): array
     {
-        $this->dispatchRegistering();
-
-        return array_map(function ($name) {
-            return is_callable($name) ? $name() : $name;
-        }, $this->supportedModels);
+        return config('packages.slug.general.supported', []);
     }
 
     public function setPrefix(string $model, ?string $prefix, bool $canEmptyPrefix = false): self
     {
-        $this->prefixes[$model] = $prefix;
+        $prefixes = config('packages.slug.general.prefixes', []);
+        $prefixes[$model] = $prefix;
+
+        config(['packages.slug.general.prefixes' => $prefixes]);
 
         if ($canEmptyPrefix) {
             $this->canEmptyPrefixes[] = $model;
@@ -127,11 +110,7 @@ class SlugHelper
             'prefix' => $this->getPrefix($model::class),
         ]);
 
-        if ($this->turnOffAutomaticUrlTranslationIntoLatin()) {
-            $slug->key = $name ?: $model->{$this->getColumnNameToGenerateSlug($model::class)};
-        } else {
-            $slug->key = Str::slug($name ?: $model->{$this->getColumnNameToGenerateSlug($model::class)});
-        }
+        $slug->key = Str::slug($name ?: $model->{$this->getColumnNameToGenerateSlug($model::class)});
 
         $slug->ensureIdCanBeCreated();
 
@@ -187,9 +166,7 @@ class SlugHelper
         $prefix = setting($this->getPermalinkSettingKey($model));
 
         if ($prefix === null) {
-            $this->dispatchRegistering();
-
-            $prefix = Arr::get($this->prefixes, $model);
+            $prefix = Arr::get(config('packages.slug.general.prefixes', []), $model);
         }
 
         if ($prefix !== null) {
@@ -307,7 +284,7 @@ class SlugHelper
                 unset($allSettingPrefixes[$key]);
             }
 
-            $prefixes[] =  Arr::get($this->prefixes, $class);
+            $prefixes[] =  Arr::get(config('packages.slug.general.prefixes', []), $class);
         }
 
         return array_unique(array_filter($prefixes ?: []));

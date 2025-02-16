@@ -1,5 +1,6 @@
 <?php
 
+use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Gallery\Models\Gallery as GalleryModel;
 use Botble\Gallery\Models\GalleryMeta;
 use Botble\Theme\Facades\Theme;
@@ -12,7 +13,7 @@ if (! function_exists('gallery_meta_data')) {
         $meta = GalleryMeta::query()
             ->where([
                 'reference_id' => $object->getKey(),
-                'reference_type' => $object::class,
+                'reference_type' => get_class($object),
             ])
             ->select($select)
             ->first();
@@ -31,11 +32,14 @@ if (! function_exists('gallery_meta_data')) {
 }
 
 if (! function_exists('get_galleries')) {
-    function get_galleries(int $limit = 8, array $with = ['slugable', 'user'], array $condition = []): Collection
+    function get_galleries(int $limit = 8, array $with = ['slugable', 'user']): Collection
     {
         return GalleryModel::query()
             ->with($with)
-            ->wherePublished()
+            ->where([
+                'status' => BaseStatusEnum::PUBLISHED,
+                'is_featured' => 1,
+            ])
             ->select([
                 'id',
                 'name',
@@ -43,9 +47,9 @@ if (! function_exists('get_galleries')) {
                 'image',
                 'created_at',
             ])
-            ->when($condition, fn ($query) => $query->where($condition))
-            ->oldest('order')->latest()
-            ->when($limit > 0, fn ($query) => $query->limit($limit))
+            ->orderBy('order')
+            ->orderByDesc('created_at')
+            ->limit($limit)
             ->get();
     }
 }

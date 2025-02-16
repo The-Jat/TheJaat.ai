@@ -77,7 +77,7 @@ class ThemeOption
                 if (Arr::get($field, 'section_id') == $sectionId) {
                     $priority = $field['priority'];
                     while (isset($fields[$priority])) {
-                        $priority++;
+                        echo $priority++;
                     }
                     $fields[$priority] = $field;
                 }
@@ -89,7 +89,7 @@ class ThemeOption
         return $fields;
     }
 
-    public function getSection(string $id = ''): array|bool
+    public function getSection(string $id = ''): bool
     {
         $this->checkOptName();
 
@@ -490,7 +490,7 @@ class ThemeOption
         return setting()->has($this->getOptionKey($key, $this->getCurrentLocaleCode()));
     }
 
-    public function getOption(string $key = '', bool|string|null|array $default = ''): ?string
+    public function getOption(string $key = '', string|null|array $default = ''): ?string
     {
         if (is_array($default)) {
             $default = json_encode($default);

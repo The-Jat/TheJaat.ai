@@ -44,7 +44,7 @@ class Posts extends AbstractWidget
     protected function settingForm(): WidgetForm|string|null
     {
         return WidgetForm::createFromArray($this->getConfig())
-            ->add('name', TextField::class, TextFieldOption::make()->label(__('Name')))
+            ->add('name', TextField::class, TextFieldOption::make()->label(__('Name'))->toArray())
             ->add(
                 'type',
                 SelectField::class,
@@ -56,8 +56,9 @@ class Posts extends AbstractWidget
                         'popular' => __('Popular'),
                         'recent' => __('Recent'),
                     ])
+                    ->toArray()
             )
-            ->add('number_display', NumberField::class, NumberFieldOption::make()->label(__('Limit')));
+            ->add('number_display', NumberField::class, NumberFieldOption::make()->label(__('Limit'))->toArray());
     }
 
     protected function requiredPlugins(): array

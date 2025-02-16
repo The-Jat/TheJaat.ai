@@ -18,7 +18,6 @@ class ShortcodeTabsField extends FormField
             'shortcode_attributes' => [],
             'min' => 1,
             'max' => 20,
-            'key' => null,
         ];
     }
 }

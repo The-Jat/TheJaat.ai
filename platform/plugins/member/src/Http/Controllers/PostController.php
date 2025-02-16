@@ -39,7 +39,7 @@ class PostController extends BaseController
 
         $postForm = PostForm::create();
         $postForm
-            ->saving(function (PostForm $form) use ($categoryService, $tagService, $request): void {
+            ->saving(function (PostForm $form) use ($categoryService, $tagService, $request) {
                 $post = $form->getModel();
                 $post
                     ->fill([...$request->except('status'),
@@ -111,7 +111,7 @@ class PostController extends BaseController
         $postForm = PostForm::createFromModel($post);
 
         $postForm
-            ->saving(function (PostForm $form) use ($categoryService, $tagService, $request): void {
+            ->saving(function (PostForm $form) use ($categoryService, $tagService, $request) {
                 $post = $form->getModel();
 
                 $post

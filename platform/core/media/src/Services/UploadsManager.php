@@ -87,16 +87,10 @@ class UploadsManager
         string $path,
         string $content,
         UploadedFile $file = null,
-        string $visibility = 'public'
+        array $visibility = ['visibility' => 'public']
     ): bool {
-        $storage = Storage::disk(RvMedia::getConfig('disk'));
-
-        if ($visibility === 'private' && ! RvMedia::isUsingCloud()) {
-            $storage = Storage::disk('local');
-        }
-
         if (! RvMedia::isChunkUploadEnabled() || ! $file) {
-            return $storage->put($this->cleanFolder($path), $content);
+            return Storage::put($this->cleanFolder($path), $content, $visibility);
         }
 
         $currentChunksPath = RvMedia::getConfig('chunk.storage.chunks') . '/' . $file->getFilename();
@@ -105,11 +99,11 @@ class UploadsManager
         try {
             $stream = $disk->getDriver()->readStream($currentChunksPath);
 
-            if ($result = Storage::writeStream($path, $stream, ['visibility' => $visibility])) {
+            if ($result = Storage::writeStream($path, $stream, $visibility)) {
                 $disk->delete($currentChunksPath);
             }
         } catch (Exception|FilesystemException) {
-            return $storage->put($this->cleanFolder($path), $content);
+            return Storage::put($this->cleanFolder($path), $content, $visibility);
         }
 
         return $result;

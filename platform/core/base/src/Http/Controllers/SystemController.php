@@ -7,7 +7,6 @@ use Botble\Base\Events\UpdatedEvent;
 use Botble\Base\Events\UpdatingEvent;
 use Botble\Base\Facades\Assets;
 use Botble\Base\Facades\BaseHelper;
-use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Base\Services\CleanDatabaseService;
 use Botble\Base\Supports\Core;
 use Botble\Base\Supports\MembershipAuthorization;
@@ -16,7 +15,7 @@ use Exception;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class SystemController extends BaseSystemController
@@ -28,14 +27,14 @@ class SystemController extends BaseSystemController
         return view('core/base::system.index');
     }
 
-    public function postAuthorize(MembershipAuthorization $authorization): BaseHttpResponse
+    public function postAuthorize(MembershipAuthorization $authorization)
     {
         $authorization->authorize();
 
         return $this->httpResponse();
     }
 
-    public function getMenuItemsCount(): BaseHttpResponse
+    public function getMenuItemsCount()
     {
         $data = apply_filters(BASE_FILTER_MENU_ITEMS_COUNT, []);
 
@@ -55,13 +54,7 @@ class SystemController extends BaseSystemController
         $response
             ->setData(['has_new_version' => false]);
 
-        try {
-            $updateData = $core->checkUpdate();
-        } catch (Throwable $exception) {
-            return $this
-                ->httpResponse()
-                ->setMessage($exception->getMessage());
-        }
+        $updateData = $core->checkUpdate();
 
         if ($updateData) {
             $response
@@ -80,7 +73,9 @@ class SystemController extends BaseSystemController
 
     public function getUpdater(Core $core)
     {
-        abort_unless(config('core.base.general.enable_system_updater'), 404);
+        if (! config('core.base.general.enable_system_updater')) {
+            abort(404);
+        }
 
         header('Cache-Control: no-cache');
 
@@ -160,10 +155,7 @@ class SystemController extends BaseSystemController
         Assets::addScriptsDirectly('vendor/core/core/base/js/cleanup.js');
 
         try {
-            $tables = array_map(function (array $table) {
-                return $table['name'];
-            }, Schema::getTables());
-
+            $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
         } catch (Throwable) {
             $tables = [];
         }

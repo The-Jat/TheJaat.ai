@@ -11,7 +11,7 @@ class PostCollectionRequest extends Request
     public function rules(): array
     {
         return [
-            'name' => ['required'],
+            'name' => 'required',
             'status' => Rule::in(BaseStatusEnum::values()),
         ];
     }

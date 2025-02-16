@@ -2,8 +2,10 @@
 
 namespace Botble\Blog\Tables;
 
+use Botble\ACL\Models\User;
 use Botble\Base\Facades\Html;
 use Botble\Base\Models\BaseQueryBuilder;
+use Botble\Blog\Exports\PostExport;
 use Botble\Blog\Models\Category;
 use Botble\Blog\Models\Post;
 use Botble\Table\Abstracts\TableAbstract;
@@ -29,10 +31,12 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class PostTable extends TableAbstract
 {
+    protected string $exportClass = PostExport::class;
+
+    protected int $defaultSortColumn = 6;
+
     public function setup(): void
     {
-        $this->defaultSortColumnName = 'created_at';
-
         $this
             ->model(Post::class)
             ->addHeaderAction(CreateHeaderAction::make()->route('posts.create'))
@@ -67,17 +71,20 @@ class PostTable extends TableAbstract
                     ->width(150)
                     ->orderable(false)
                     ->searchable(false)
-                    ->getValueUsing(function (FormattedColumn $column) {
-                        return $column->getItem()->author_name;
-                    })
+                    ->getValueUsing(fn (FormattedColumn $column) => $column->getItem()->author?->name)
                     ->renderUsing(function (FormattedColumn $column) {
-                        $url = $column->getItem()->author_url;
+                        $post = $column->getItem();
+                        $author = $post->author;
 
-                        if (! $url) {
+                        if (! $author->getKey()) {
                             return null;
                         }
 
-                        return Html::link($url, $column->getItem()->author_name, ['target' => '_blank']);
+                        if ($post->author_id && $post->author_type === User::class) {
+                            return Html::link($author->url, $author->name, ['target' => '_blank']);
+                        }
+
+                        return null;
                     })
                     ->withEmptyState(),
                 CreatedAtColumn::make(),
@@ -99,7 +106,7 @@ class PostTable extends TableAbstract
             ->queryUsing(function (Builder $query) {
                 return $query
                     ->with([
-                        'categories' => function (BelongsToMany $query): void {
+                        'categories' => function (BelongsToMany $query) {
                             $query->select(['categories.id', 'categories.name']);
                         },
                         'author',
@@ -115,7 +122,7 @@ class PostTable extends TableAbstract
                         'author_type',
                     ]);
             })
-            ->onAjax(function (self $table) {
+            ->onAjax(function (PostTable $table) {
                 return $table->toJson(
                     $table
                         ->table

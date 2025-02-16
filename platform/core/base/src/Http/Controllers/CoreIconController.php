@@ -2,7 +2,6 @@
 
 namespace Botble\Base\Http\Controllers;
 
-use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Icon\Facades\Icon;
 use Illuminate\Http\Request;
@@ -22,9 +21,9 @@ class CoreIconController extends BaseController
         ]);
 
         $icons = Cache::remember(
-            'core:icons:list',
+            'core:icons',
             60 * 60 * 24 * 30,
-            fn () => apply_filters('core_icons', Icon::all())
+            fn () => Icon::all()
         );
 
         $currentPage = Paginator::resolveCurrentPage();
@@ -37,7 +36,7 @@ class CoreIconController extends BaseController
             })
             ->slice(($currentPage - 1) * $perPage, $perPage)
             ->mapWithKeys(
-                fn ($icon, $key) => [$icon['name'] => BaseHelper::hasIcon($key) ? Icon::render($key) : '<i class="' . $icon['name'] . '"></i>']
+                fn ($icon, $key) => [$icon['name'] => Icon::render($key)]
             )
             ->all();
 

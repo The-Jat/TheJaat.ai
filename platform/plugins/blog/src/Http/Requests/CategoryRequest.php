@@ -23,7 +23,7 @@ class CategoryRequest extends Request
                     return Rule::exists('categories', 'id');
                 }),
             ],
-            'order' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            'order' => ['nullable', 'integer', 'min:0', 'max:127'],
         ];
     }
 }

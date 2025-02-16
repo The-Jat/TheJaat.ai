@@ -12,18 +12,14 @@ class HookServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             add_filter(BASE_FILTER_AFTER_LOGIN_OR_REGISTER_FORM, [$this, 'addLoginOptions'], 25, 2);
         });
     }
 
     public function addLoginOptions(?string $html, string $module): ?string
     {
-        if (
-            ! SocialService::setting('enable')
-            || ! SocialService::isSupportedModule($module)
-            || ! SocialService::hasAnyProviderEnable()
-        ) {
+        if (! SocialService::setting('enable') || ! SocialService::isSupportedModule($module)) {
             return $html;
         }
 
@@ -43,7 +39,7 @@ class HookServiceProvider extends ServiceProvider
                         asset('vendor/core/plugins/social-login/css/social-login.css'),
                         [],
                         [],
-                        '1.2.1'
+                        '1.1.0'
                     );
 
                 do_action('social_login_assets_register');

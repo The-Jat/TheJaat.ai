@@ -19,9 +19,9 @@ class TagForm extends FormAbstract
         $this
             ->model(Tag::class)
             ->setValidatorClass(TagRequest::class)
-            ->add('name', TextField::class, NameFieldOption::make()->required()->maxLength(120))
-            ->add('description', TextareaField::class, DescriptionFieldOption::make())
-            ->add('status', SelectField::class, StatusFieldOption::make())
+            ->add('name', TextField::class, NameFieldOption::make()->required()->maxLength(120)->toArray())
+            ->add('description', TextareaField::class, DescriptionFieldOption::make()->toArray())
+            ->add('status', SelectField::class, StatusFieldOption::make()->toArray())
             ->setBreakFieldPoint('status');
     }
 }

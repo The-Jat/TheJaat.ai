@@ -12,7 +12,6 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\HtmlString;
@@ -64,7 +63,7 @@ class BaseHelper
 
     public function humanFilesize(float $bytes, int $precision = 2): string
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $units = ['B', 'kB', 'MB', 'GB', 'TB'];
 
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
@@ -146,13 +145,7 @@ class BaseHelper
 
     public function getAdminMasterLayoutTemplate(): string
     {
-        $layout = 'core/base::layouts.empty';
-
-        if (Auth::check()) {
-            $layout = 'core/base::layouts.master';
-        }
-
-        return apply_filters('base_filter_admin_master_layout_template', $layout);
+        return apply_filters('base_filter_admin_master_layout_template', 'core/base::layouts.master');
     }
 
     public function siteLanguageDirection(): string
@@ -255,17 +248,6 @@ class BaseHelper
     public function getPhoneValidationRule(bool $asArray = false): string|array
     {
         $rule = config('core.base.general.phone_validation_rule');
-
-        if ($asArray) {
-            return explode('|', $rule);
-        }
-
-        return $rule;
-    }
-
-    public function getZipcodeValidationRule(bool $asArray = false): string|array
-    {
-        $rule = config('core.base.general.zipcode_validation_rule');
 
         if ($asArray) {
             return explode('|', $rule);
@@ -493,7 +475,7 @@ class BaseHelper
 
     public function hasDemoModeEnabled(): bool
     {
-        return App::environment('demo') || config('core.base.general.demo_mode_enabled', false);
+        return App::environment('demo');
     }
 
     public function logError(Throwable $throwable): void
@@ -536,12 +518,8 @@ class BaseHelper
         );
     }
 
-    public function renderBadge(?string $label, string $color = 'primary', array $attributes = [], ?string $icon = null): string
+    public function renderBadge(string $label, string $color = 'primary', array $attributes = [], ?string $icon = null): string
     {
-        if (! $label) {
-            return '';
-        }
-
         return Blade::renderComponent(
             (new BadgeComponent($label, $color, $icon))->withAttributes($attributes)
         );
@@ -564,13 +542,13 @@ class BaseHelper
     public function getFonts(): array
     {
         $customGoogleFonts = config('core.base.general.custom_google_fonts');
-        $customFonts = apply_filters('cms_custom_fonts', config('core.base.general.custom_fonts', []) ?: []);
+        $customFonts = config('core.base.general.custom_fonts');
 
-        if (! empty($customGoogleFonts) && ! is_array($customGoogleFonts)) {
+        if (! empty($customGoogleFonts)) {
             $customGoogleFonts = array_filter(explode(',', $customGoogleFonts));
         }
 
-        if (! empty($customFonts) && ! is_array($customFonts)) {
+        if (! empty($customFonts)) {
             $customFonts = array_filter(explode(',', $customFonts));
         }
 

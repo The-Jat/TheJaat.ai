@@ -38,7 +38,9 @@ class ThemeController extends BaseController
 
     public function index()
     {
-        abort_unless(config('packages.theme.general.display_theme_manager_in_admin_panel', true), 404);
+        if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
+            abort(404);
+        }
 
         $this->pageTitle(trans('packages/theme::theme.name'));
 
@@ -53,36 +55,23 @@ class ThemeController extends BaseController
         return view('packages/theme::list', compact('themes'));
     }
 
-    public function getOptions(?string $id = null)
+    public function getOptions()
     {
+        $this->pageTitle(trans('packages/theme::theme.theme_options'));
+
+        Assets::addScripts(['are-you-sure', 'jquery-ui'])
+            ->addStylesDirectly([
+                'vendor/core/packages/theme/css/theme-options.css',
+            ])
+            ->addScriptsDirectly([
+                'vendor/core/packages/theme/js/theme-options.js',
+            ]);
+
         RenderingThemeOptionSettings::dispatch();
 
         do_action(RENDERING_THEME_OPTIONS_PAGE);
 
-        $sections = ThemeOption::constructSections();
-
-        if ($id) {
-            $section = ThemeOption::getSection($id);
-
-            abort_unless($section, 404);
-        } else {
-            $section = ThemeOption::getSection(Arr::first($sections)['id']);
-        }
-
-        $this->pageTitle(
-            $id
-                ? trans('packages/theme::theme.theme_options') . ' - ' . $section['title']
-                : trans('packages/theme::theme.theme_options')
-        );
-
-        Assets::addScripts(['are-you-sure', 'jquery-ui'])
-            ->addStylesDirectly('vendor/core/packages/theme/css/theme-options.css')
-            ->addScriptsDirectly('vendor/core/packages/theme/js/theme-options.js');
-
-        return view('packages/theme::options', [
-            'sections' => $sections,
-            'currentSection' => $section,
-        ]);
+        return view('packages/theme::options');
     }
 
     public function postUpdate(UpdateOptionsRequest $request)
@@ -112,14 +101,21 @@ class ThemeController extends BaseController
 
     public function postActivateTheme(Request $request, ThemeService $themeService)
     {
-        abort_unless(config('packages.theme.general.display_theme_manager_in_admin_panel', true), 404);
+        if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
+            abort(404);
+        }
 
         $result = $themeService->activate($request->input('theme'));
 
+        if ($result['error']) {
+            return $this
+                ->httpResponse()
+                ->setError()->setMessage($result['message']);
+        }
+
         return $this
             ->httpResponse()
-            ->setError($result['error'])
-            ->setMessage($result['message']);
+            ->setMessage(trans('packages/theme::theme.active_success'));
     }
 
     public function getCustomCss()
@@ -159,7 +155,9 @@ class ThemeController extends BaseController
 
     public function getCustomJs()
     {
-        abort_unless(config('packages.theme.general.enable_custom_js'), 404);
+        if (! config('packages.theme.general.enable_custom_js')) {
+            abort(404);
+        }
 
         $this->pageTitle(trans('packages/theme::theme.custom_js'));
 
@@ -168,14 +166,18 @@ class ThemeController extends BaseController
 
     public function postCustomJs(CustomJsRequest $request)
     {
-        abort_unless(config('packages.theme.general.enable_custom_js'), 404);
+        if (! config('packages.theme.general.enable_custom_js')) {
+            abort(404);
+        }
 
         return $this->performUpdate($request->validated());
     }
 
     public function postRemoveTheme(Request $request, ThemeService $themeService)
     {
-        abort_unless(config('packages.theme.general.display_theme_manager_in_admin_panel', true), 404);
+        if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
+            abort(404);
+        }
 
         $theme = strtolower($request->input('theme'));
 
@@ -183,13 +185,19 @@ class ThemeController extends BaseController
             try {
                 $result = $themeService->remove($theme);
 
+                if ($result['error']) {
+                    return $this
+                        ->httpResponse()
+                        ->setError()->setMessage($result['message']);
+                }
+
                 return $this
                     ->httpResponse()
-                    ->setError($result['error'])
-                    ->setMessage($result['message']);
+                    ->setMessage(trans('packages/theme::theme.remove_theme_success'));
             } catch (Exception $exception) {
                 return $this
                     ->httpResponse()
+
                     ->setError()
                     ->setMessage($exception->getMessage());
             }
@@ -203,7 +211,9 @@ class ThemeController extends BaseController
 
     public function getCustomHtml()
     {
-        abort_unless(config('packages.theme.general.enable_custom_html'), 404);
+        if (! config('packages.theme.general.enable_custom_html')) {
+            abort(404);
+        }
 
         $this->pageTitle(trans('packages/theme::theme.custom_html'));
 
@@ -212,7 +222,9 @@ class ThemeController extends BaseController
 
     public function postCustomHtml(CustomHtmlRequest $request)
     {
-        abort_unless(config('packages.theme.general.enable_custom_html'), 404);
+        if (! config('packages.theme.general.enable_custom_html')) {
+            abort(404);
+        }
 
         $data = [];
 
@@ -225,7 +237,9 @@ class ThemeController extends BaseController
 
     public function getRobotsTxt()
     {
-        abort_unless(config('packages.theme.general.enable_robots_txt_editor'), 404);
+        if (! config('packages.theme.general.enable_robots_txt_editor')) {
+            abort(404);
+        }
 
         $this->pageTitle(trans('packages/theme::theme.robots_txt_editor'));
 
@@ -234,7 +248,9 @@ class ThemeController extends BaseController
 
     public function postRobotsTxt(RobotsTxtRequest $request)
     {
-        abort_unless(config('packages.theme.general.enable_robots_txt_editor'), 404);
+        if (! config('packages.theme.general.enable_robots_txt_editor')) {
+            abort(404);
+        }
 
         $path = public_path('robots.txt');
 

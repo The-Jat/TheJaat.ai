@@ -24,7 +24,6 @@
         <li><a href="#"><i class="ti-sharethis"></i></a></li>
         {!! Theme::partial('components.social-share-post-simple', compact('post')) !!}
     </ul>
-    <div>block2</div>
 </div>
 <div class="post-content">
     <div class="entry-meta meta-0 font-small mb-15">

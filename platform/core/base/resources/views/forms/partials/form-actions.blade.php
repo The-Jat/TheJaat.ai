@@ -18,7 +18,7 @@
 ></div>
 
 <header
-    class="top-0 w-100 position-fixed end-0 z-1000"
+    @class(['top-0 w-100 position-fixed end-0 z-1000', 'vertical-wrapper' => AdminHelper::isInAdmin(true) && AdminAppearance::isVerticalLayout()])
     id="form-actions"
     @style(['display: none'])
 >

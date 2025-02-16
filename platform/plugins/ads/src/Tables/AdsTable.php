@@ -48,7 +48,7 @@ class AdsTable extends TableAbstract
                 Column::make('clicked')
                     ->title(trans('plugins/ads::ads.clicked'))
                     ->alignStart(),
-                DateColumn::make('expired_at')->title(trans('plugins/ads::ads.expired_at')),
+                DateColumn::make('expired_at'),
                 StatusColumn::make(),
             ])
             ->addHeaderAction(CreateHeaderAction::make()->route('ads.create'))
@@ -62,7 +62,7 @@ class AdsTable extends TableAbstract
                 StatusBulkChange::make(),
                 DateBulkChange::make()->name('expired_at')->title(trans('plugins/ads::ads.expired_at')),
             ])
-            ->queryUsing(function ($query): void {
+            ->queryUsing(function ($query) {
                 $query->select([
                     'id',
                     'image',

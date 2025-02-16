@@ -22,8 +22,6 @@ trait HasFilters
      */
     protected Closure $onFilterQueryCallback;
 
-    protected array $filters = [];
-
     /**
      * @deprecated since v6.8.0, using `hasFilters` instead.
      */
@@ -89,7 +87,7 @@ trait HasFilters
                     break;
                 }
 
-                $validator = Validator::make([$key => $value], [$key => ['date']]);
+                $validator = Validator::make([$key => $value], [$key => 'date']);
 
                 if (! $validator->fails()) {
                     $value = BaseHelper::formatDate($value);
@@ -173,20 +171,7 @@ trait HasFilters
 
     public function getFilters(): array
     {
-        return $this->filters;
-    }
-
-    public function addFilters(array|string $filters): static
-    {
-        $filters = is_array($filters) ? $filters : [$filters];
-
-        foreach ($filters as $filter) {
-            $this->filters[] = $filter;
-        }
-
-        $this->earlyTable = true;
-
-        return $this;
+        return [];
     }
 
     public function filterInputUrl(string $url): static

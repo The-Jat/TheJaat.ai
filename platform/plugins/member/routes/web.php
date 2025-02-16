@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::group([
     'namespace' => 'Botble\Member\Http\Controllers',
-], function (): void {
-    AdminHelper::registerRoutes(function (): void {
-        Route::group(['prefix' => 'members', 'as' => 'member.'], function (): void {
+], function () {
+    AdminHelper::registerRoutes(function () {
+        Route::group(['prefix' => 'members', 'as' => 'member.'], function () {
             Route::resource('', 'MemberController')->parameters(['' => 'member']);
         });
 
-        Route::group(['prefix' => 'settings', 'as' => 'member.'], function (): void {
+        Route::group(['prefix' => 'settings', 'as' => 'member.'], function () {
             Route::get('members', [
                 'as' => 'settings',
                 'uses' => 'Settings\MemberSettingController@edit',
@@ -29,7 +29,7 @@ Route::group([
     });
 
     if (defined('THEME_MODULE_SCREEN_NAME')) {
-        Theme::registerRoutes(function (): void {
+        Theme::registerRoutes(function () {
             Route::get(SlugHelper::getPrefix(Member::class, 'author') . '/{slug}')
                 ->uses('PublicController@getAuthor')
                 ->name('author.show');

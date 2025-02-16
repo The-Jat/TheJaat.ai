@@ -10,7 +10,9 @@ class RegisterController extends MemberRegisterController
 {
     public function showRegistrationForm()
     {
-        abort_if(theme_option('allow_account_login', '') != 'yes', 404);
+        if (theme_option('allow_account_login', '') != 'yes') {
+            abort(404);
+        }
 
         if (auth('member')->check()) {
             return redirect(route('public.member.dashboard'));

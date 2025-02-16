@@ -138,7 +138,7 @@ class Helper
 
         $translatedCountries = array_change_key_case(trans('core/base::countries', []), CASE_UPPER);
 
-        return array_map('html_entity_decode', [...$countries, ...$translatedCountries]);
+        return [...$countries, ...$translatedCountries];
     }
 
     public static function getIpFromThirdParty(): bool|string|null

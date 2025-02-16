@@ -6,9 +6,6 @@ use Botble\Base\Models\BaseModel;
 use Botble\Base\Models\BaseQueryBuilder;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @deprecated
- */
 interface RepositoryInterface
 {
     public function applyBeforeExecuteQuery($data, bool $isSingle = false);

@@ -111,16 +111,12 @@ class LinkableColumn extends FormattedColumn implements FormattedColumnContract
             return $valueTruncated ?: null;
         }
 
-        $attributes = ['title' => $this->getOriginalValue()];
+        $attributes = ['title' => $value];
         $link = $valueTruncated;
 
         if ($this->externalLink) {
             $attributes['target'] = '_blank';
             $valueTruncated = $valueTruncated . $this->renderExternalLinkIcon();
-        }
-
-        if ($this->hasColor()) {
-            $attributes['class'] = 'text-' . $this->color;
         }
 
         if ($url = $this->getUrl($value)) {

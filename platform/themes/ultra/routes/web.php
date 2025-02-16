@@ -3,8 +3,8 @@
 use Botble\Member\Models\Member;
 
 // Custom routes
-Route::group(['namespace' => 'Theme\UltraNews\Http\Controllers', 'middleware' => ['web', 'core']], function (): void {
-    Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function (): void {
+Route::group(['namespace' => 'Theme\UltraNews\Http\Controllers', 'middleware' => ['web', 'core']], function () {
+    Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function () {
         // Add your custom route here
         Route::get('ajax/get-panel-inner', 'UltraNewsController@ajaxGetPanelInner')
             ->name('theme.ajax-get-panel-inner');
@@ -13,8 +13,8 @@ Route::group(['namespace' => 'Theme\UltraNews\Http\Controllers', 'middleware' =>
 
 Theme::routes();
 
-Route::group(['namespace' => 'Theme\UltraNews\Http\Controllers', 'middleware' => ['web', 'core']], function (): void {
-    Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function (): void {
+Route::group(['namespace' => 'Theme\UltraNews\Http\Controllers', 'middleware' => ['web', 'core']], function () {
+    Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function () {
         Route::get('posts/videos', 'UltraNewsController@getNewsVideos')
             ->name('public.posts-videos');
 

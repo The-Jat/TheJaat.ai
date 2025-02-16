@@ -3,14 +3,13 @@
 namespace Botble\Translation\Http\Controllers\Concerns;
 
 use Botble\Base\Supports\Language;
-use Botble\Translation\Tables\ThemeTranslationTable;
-use Botble\Translation\Tables\TranslationTable;
+use Botble\Table\Abstracts\TableAbstract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
 trait HasMapTranslationsTable
 {
-    protected function mapTranslationsTable(ThemeTranslationTable|TranslationTable $table, Request $request): array
+    protected function mapTranslationsTable(TableAbstract $table, Request $request): array
     {
         $locales = Language::getAvailableLocales();
         $defaultLanguage = Language::getDefaultLanguage();

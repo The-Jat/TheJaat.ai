@@ -59,9 +59,9 @@ class PostExporter extends Exporter
         return Post::query()
             ->with(['categories', 'tags', 'slugable'])
             ->get()
-            ->transform(fn (Post $post) => [ // @phpstan-ignore-line
+            ->transform(fn (Post $post) => [
                 ...$post->toArray(),
-                'slug' => $post->slugable->key,
+                'slug' => $post->slug,
                 'url' => $post->url,
                 'image' => RvMedia::getImageUrl($post->image),
                 'categories' => $post->categories->pluck('name')->implode(', '),

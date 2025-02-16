@@ -34,4 +34,6 @@ interface PostInterface extends RepositoryInterface
     public function getPopularPosts(int $limit, array $args = []): Collection;
 
     public function getFilters(array $filters): Collection|LengthAwarePaginator;
+
+    public function getAllPostsPaginated(int $perPage): Collection |LengthAwarePaginator;
 }

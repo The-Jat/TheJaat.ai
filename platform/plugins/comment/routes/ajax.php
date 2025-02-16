@@ -6,13 +6,13 @@ if (defined('THEME_MODULE_SCREEN_NAME')) {
     Route::group([
         'prefix' => 'ajax/v1/comments',
         'middleware' => ['web', 'core'],
-    ], function (): void {
+    ], function () {
         Route::group([
             'namespace' => 'Botble\Comment\Http\Controllers\AJAX',
-        ], function (): void {
+        ], function () {
             Route::group([
                 'as' => 'public.comment.',
-            ], function (): void {
+            ], function () {
                 Route::post('login', 'LoginController@login')->name('login');
                 Route::post('register', 'RegisterController@register')->name('register');
             });
@@ -26,10 +26,10 @@ if (defined('THEME_MODULE_SCREEN_NAME')) {
         Route::group([
             'as' => 'comment.',
             'namespace' => 'Botble\Comment\Http\Controllers\AJAX',
-        ], function (): void {
+        ], function () {
             Route::group([
                 'middleware' => ['auth:' . COMMENT_GUARD, 'throttle:comment'],
-            ], function (): void {
+            ], function () {
                 Route::post('postComment', 'CommentFrontController@postComment')->name('post');
                 Route::post('user', 'CommentFrontController@userInfo')->name('user');
                 Route::delete('delete', 'CommentFrontController@deleteComment')->name('delete');

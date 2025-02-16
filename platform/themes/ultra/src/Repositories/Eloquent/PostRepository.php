@@ -17,7 +17,7 @@ class PostRepository extends BasePostRepository implements PostInterface
         if (! empty($filters['categories'])) {
             $categories = array_filter((array) $filters['categories']);
 
-            $this->model = $this->model->whereHas('categories', function ($query) use ($categories): void {
+            $this->model = $this->model->whereHas('categories', function ($query) use ($categories) {
                 $query->whereIn('categories.id', $categories);
             });
         }
@@ -25,7 +25,7 @@ class PostRepository extends BasePostRepository implements PostInterface
         if (! empty($filters['categories_exclude'])) {
             $excludeCategories = array_filter((array) $filters['categories_exclude']);
 
-            $this->model = $this->model->whereHas('categories', function ($query) use ($excludeCategories): void {
+            $this->model = $this->model->whereHas('categories', function ($query) use ($excludeCategories) {
                 $query->whereNotIn('categories.id', $excludeCategories);
             });
         }

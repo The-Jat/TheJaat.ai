@@ -36,14 +36,16 @@
                         role="tablist"
                         aria-orientation="vertical"
                     >
-                        @foreach ($sections as $section)
-                            <a
-                                href="{{ route('theme.options', $section['id']) }}{{ request()->query('ref_lang') ? '?ref_lang=' . request()->query('ref_lang') : ''}}"
-                                @class(['nav-link w-100', 'active' => $currentSection['id'] === $section['id']])
+                        @foreach ($sections = ThemeOption::constructSections() as $section)
+                            <button
+                                @class(['nav-link w-100', 'active' => $loop->first])
                                 id="{{ $section['id'] }}-tab"
+                                data-bs-toggle="pill"
+                                data-bs-target="#{{ $section['id'] }}"
+                                type="button"
                                 role="tab"
                                 aria-controls="{{ $section['id'] }}"
-                                aria-selected="{{ $currentSection['id'] === $section['id'] }}"
+                                aria-selected="true"
                                 title="{{ $section['title'] }}"
                             >
                                 @if ($section['icon'])
@@ -53,45 +55,47 @@
                                     />
                                 @endif
                                 <span class="text-truncate">{{ $section['title'] }}</span>
-                            </a>
+                            </button>
                         @endforeach
                     </div>
                     <div
                         class="tab-content w-100 p-3"
                         id="themeOptionTabContent"
                     >
-                        <div
-                            class="tab-pane fade show active"
-                            id="{{ $currentSection['id'] }}"
-                            role="tabpanel"
-                            aria-labelledby="{{ $currentSection['id'] }}-tab"
-                            tabindex="0"
-                        >
-                            @isset($currentSection['description'])
-                                <p class="mb-3">{!! BaseHelper::clean($currentSection['description']) !!}</p>
-                            @endisset
+                        @foreach ($sections as $section)
+                            <div
+                                @class(['tab-pane fade', 'show active' => $loop->first])
+                                id="{{ $section['id'] }}"
+                                role="tabpanel"
+                                aria-labelledby="{{ $section['id'] }}-tab"
+                                tabindex="0"
+                            >
+                                @isset($section['description'])
+                                    <p class="mb-3">{!! BaseHelper::clean($section['description']) !!}</p>
+                                @endisset
 
-                            @foreach (ThemeOption::constructFields($currentSection['id']) as $field)
-                                @if (Arr::get($field, 'type') === 'hidden')
-                                    {!! ThemeOption::renderField($field) !!}
-                                @else
-                                    <x-core::form-group
-                                        class="{{ $errors->has($field['attributes']['name'] ?? $field['id']) ? 'has-error' : null }}"
-                                    >
-                                        <x-core::form.label
-                                            :for="$field['id']"
-                                            :label="$field['label']"
-                                        />
+                                @foreach (ThemeOption::constructFields($section['id']) as $field)
+                                    @if (Arr::get($field, 'type') === 'hidden')
                                         {!! ThemeOption::renderField($field) !!}
-                                        @if (array_key_exists('helper', $field))
-                                            <x-core::form.helper-text>
-                                                {!! BaseHelper::clean($field['helper']) !!}
-                                            </x-core::form.helper-text>
-                                        @endif
+                                    @else
+                                        <x-core::form-group
+                                            class="{{ $errors->has($field['attributes']['name'] ?? $field['id']) ? 'has-error' : null }}"
+                                        >
+                                            <x-core::form.label
+                                                :for="$field['id']"
+                                                :label="$field['label']"
+                                            />
+                                            {!! ThemeOption::renderField($field) !!}
+                                            @if (array_key_exists('helper', $field))
+                                                <x-core::form.helper-text>
+                                                    {!! BaseHelper::clean($field['helper']) !!}
+                                                </x-core::form.helper-text>
+                                            @endif
                                         @endif
                                     </x-core::form-group>
-                                    @endforeach
-                        </div>
+                                @endforeach
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </x-core::card.body>

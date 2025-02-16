@@ -16,7 +16,7 @@ class HookServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function () {
             add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addStatsWidgets'], 15, 2);
         });
     }

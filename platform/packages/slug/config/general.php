@@ -4,6 +4,8 @@ return [
     'pattern' => '--slug--',
     'supported' => [
         'Botble\Page\Models\Page' => 'Pages',
+        'Botble\Course\Models\Course' => 'Courses',
+        'Botble\Vaccancy\Models\VaccancyPost' => 'Vaccancy',
     ],
     'prefixes' => [],
     'disable_preview' => [],

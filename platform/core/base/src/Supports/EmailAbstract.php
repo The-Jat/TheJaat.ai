@@ -2,7 +2,6 @@
 
 namespace Botble\Base\Supports;
 
-use Botble\Base\Facades\EmailHandler;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -47,7 +46,7 @@ class EmailAbstract extends Mailable
         $email = $this
             ->from($fromAddress, $fromName)
             ->subject($this->subject)
-            ->html($inlineCss->convert($this->content, EmailHandler::getCssContent()));
+            ->html($inlineCss->convert($this->content));
 
         $attachments = Arr::get($this->data, 'attachments');
         if (! empty($attachments)) {

@@ -13,7 +13,8 @@ class ContactRepository extends RepositoriesAbstract implements ContactInterface
     {
         $data = $this->model
             ->where('status', ContactStatusEnum::UNREAD)
-            ->select($select)->latest()
+            ->select($select)
+            ->orderByDesc('created_at')
             ->get();
 
         $this->resetModel();

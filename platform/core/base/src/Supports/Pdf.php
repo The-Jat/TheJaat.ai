@@ -116,20 +116,18 @@ class Pdf
                 ],
             ];
 
-            $data = [...$defaultData, ...$this->data];
-
             switch ($this->supportLanguage) {
                 case 'bangladesh':
-                    $data['settings']['font_family'] = 'FreeSerif';
-                    $data['settings']['header_html'] .= view('core/base::pdf.style-bangladesh')->render();
+                    $defaultData['settings']['header_html'] .= view('core/base::pdf.style-bangladesh')->render();
 
                     break;
                 case 'chinese':
-                    $data['settings']['font_family'] = 'msyh';
-                    $data['settings']['header_html'] .= view('core/base::pdf.style-chinese')->render();
+                    $defaultData['settings']['header_html'] .= view('core/base::pdf.style-chinese')->render();
 
                     break;
             }
+
+            $data = [...$defaultData, ...$this->data];
 
             $this->content = $this->compileContent($this->content, $data);
 
@@ -168,7 +166,7 @@ class Pdf
             ->setPaper($this->paperSize ?? CPDF::$PAPER_SIZES['a4']);
     }
 
-    public function getContent(string $templatePath, ?string $customizedPath = null): string
+    protected function getContent(string $templatePath, ?string $customizedPath = null): string
     {
         if (! $customizedPath) {
             $customizedPath = storage_path('app/templates/' . basename($templatePath));
@@ -180,7 +178,7 @@ class Pdf
             $content = File::exists($templatePath) ? BaseHelper::getFileData($templatePath, false) : '';
         }
 
-        return (string) $content;
+        return $content;
     }
 
     protected function compileContent(string $content, array $data = []): string

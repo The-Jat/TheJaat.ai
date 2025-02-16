@@ -94,6 +94,17 @@ TABLE CONTENT
 /*WP STYPE*/
 /*custom amine*/
 
+/* Custom class for the codeBlock assembly language option in ckeditor*/
+.language-assembly-x86 {
+    display: block;
+    background-color: #f5f5f5; /* Light gray background */
+    color: #2a2a2a; /* Dark gray text */
+    /* font-family: 'Courier New', Courier, monospace;*/
+    padding: 10px; /* Padding around the code block */
+    border: 1px solid #ddd; /* Light gray border */
+    border-radius: 5px; /* Rounded corners */
+}
+
 @keyframes spinner {
     0% {
         -webkit-transform: perspective(120px) rotateX(0) rotateY(0);

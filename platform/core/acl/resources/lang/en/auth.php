@@ -69,14 +69,6 @@ return [
         'email' => [
             'title' => 'ACL',
             'description' => 'ACL email configuration',
-            'templates' => [
-                'password_reminder' => [
-                    'title' => 'Reset password',
-                    'description' => 'Send email to user when requesting reset password',
-                    'subject' => 'Reset Password',
-                    'reset_link' => 'Reset password link',
-                ],
-            ],
         ],
     ],
 ];

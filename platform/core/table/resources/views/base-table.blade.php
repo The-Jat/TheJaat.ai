@@ -61,8 +61,6 @@
                     <div class="table-search-input">
                         <label>
                             <input type="search" class="form-control input-sm" placeholder="{{ trans('core/table::table.search') }}" style="min-width: 120px">
-                            <button type="button" title="{{ trans('core/table::table.search') }}" class="search-icon"><x-core::icon name="ti ti-search" /></button>
-                            <button type="button" title="{{ trans('core/table::table.clear') }}" class="search-reset-icon"><x-core::icon name="ti ti-x" /></button>
                         </label>
                     </div>
                 </div>
@@ -141,7 +139,7 @@
                                                 @foreach($table->getColumns() as $column)
                                                     @php /** @var \Botble\Table\Columns\Column $column */ @endphp
 
-                                                    @continue(! $column instanceof \Botble\Table\Columns\Column || Str::contains($column->className, 'no-column-visibility') || in_array($column->name, $table->getDefaultVisibleColumns(), true))
+                                                    @continue(Str::contains($column->className, 'no-column-visibility') || in_array($column->name, $table->getDefaultVisibleColumns(), true))
 
                                                     {{ Form::onOffCheckbox("columns_visibility[{$column->name}]", $table->determineIfColumnIsVisible($column), ['label' => $column->titleAttr ?: $column->title, 'data-bb-toggle' => 'dt-columns-visibility-toggle']) }}
                                                 @endforeach

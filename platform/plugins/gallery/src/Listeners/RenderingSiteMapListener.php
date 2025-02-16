@@ -23,7 +23,8 @@ class RenderingSiteMapListener
                 ->with('slugable')
                 ->wherePublished()
                 ->orderBy('order')
-                ->select(['id', 'name', 'updated_at'])->latest()
+                ->select(['id', 'name', 'updated_at'])
+                ->orderByDesc('created_at')
                 ->get();
 
             foreach ($galleries as $gallery) {

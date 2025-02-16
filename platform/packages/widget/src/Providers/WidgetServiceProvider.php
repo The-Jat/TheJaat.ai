@@ -3,7 +3,6 @@
 namespace Botble\Widget\Providers;
 
 use Botble\Base\Facades\DashboardMenu;
-use Botble\Base\Supports\DashboardMenuItem;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Theme\Events\RenderingAdminBar;
@@ -49,7 +48,7 @@ class WidgetServiceProvider extends ServiceProvider
             ->loadAndPublishTranslations()
             ->publishAssets();
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             WidgetGroup::setGroup([
                 'id' => 'primary_sidebar',
                 'name' => trans('packages/widget::widget.primary_sidebar_name'),
@@ -60,21 +59,18 @@ class WidgetServiceProvider extends ServiceProvider
             register_widget(Text::class);
         });
 
-        DashboardMenu::default()->beforeRetrieving(function (): void {
+        DashboardMenu::default()->beforeRetrieving(function () {
             DashboardMenu::make()
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('cms-core-widget')
-                        ->parentId('cms-core-appearance')
-                        ->priority(3)
-                        ->name('packages/widget::widget.name')
-                        ->icon('ti ti-layout')
-                        ->route('widgets.index')
-                        ->permissions('widgets.index')
-                );
+                ->registerItem([
+                    'id' => 'cms-core-widget',
+                    'priority' => 3,
+                    'parent_id' => 'cms-core-appearance',
+                    'name' => 'packages/widget::widget.name',
+                    'route' => 'widgets.index',
+                ]);
         });
 
-        $this->app['events']->listen(RenderingAdminBar::class, function (): void {
+        $this->app['events']->listen(RenderingAdminBar::class, function () {
             AdminBar::registerLink(
                 trans('packages/widget::widget.name'),
                 route('widgets.index'),

@@ -31,12 +31,13 @@ class Tags extends AbstractWidget
     protected function settingForm(): WidgetForm|string|null
     {
         return WidgetForm::createFromArray($this->getConfig())
-            ->add('name', TextField::class, NameFieldOption::make())
+            ->add('name', TextField::class, NameFieldOption::make()->toArray())
             ->add(
                 'number_display',
                 NumberField::class,
                 NumberFieldOption::make()
                     ->label(__('Number tags to display'))
+                    ->toArray()
             );
     }
 

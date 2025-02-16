@@ -40,7 +40,7 @@ class TagController extends BaseController
         $form = TagForm::create();
 
         $form
-            ->saving(function (TagForm $form) use ($request): void {
+            ->saving(function (TagForm $form) use ($request) {
                 $form
                     ->getModel()
                     ->fill([...$request->validated(),

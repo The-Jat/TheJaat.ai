@@ -53,7 +53,7 @@
 
                             @foreach ($fields as $field)
                                 @if (!in_array($field->getName(), $exclude))
-                                    @if (in_array($field->getType(), ['hidden', \Botble\Base\Forms\Fields\HiddenField::class]))
+                                    @if ($field->getType() == 'hidden')
                                         {!! $field->render() !!}
                                     @else
                                         <div class="widget meta-boxes">

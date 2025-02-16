@@ -51,7 +51,7 @@ class AIWriterServiceProvider extends ServiceProvider
             return view('plugins/ai-writer::shortcodes.ai-writer-admin-config', compact('attributes', 'activeLanguages'))->render();
         });
 
-        Event::listen(RouteMatched::class, function (): void {
+        Event::listen(RouteMatched::class, function () {
         });
     }
 

@@ -39,11 +39,11 @@ class HookServiceProvider extends ServiceProvider
         Menu::addMenuOptionModel(Category::class);
         Menu::addMenuOptionModel(Tag::class);
 
-        $this->app['events']->listen(RenderingMenuOptions::class, function (): void {
+        $this->app['events']->listen(RenderingMenuOptions::class, function () {
             add_action(MENU_ACTION_SIDEBAR_OPTIONS, [$this, 'registerMenuOptions'], 2);
         });
 
-        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function () {
             add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'registerDashboardWidgets'], 21, 2);
         });
 
@@ -53,11 +53,11 @@ class HookServiceProvider extends ServiceProvider
             add_filter(PAGE_FILTER_FRONT_PAGE_CONTENT, [$this, 'renderBlogPage'], 2, 2);
         }
 
-        PageTable::beforeRendering(function (): void {
+        PageTable::beforeRendering(function () {
             add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, [$this, 'addAdditionNameToPageName'], 147, 2);
         });
 
-        $this->app['events']->listen(RenderingAdminBar::class, function (): void {
+        $this->app['events']->listen(RenderingAdminBar::class, function () {
             AdminBar::registerLink(
                 trans('plugins/blog::posts.post'),
                 route('posts.create'),
@@ -96,23 +96,24 @@ class HookServiceProvider extends ServiceProvider
                                 SelectFieldOption::make()
                                     ->label(__('Select categories'))
                                     ->choices($categories)
-                                    ->when(Arr::get($attributes, 'category_ids'), function (SelectFieldOption $option, $categoriesIds): void {
+                                    ->when(Arr::get($attributes, 'category_ids'), function (SelectFieldOption $option, $categoriesIds) {
                                         $option->selected(explode(',', $categoriesIds));
                                     })
                                     ->multiple()
                                     ->searchable()
                                     ->helperText(__('Leave categories empty if you want to show posts from all categories.'))
+                                    ->toArray()
                             );
                     }
                 );
         }
 
-        $this->app['events']->listen(RenderingThemeOptionSettings::class, function (): void {
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
             add_action(RENDERING_THEME_OPTIONS_PAGE, [$this, 'addThemeOptions'], 35);
         });
 
         if (defined('THEME_FRONT_HEADER') && setting('blog_post_schema_enabled', 1)) {
-            add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, function ($screen, $post): void {
+            add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, function ($screen, $post) {
                 add_filter(THEME_FRONT_HEADER, function ($html) use ($post) {
                     if (! $post instanceof Post) {
                         return $html;
@@ -147,15 +148,15 @@ class HookServiceProvider extends ServiceProvider
                             'name' => theme_option('site_title'),
                             'logo' => [
                                 '@type' => 'ImageObject',
-                                'url' => RvMedia::getImageUrl(Theme::getLogo()),
+                                'url' => RvMedia::getImageUrl(theme_option('logo')),
                             ],
                         ],
-                        'datePublished' => $post->created_at->toIso8601String(),
-                        'dateModified' => $post->updated_at->toIso8601String(),
+                        'datePublished' => $post->created_at->toDateString(),
+                        'dateModified' => $post->updated_at->toDateString(),
                     ];
 
                     return $html . Html::tag('script', json_encode($schema, JSON_UNESCAPED_UNICODE), ['type' => 'application/ld+json'])
-                        ->toHtml();
+                            ->toHtml();
                 }, 35);
             }, 35, 2);
         }
@@ -259,9 +260,9 @@ class HookServiceProvider extends ServiceProvider
         $posts = Post::query()
             ->wherePublished()
             ->orderByDesc('created_at')
-            ->with(['slugable', 'categories.slugable'])
-            ->when(! empty($categoryIds), function ($query) use ($categoryIds): void {
-                $query->whereHas('categories', function ($query) use ($categoryIds): void {
+            ->with('slugable')
+            ->when(! empty($categoryIds), function ($query) use ($categoryIds) {
+                $query->whereHas('categories', function ($query) use ($categoryIds) {
                     $query->whereIn('categories.id', $categoryIds);
                 });
             })
@@ -274,7 +275,7 @@ class HookServiceProvider extends ServiceProvider
             $view = $themeView;
         }
 
-        return view($view, compact('posts', 'shortcode'))->render();
+        return view($view, compact('posts'))->render();
     }
 
     public function renderBlogPage(?string $content, Page $page): ?string

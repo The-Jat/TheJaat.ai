@@ -3,7 +3,6 @@
 namespace Botble\ACL\Forms;
 
 use Botble\ACL\Http\Requests\PreferenceRequest;
-use Botble\ACL\Models\User;
 use Botble\Base\Facades\AdminAppearance;
 use Botble\Base\Forms\FieldOptions\RadioFieldOption;
 use Botble\Base\Forms\FieldOptions\SelectFieldOption;
@@ -21,18 +20,13 @@ class PreferenceForm extends FormAbstract
             ->map(fn ($item, $key) => $item . ' - ' . $key)
             ->all();
 
-        /**
-         * @var User $user
-         */
-        $user = $this->getModel();
-
-        $adminAppearance = AdminAppearance::forUser($user);
+        $adminAppearance = AdminAppearance::forUser($this->getModel());
 
         $this
             ->template('core/base::forms.form-no-wrap')
             ->setValidatorClass(PreferenceRequest::class)
             ->setMethod('PUT')
-            ->when(count($languages) > 1, function (FormAbstract $form) use ($adminAppearance, $languages): void {
+            ->when(count($languages) > 1, function (FormAbstract $form) use ($adminAppearance, $languages) {
                 $form->add(
                     'locale',
                     SelectField::class,
@@ -40,6 +34,7 @@ class PreferenceForm extends FormAbstract
                         ->label(trans('core/setting::setting.admin_appearance.language'))
                         ->choices($languages)
                         ->selected($adminAppearance->getLocale())
+                        ->toArray()
                 );
             })
             ->add(
@@ -52,6 +47,7 @@ class PreferenceForm extends FormAbstract
                         'rtl' => trans('core/setting::setting.locale_direction_rtl'),
                     ])
                     ->selected($adminAppearance->getLocaleDirection())
+                    ->toArray()
             )
             ->add(
                 'theme_mode',
@@ -62,7 +58,8 @@ class PreferenceForm extends FormAbstract
                         'light' => trans('core/setting::setting.admin_appearance.light'),
                         'dark' => trans('core/setting::setting.admin_appearance.dark'),
                     ])
-                    ->selected($user->getMeta('theme_mode', 'light'))
+                    ->selected($this->getModel()->getMeta('theme_mode', 'light'))
+                    ->toArray()
             )
             ->setActionButtons(view('core/acl::users.profile.actions')->render());
     }

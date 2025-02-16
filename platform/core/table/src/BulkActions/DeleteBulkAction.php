@@ -17,7 +17,7 @@ class DeleteBulkAction extends TableBulkActionAbstract
         $this
             ->label(trans('core/table::table.delete'))
             ->confirmationModalButton(trans('core/table::table.delete'))
-            ->beforeDispatch(function (): void {
+            ->beforeDispatch(function () {
                 if (BaseHelper::hasDemoModeEnabled()) {
                     throw new DisabledInDemoModeException();
                 }
@@ -26,7 +26,7 @@ class DeleteBulkAction extends TableBulkActionAbstract
 
     public function dispatch(BaseModel|Model $model, array $ids): BaseHttpResponse
     {
-        $model->newQuery()->whereKey($ids)->each(function (BaseModel|Model $item): void {
+        $model->newQuery()->whereKey($ids)->each(function (BaseModel $item) {
             $item->delete();
 
             DeletedContentEvent::dispatch($item::class, request(), $item);

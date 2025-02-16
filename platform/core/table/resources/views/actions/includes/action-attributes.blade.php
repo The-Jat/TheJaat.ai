@@ -1,3 +1,4 @@
+class="{{ $action->getCssClass() }}"
 @if($action->getType() === 'a')
     href="{{ $action->hasUrl() ? $action->getUrl() : 'javascript:void(0);' }}"
 @elseif($action->hasUrl())

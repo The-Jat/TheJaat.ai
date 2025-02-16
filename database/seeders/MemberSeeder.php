@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Botble\Base\Supports\BaseSeeder;
 use Botble\Blog\Models\Post;
 use Botble\Comment\Models\Comment;
+use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Member\Models\Member;
 use Botble\Member\Models\MemberActivityLog;
 use Botble\Slug\Models\Slug;
@@ -31,7 +32,7 @@ class MemberSeeder extends BaseSeeder
             'dob' => $faker->dateTime,
             'phone' => $faker->phoneNumber,
             'description' => $faker->realText(100),
-            'avatar_id' => $files[$faker->numberBetween(1, 5)]['data']->id,
+            'avatar_id' => $files[$faker->numberBetween(0, 5)]['data']->id,
             'confirmed_at' => now(),
         ]);
 

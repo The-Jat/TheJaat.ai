@@ -63,7 +63,7 @@ class CaptchaServiceProvider extends ServiceProvider
 
         $this->bootValidator();
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SettingOthersPanelSection::class,
                 fn () => PanelSectionItem::make('captcha')
@@ -86,32 +86,15 @@ class CaptchaServiceProvider extends ServiceProvider
 
             $fieldKey = 'submit';
 
-            $attributes = [
-                'colspan' => $form->getColumns('lg'),
-            ];
-
             if ($form instanceof FormFront) {
                 $fieldKey = $form->getFormEndKey() ?: ($form->has($fieldKey) ? $fieldKey : array_key_last($form->getFields()));
-
-                if ($form->getFormInputWrapperClass()) {
-                    $attributes['wrapper'] = ['class' => $form->getFormInputWrapperClass()];
-                }
-
-                if ($form->getFormLabelClass()) {
-                    $attributes['label_attr'] = ['class' => $form->getFormLabelClass()];
-                }
-
-                if ($form->getFormInputClass()) {
-                    $attributes['attr'] = ['class' => $form->getFormInputClass()];
-                }
             }
 
             if (CaptchaFacade::reCaptchaEnabled() && ! $form->has('recaptcha') && CaptchaFacade::formSetting($form::class, 'enable_recaptcha')) {
                 $form->addBefore(
                     $fieldKey,
                     'recaptcha',
-                    ReCaptchaField::class,
-                    $attributes
+                    ReCaptchaField::class
                 );
             }
 
@@ -119,13 +102,12 @@ class CaptchaServiceProvider extends ServiceProvider
                 $form->addBefore(
                     $fieldKey,
                     'math_captcha',
-                    MathCaptchaField::class,
-                    $attributes
+                    MathCaptchaField::class
                 );
             }
         });
 
-        Event::listen(Routing::class, function (): void {
+        Event::listen(Routing::class, function () {
             add_filter('core_request_rules', function (array $rules, Request $request) {
                 if (! CaptchaFacade::isEnabled() && ! CaptchaFacade::mathCaptchaEnabled()) {
                     return $rules;

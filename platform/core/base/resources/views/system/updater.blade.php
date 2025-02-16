@@ -62,7 +62,7 @@
         @if (! $activated)
             <x-core::alert
                 type="warning"
-                title="You haven't activated your license yet!"
+                title="You are not activated your license yet!"
                 :important="true"
             >
                 <p class="mt-3 mb-0">

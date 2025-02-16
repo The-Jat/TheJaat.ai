@@ -8,8 +8,8 @@ use Botble\Theme\Facades\Theme;
 use Botble\Theme\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
-Theme::registerRoutes(function (): void {
-    Route::group(['controller' => PublicController::class], function (): void {
+Theme::registerRoutes(function () {
+    Route::group(['controller' => PublicController::class], function () {
         event(new ThemeRoutingBeforeEvent(app()->make('router')));
 
         Route::get('/', 'getIndex')->name('public.index');

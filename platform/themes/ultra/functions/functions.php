@@ -4,11 +4,15 @@ use Botble\Base\Enums\BaseStatusEnum;
 use Botble\Base\Models\MetaBox as MetaBoxModel;
 use Botble\Blog\Models\Category;
 use Botble\Blog\Models\Post;
+use Botble\Course\Models\Course;
+use Botble\Course\Repositories\Interfaces\CourseInterface;
 use Botble\Blog\Repositories\Interfaces\PostInterface;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Comment\Repositories\Interfaces\CommentRecommendInterface;
+use Botble\Media\Facades\RvMedia;
 use Botble\Member\Models\Member;
 use Botble\Member\Repositories\Interfaces\MemberInterface;
+use Botble\SeoHelper\SeoOpenGraph;
 use Botble\Slug\Models\Slug;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -17,6 +21,7 @@ use Illuminate\Support\Str;
 use Theme\UltraNews\Http\Requests\CustomPostRequest;
 use Theme\UltraNews\Repositories\Eloquent\PostRepository;
 use TheSky\ProPosts\Repositories\Interfaces\FavoritePostsInterface;
+
 
 register_page_template([
     'default' => __('Default'),
@@ -119,7 +124,7 @@ if (is_plugin_active('blog')) {
         ],
     ]);
 
-    add_action(BASE_ACTION_META_BOXES, function ($context, $object): void {
+    add_action(BASE_ACTION_META_BOXES, function ($context, $object) {
         if (get_class($object) == Category::class && $context == 'side') {
             MetaBox::addMetaBox('additional_blog_category_fields', __('Addition Information'), function () {
                 $image = null;
@@ -133,13 +138,13 @@ if (is_plugin_active('blog')) {
         }
     }, 24, 2);
 
-    add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object): void {
+    add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object) {
         if (get_class($object) == Category::class && $request->has('image')) {
             MetaBox::saveMetaBoxData($object, 'image', $request->input('image'));
         }
     }, 230, 3);
 
-    add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object): void {
+    add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object) {
         if (get_class($object) == Category::class && $request->has('image')) {
             MetaBox::saveMetaBoxData($object, 'image', $request->input('image'));
         }
@@ -254,11 +259,11 @@ if (is_plugin_active('member')) {
     SlugHelper::registerModule(Member::class, 'Authors');
     SlugHelper::setPrefix(Member::class, 'author');
 
-    add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object): void {
+    add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object) {
         save_member_slug($type, $request, $object);
     }, 124, 3);
 
-    add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object): void {
+    add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object) {
         save_member_slug($type, $request, $object);
     }, 125, 3);
 
@@ -271,7 +276,7 @@ if (is_plugin_active('member')) {
                 $slug = Str::slug($object->name);
 
                 //check slug exist
-                $slugExist = Slug::query()->where('key', $slug)
+                $slugExist = Slug::where('key', $slug)
                     ->where('reference_type', Member::class)
                     ->where('prefix', 'author')
                     ->first();
@@ -280,7 +285,7 @@ if (is_plugin_active('member')) {
                     $slug .= time();
                 }
 
-                Slug::query()->create([
+                Slug::create([
                     'reference_type' => Member::class,
                     'reference_id' => $object->id,
                     'key' => $slug,
@@ -291,7 +296,7 @@ if (is_plugin_active('member')) {
     }
 }
 
-app()->booted(function (): void {
+app()->booted(function () {
     if (is_plugin_active('blog')) {
         Category::resolveRelationUsing('image', function ($model) {
             return $model->morphOne(MetaBoxModel::class, 'reference')->where('meta_key', 'image');
@@ -339,6 +344,36 @@ if (! function_exists('get_single_layout')) {
             'top-full' => __('Top full'),
             'inline' => __('Inline'),
         ];
+    }
+}
+
+if (! function_exists('get_post_template')) {
+    /**
+     * Retrieves available post templates for a given plugin.
+     *
+     * @param string $plugin The plugin name (e.g., 'blog').
+     * @return array An associative array of namespaced template paths.
+     */
+    function get_post_template(string $plugin): array
+    {
+        $templates = [];
+        $templatesDir = plugin_path($plugin) . '/resources/views/templates';
+
+        if (! is_dir($templatesDir)) {
+            return $templates;
+        }
+
+        // Scan for Blade template files.
+        $files = glob($templatesDir . '/*.blade.php');
+
+        foreach ($files as $file) {
+            // Get the file name without extension.
+            $templateName = basename($file, '.blade.php');
+            // Prefix with the namespace and folder structure.
+            $templates["plugins/{$plugin}::templates.{$templateName}"] = $templateName;
+        }
+
+        return $templates;
     }
 }
 
@@ -450,7 +485,7 @@ if (is_plugin_active('blog')) {
         return $form;
     }, 127, 2);
 
-    add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object): void {
+    add_action(BASE_ACTION_AFTER_CREATE_CONTENT, function ($type, $request, $object) {
         if (auth()->user() && get_class($object) == Post::class) {
             $object->author_id = $request->input('author_id');
             $object->author_type = Member::class;
@@ -458,7 +493,7 @@ if (is_plugin_active('blog')) {
         }
     }, 123, 3);
 
-    add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object): void {
+    add_action(BASE_ACTION_AFTER_UPDATE_CONTENT, function ($type, $request, $object) {
         if (auth()->user() && get_class($object) == Post::class) {
             $object->author_id = $request->input('author_id');
             $object->author_type = Member::class;
@@ -635,7 +670,7 @@ if (! function_exists('nextPost')) {
             ->getModel()
             ->where('id', '>', $postId)
             ->orderBy('id')
-            ->whereHas('categories', function ($query) use ($categoryIds): void {
+            ->whereHas('categories', function ($query) use ($categoryIds) {
                 $query->whereIn('categories.id', $categoryIds);
             })
             ->first();
@@ -649,9 +684,77 @@ if (! function_exists('previousPost')) {
             ->getModel()
             ->where('id', '<', $postId)
             ->orderBy('id', 'desc')
-            ->whereHas('categories', function ($query) use ($categoryIds): void {
+            ->whereHas('categories', function ($query) use ($categoryIds) {
                 $query->whereIn('categories.id', $categoryIds);
             })
             ->first();
     }
 }
+
+// // return the time take to read the course post.
+// if (!function_exists('get_time_to_read_course_post')) {
+//     function get_time_to_read_course_post(Course $post): string
+//     {
+//         $timeToRead = MetaBox::getMetaData($post, 'time_to_read', true);
+
+//         if ($timeToRead) {
+//             return number_format($timeToRead);
+//         }
+
+//         return number_format(strlen(strip_tags($post->content)) / 300);
+//     }
+// }
+
+// // Returns the GrandParent courses
+// if (!function_exists('get_latest_courses')) {
+//     function get_latest_courses(int $limit = 4)
+//     {
+//         return app(CourseInterface::class)
+//             ->getModel()
+//             ->where('parent_id', 0)
+//             ->take($limit)
+//             ->get();
+//     }
+// }
+
+// if (!function_exists('is_external_link_course')) {
+//     function is_external_link_course(Course $post): bool
+//     {
+//         return is_plugin_active('external-source') && !empty($post->external_source_link);
+//     }
+// }
+
+// // It returns the author object by its user id.
+// if (!function_exists('getAuthorByUserID')) {
+//     function getAuthorByUserID(int $id)
+//     {
+//         $condition = [
+//             'id' => $id,
+//         ];
+
+//         $author = app()->make(MemberInterface::class)
+//             ->getModel()
+//             ->where($condition)
+//             ->with(['slugable'])
+//             ->first();
+
+//         return $author;
+//     }
+// }
+
+// // returns the author avatar url by user id.
+// if (!function_exists('getAuthorAvatarURLByUserID')) {
+//     function getAuthorAvatarURLByUserID(int $id): String
+//     {
+//         $author = getAuthorByUserID($id);
+
+//         $meta = new SeoOpenGraph();
+//         // if ($author->avatar) {
+//         $meta->setImage(RvMedia::getImageUrl($author->avatar));
+//         // }
+//         // ddd($meta);
+
+//         $url = RvMedia::getImageUrl($author->avatar->url, 'thumb', false, RvMedia::getDefaultImage());
+//         return $url;
+//     }
+// }

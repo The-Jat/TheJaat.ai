@@ -26,10 +26,3 @@
         <i class="ti-pinterest"></i>
     </a>
 </li>
-<li class="list-inline-item">
-    <a class="social-icon whatsapp-icon text-xs-center color-white"
-       href="javascript:void(0)"
-       onclick="window.open('https://api.whatsapp.com/send?text={{ rawurlencode($post->description . ' ' . get_external_link($post)) }}', 'Share This Post', 'width=640,height=450'); return false">
-        <img src="{{ Theme::asset()->url('images/whatsapp-white.svg') }}" alt="WhatsApp" width="16" height="16">
-    </a>
-</li>

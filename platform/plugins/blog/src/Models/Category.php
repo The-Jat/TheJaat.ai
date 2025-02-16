@@ -9,12 +9,10 @@ use Botble\Base\Facades\Html;
 use Botble\Base\Models\BaseModel;
 use Botble\Base\Traits\HasTreeCategory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
 class Category extends BaseModel implements HasTreeCategoryContract
@@ -46,7 +44,7 @@ class Category extends BaseModel implements HasTreeCategoryContract
 
     protected static function booted(): void
     {
-        static::deleted(function (Category $category): void {
+        static::deleted(function (Category $category) {
             $category->children()->each(fn (Category $child) => $child->delete());
 
             $category->posts()->detach();
@@ -97,41 +95,13 @@ class Category extends BaseModel implements HasTreeCategoryContract
         });
     }
 
-    public static function getChildrenIds(EloquentCollection $children, $categoryIds = []): array
-    {
-        if ($children->isEmpty()) {
-            return $categoryIds;
-        }
-
-        foreach ($children as $item) {
-            $categoryIds[] = $item->id;
-            if ($item->children->isNotEmpty()) {
-                $categoryIds = static::getChildrenIds($item->activeChildren, $categoryIds);
-            }
-        }
-
-        return $categoryIds;
-    }
-
     protected function badgeWithCount(): Attribute
     {
         return Attribute::get(function (): HtmlString {
-            $categoryIds = static::getChildrenIds($this->activeChildren);
-
-            if (empty($categoryIds)) {
-                $categoryIds = [$this->getKey()];
-            }
-
-            $postsCount = DB::table('post_categories')
-                ->whereIn('category_id', $categoryIds)
-                ->distinct('post_id')
-                ->count();
-
-            return Html::link($this->url, sprintf('(%s)', $postsCount), [
+            return Html::tag('span', sprintf('(%s)', $this->posts_count), [
                 'data-bs-toggle' => 'tooltip',
-                'data-bs-original-title' => trans('plugins/blog::categories.total_posts', ['total' => $postsCount]),
-                'target' => '_blank',
+                'data-bs-original-title' => trans('plugins/blog::categories.total_posts', ['total' => $this->posts_count]),
             ]);
-        })->shouldCache();
+        });
     }
 }

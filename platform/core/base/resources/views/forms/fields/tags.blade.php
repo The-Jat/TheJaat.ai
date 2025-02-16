@@ -9,13 +9,13 @@
     :nameKey="$nameKey"
 >
     @php
-        if (Arr::get($options, 'choices')) {
-            $classAppend = 'list-tagify';
-        } else {
-            $classAppend = 'tags';
+        $classAppend = ['tags'];
+
+        if (Arr::has($options['attr'], 'data-url')) {
+            $classAppend[] = 'list-tagify';
         }
 
-        $options['attr']['class'] = (rtrim(Arr::get($options, 'attr.class'), ' ') ?: '')  . ' ' . $classAppend;
+        $options['attr']['class'] = (rtrim(Arr::get($options, 'attr.class'), ' ') ?: '') . ' ' . implode(' ', $classAppend);
 
         if (Arr::has($options, 'choices')) {
             $choices = $options['choices'];
@@ -33,12 +33,6 @@
             $options['value'] = $options['selected'];
         }
     @endphp
-
-    <x-slot:label>
-        @if ($showLabel && $options['label'] !== false && $options['label_show'])
-            {!! Form::customLabel($name, $options['label'], $options['label_attr']) !!}
-        @endif
-    </x-slot:label>
 
     {!! Form::text($name, $options['value'], $options['attr']) !!}
 </x-core::form.field>

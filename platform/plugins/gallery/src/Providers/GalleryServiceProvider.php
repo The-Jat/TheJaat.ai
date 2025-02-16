@@ -3,7 +3,6 @@
 namespace Botble\Gallery\Providers;
 
 use Botble\Base\Facades\DashboardMenu;
-use Botble\Base\Supports\DashboardMenuItem;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Gallery\Facades\Gallery as GalleryFacade;
@@ -39,6 +38,9 @@ class GalleryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        SlugHelper::registerModule(Gallery::class, 'Galleries');
+        SlugHelper::setPrefix(Gallery::class, 'galleries', true);
+
         $this
             ->setNamespace('plugins/gallery')
             ->loadHelpers()
@@ -51,25 +53,19 @@ class GalleryServiceProvider extends ServiceProvider
 
         $this->app->register(EventServiceProvider::class);
 
-        $this->app['events']->listen(ThemeRoutingBeforeEvent::class, function (): void {
+        $this->app['events']->listen(ThemeRoutingBeforeEvent::class, function () {
             SiteMapManager::registerKey(['galleries']);
         });
 
-        SlugHelper::registering(function (): void {
-            SlugHelper::registerModule(Gallery::class, fn () => trans('plugins/gallery::gallery.galleries'));
-            SlugHelper::setPrefix(Gallery::class, 'galleries', true);
-        });
-
-        DashboardMenu::default()->beforeRetrieving(function (): void {
+        DashboardMenu::default()->beforeRetrieving(function () {
             DashboardMenu::make()
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('cms-plugins-gallery')
-                        ->priority(5)
-                        ->name('plugins/gallery::gallery.menu_name')
-                        ->icon('ti ti-camera')
-                        ->route('galleries.index')
-                );
+                ->registerItem([
+                    'id' => 'cms-plugins-gallery',
+                    'priority' => 5,
+                    'name' => 'plugins/gallery::gallery.menu_name',
+                    'icon' => 'ti ti-camera',
+                    'route' => 'galleries.index',
+                ]);
         });
 
         if (defined('LANGUAGE_MODULE_SCREEN_NAME') && defined('LANGUAGE_ADVANCED_MODULE_SCREEN_NAME')) {
@@ -91,7 +87,7 @@ class GalleryServiceProvider extends ServiceProvider
             }
         }
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             SeoHelper::registerModule([Gallery::class]);
 
             $this->app->register(HookServiceProvider::class);

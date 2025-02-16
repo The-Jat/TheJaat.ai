@@ -5,12 +5,12 @@ use Botble\Contact\Http\Controllers\CustomFieldController;
 use Botble\Theme\Facades\Theme;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['namespace' => 'Botble\Contact\Http\Controllers'], function (): void {
-    AdminHelper::registerRoutes(function (): void {
-        Route::group(['prefix' => 'contacts', 'as' => 'contacts.'], function (): void {
+Route::group(['namespace' => 'Botble\Contact\Http\Controllers'], function () {
+    AdminHelper::registerRoutes(function () {
+        Route::group(['prefix' => 'contacts', 'as' => 'contacts.'], function () {
             Route::resource('', 'ContactController')->except(['create', 'store'])->parameters(['' => 'contact']);
 
-            Route::group(['prefix' => 'custom-fields', 'as' => 'custom-fields.', 'permission' => 'contact.custom-fields'], function (): void {
+            Route::group(['prefix' => 'custom-fields', 'as' => 'custom-fields.', 'permission' => 'contacts.edit'], function () {
                 Route::resource('', CustomFieldController::class)->parameters(['' => 'custom-field']);
             });
 
@@ -21,7 +21,7 @@ Route::group(['namespace' => 'Botble\Contact\Http\Controllers'], function (): vo
             ])->wherePrimaryKey();
         });
 
-        Route::group(['prefix' => 'settings'], function (): void {
+        Route::group(['prefix' => 'settings'], function () {
             Route::get('contact', [
                 'as' => 'contact.settings',
                 'uses' => 'Settings\ContactSettingController@edit',
@@ -36,7 +36,7 @@ Route::group(['namespace' => 'Botble\Contact\Http\Controllers'], function (): vo
     });
 
     if (defined('THEME_MODULE_SCREEN_NAME')) {
-        Theme::registerRoutes(function (): void {
+        Theme::registerRoutes(function () {
             Route::post('contact/send', [
                 'as' => 'public.send.contact',
                 'uses' => 'PublicController@postSendContact',

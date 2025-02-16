@@ -5,11 +5,10 @@ namespace Botble\Base\Http\Controllers;
 use Botble\Base\Facades\Assets;
 use Botble\Base\Http\Requests\ClearCacheRequest;
 use Botble\Base\Services\ClearCacheService;
-use Illuminate\Contracts\View\View;
 
-class CacheManagementController extends BaseSystemController
+class CacheManagementController extends BaseController
 {
-    public function index(): View
+    public function index()
     {
         $this->pageTitle(trans('core/base::cache.cache_management'));
 

@@ -45,7 +45,7 @@ class AnalyticsServiceProvider extends ServiceProvider
             ->loadMigrations()
             ->publishAssets();
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             if (! config('plugins.analytics.general.enabled_dashboard_widgets', true)) {
                 return;
             }
@@ -61,7 +61,7 @@ class AnalyticsServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             $this->app->register(HookServiceProvider::class);
         });
     }

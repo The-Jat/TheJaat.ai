@@ -29,6 +29,7 @@ class SeoForm extends FormAbstract
                     ->maxLength(70)
                     ->allowOverLimit()
                     ->value(old('seo_meta.seo_title', $meta['seo_title']))
+                    ->toArray()
             )
             ->add(
                 'seo_meta[seo_description]',
@@ -40,6 +41,7 @@ class SeoForm extends FormAbstract
                     ->maxLength(160)
                     ->allowOverLimit()
                     ->value(old('seo_meta.seo_description', $meta['seo_description']))
+                    ->toArray()
             )
             ->add(
                 'seo_meta_image',
@@ -47,6 +49,7 @@ class SeoForm extends FormAbstract
                 MediaImageFieldOption::make()
                     ->label(trans('packages/seo-helper::seo-helper.seo_image'))
                     ->value(old('seo_meta_image', $meta['seo_image']))
+                    ->toArray(),
             )
             ->add(
                 'seo_meta[index]',
@@ -58,6 +61,7 @@ class SeoForm extends FormAbstract
                         'index' => trans('packages/seo-helper::seo-helper.index'),
                         'noindex' => trans('packages/seo-helper::seo-helper.noindex'),
                     ])
+                    ->toArray()
             );
     }
 }

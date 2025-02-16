@@ -6,7 +6,7 @@ use Botble\Gallery\Repositories\Interfaces\GalleryInterface;
 use Botble\PostCollection\Repositories\Interfaces\PostCollectionInterface;
 use Botble\Theme\Supports\ThemeSupport;
 
-app()->booted(function (): void {
+app()->booted(function () {
     ThemeSupport::registerGoogleMapsShortcode();
     ThemeSupport::registerYoutubeShortcode();
 
@@ -197,6 +197,36 @@ app()->booted(function (): void {
             return Theme::partial('shortcodes.categories-tab-posts-admin-config', compact('attributes', 'categories'));
         });
 
+        //buttons
+        add_shortcode(
+            'buttons',
+            __('Buttons'),
+            __('Add Buttons'),
+            function ($shortcode) {
+
+                return Theme::partial('shortcodes.buttons', [
+                    'shortcode' => $shortcode,
+                ]);
+            }
+        );
+
+        shortcode()->setAdminConfig('buttons', function ($attributes) {
+            $styleData = [
+                ['id' => 1, 'name' => 'Style 1'],
+                ['id' => 2, 'name' => 'Style 2'],
+                ['id' => 3, 'name' => 'Style 3'],
+                ['id' => 4, 'name' => 'Style 4'],
+            ];
+
+            $targetsData = [
+                ['id' => 1, 'name' => 'Same Tab'],
+                ['id' => 2, 'name' => 'New Tab'],
+            ];
+            // dd($data);
+
+            return Theme::partial('shortcodes.buttons-admin-config', compact('attributes', 'styleData', 'targetsData'));
+        });
+
         //video posts
         add_shortcode('videos-posts', __('Video posts'), __('Add video posts'), function ($shortcode) {
             $posts = query_post([
@@ -232,6 +262,15 @@ app()->booted(function (): void {
 
         shortcode()->setAdminConfig('most-comments', function ($attributes) {
             return Theme::partial('shortcodes.most-comments-admin-config', compact('attributes'));
+        });
+
+        // latest courses
+        add_shortcode('latest-courses', __('Latest courses'), __('Latest courses'), function ($shortcode) {
+            // if (!is_plugin_active('comment')) {
+            //     return null;
+            // }
+
+            return Theme::partial('shortcodes.latest-courses', compact('shortcode'));
         });
     }
 

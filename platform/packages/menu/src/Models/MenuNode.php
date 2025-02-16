@@ -96,10 +96,10 @@ class MenuNode extends BaseModel
     {
         return Attribute::make(
             get: function () {
-                $iconImage = $this->getMetaData('icon_image', true);
+                $iconImage = $iconImage = $this->getMetaData('icon_image', true);
 
                 if ($iconImage) {
-                    return RvMedia::image($iconImage, 'icon', attributes: ['class' => 'menu-icon-image' . ($this->title ? ' me-1' : '')]);
+                    return RvMedia::image($iconImage, 'icon', attributes: ['class' => 'menu-icon-image']);
                 }
 
                 $icon = $this->icon_font;
@@ -109,9 +109,9 @@ class MenuNode extends BaseModel
                 }
 
                 if (BaseHelper::hasIcon($icon)) {
-                    $icon = BaseHelper::renderIcon($icon, attributes: ['class' => $this->title ? ' me-1' : '']);
+                    $icon = BaseHelper::renderIcon($icon);
                 } else {
-                    $icon = BaseHelper::clean(sprintf('<i class="%s"></i>', $icon . ($this->title ? ' me-1' : '')));
+                    $icon = sprintf('<i class="%s"></i>', $icon);
                 }
 
                 return new HtmlString($icon);

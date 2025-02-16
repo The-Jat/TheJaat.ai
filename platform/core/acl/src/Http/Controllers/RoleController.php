@@ -99,7 +99,7 @@ class RoleController extends BaseSystemController
     public function store(RoleCreateRequest $request)
     {
         if ($request->input('is_default')) {
-            Role::query()->update(['is_default' => 0]);
+            Role::query()->where('id', '>', 0)->update(['is_default' => 0]);
         }
 
         $role = Role::query()->create([

@@ -65,7 +65,7 @@ class CopyThemeOptions
             ];
         }
 
-        if (count($copiedThemeOptions)) {
+        if (! empty($copiedThemeOptions)) {
             Setting::query()
                 ->insertOrIgnore($copiedThemeOptions);
         }

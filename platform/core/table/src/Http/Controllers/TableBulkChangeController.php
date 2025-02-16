@@ -120,4 +120,5 @@ class TableBulkChangeController extends TableController
             ->httpResponse()
             ->setMessage(trans('core/table::table.save_bulk_change_success'));
     }
+
 }

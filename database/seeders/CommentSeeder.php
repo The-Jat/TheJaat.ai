@@ -5,8 +5,8 @@ namespace Database\Seeders;
 use Botble\Base\Supports\BaseSeeder;
 use Botble\Blog\Models\Post;
 use Botble\Comment\Models\Comment;
-use Botble\Comment\Models\CommentUser;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
+use Botble\Comment\Models\CommentUser;
 use Faker\Factory;
 
 class CommentSeeder extends BaseSeeder
@@ -18,6 +18,7 @@ class CommentSeeder extends BaseSeeder
 
         CommentUser::truncate();
         Comment::truncate();
+
 
         for ($i = 0; $i < 10; $i++) {
             CommentUser::create([

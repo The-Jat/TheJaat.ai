@@ -23,12 +23,20 @@ class PublicController extends BaseController
     {
         Theme::addBodyAttributes(['id' => 'page-home']);
 
-        if (defined('PAGE_MODULE_SCREEN_NAME') && BaseHelper::getHomepageId()) {
-            $data = (new PageService())->handleFrontRoutes(null);
+        if (
+            defined('PAGE_MODULE_SCREEN_NAME') &&
+            ($homepageId = BaseHelper::getHomepageId()) &&
+            ($slug = SlugHelper::getSlug(null, null, Page::class, $homepageId))
+        ) {
+            $data = (new PageService())->handleFrontRoutes($slug);
 
-            if ($data) {
-                return Theme::scope($data['view'], $data['data'], $data['default_view'])->render();
+            if (! $data) {
+                return Theme::scope('index')->render();
             }
+
+            event(new RenderingSingleEvent($slug));
+
+            return Theme::scope($data['view'], $data['data'], $data['default_view'])->render();
         }
 
         SeoHelper::setTitle(theme_option('site_title'));
@@ -46,7 +54,9 @@ class PublicController extends BaseController
 
         $slug = SlugHelper::getSlug($key, $prefix);
 
-        abort_unless($slug, 404);
+        if (! $slug) {
+            abort(404);
+        }
 
         if (
             defined('PAGE_MODULE_SCREEN_NAME') &&
@@ -79,7 +89,7 @@ class PublicController extends BaseController
         if (! empty($result) && is_array($result)) {
             if (isset($result['view'])) {
                 Theme::addBodyAttributes(['id' => Str::slug(Str::snake(Str::afterLast($slug->reference_type, '\\'))) . '-' . $slug->reference_id]);
-
+// ddd($result);
                 return Theme::scope($result['view'], $result['data'], Arr::get($result, 'default_view'))->render();
             }
 

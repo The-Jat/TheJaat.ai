@@ -14,10 +14,10 @@ use Botble\Menu\Http\Requests\MenuNodeRequest;
 use Botble\Menu\Http\Requests\MenuRequest;
 use Botble\Menu\Models\Menu as MenuModel;
 use Botble\Menu\Models\MenuLocation;
-use Botble\Menu\Models\MenuNode;
 use Botble\Menu\Repositories\Eloquent\MenuRepository;
 use Botble\Menu\Tables\MenuTable;
 use Botble\Support\Services\Cache\Cache;
+use Illuminate\Cache\CacheManager;
 use Illuminate\Http\Request;
 use stdClass;
 
@@ -25,9 +25,9 @@ class MenuController extends BaseController
 {
     protected Cache $cache;
 
-    public function __construct()
+    public function __construct(CacheManager $cache)
     {
-        $this->cache = Cache::make(MenuRepository::class);
+        $this->cache = new Cache($cache, MenuRepository::class);
     }
 
     protected function breadcrumb(): Breadcrumb
@@ -58,19 +58,14 @@ class MenuController extends BaseController
         $form = MenuForm::create();
 
         $form
-            ->saving(function (MenuForm $form) use ($request): void {
+            ->saving(function (MenuForm $form) use ($request) {
                 $form
                     ->getModel()
                     ->fill($form->getRequest()->input())
                     ->save();
 
-                /**
-                 * @var MenuModel $menu
-                 */
-                $menu = $form->getModel();
-
                 $this->cache->flush();
-                $this->saveMenuLocations($menu, $request);
+                $this->saveMenuLocations($form->getModel(), $request);
             });
 
         return $this
@@ -124,18 +119,13 @@ class MenuController extends BaseController
     public function update(MenuModel $menu, MenuRequest $request)
     {
         MenuForm::createFromModel($menu)
-            ->saving(function (MenuForm $form) use ($request): void {
+            ->saving(function (MenuForm $form) use ($request) {
                 $form
                     ->getModel()
                     ->fill($form->getRequest()->input())
                     ->save();
 
-                /**
-                 * @var MenuModel $menu
-                 */
-                $menu = $form->getModel();
-
-                $this->saveMenuLocations($menu, $request);
+                $this->saveMenuLocations($form->getModel(), $request);
             });
 
         $deletedNodes = ltrim((string) $request->input('deleted_nodes', ''));
@@ -164,10 +154,7 @@ class MenuController extends BaseController
     {
         $form = MenuNodeForm::create();
 
-        $form->saving(function (MenuNodeForm $form) use ($request): void {
-            /**
-             * @var MenuNode $row
-             */
+        $form->saving(function (MenuNodeForm $form) use ($request) {
             $row = $form->getModel();
             $row->fill($data = $request->input('data', []));
             $row = Menu::getReferenceMenuNode($data, $row);

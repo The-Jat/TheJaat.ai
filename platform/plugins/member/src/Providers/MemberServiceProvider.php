@@ -84,7 +84,7 @@ class MemberServiceProvider extends ServiceProvider
             ->loadMigrations()
             ->publishAssets();
 
-        DashboardMenu::default()->beforeRetrieving(function (): void {
+        DashboardMenu::default()->beforeRetrieving(function () {
             DashboardMenu::registerItem([
                 'id' => 'cms-core-member',
                 'priority' => 50,
@@ -96,7 +96,7 @@ class MemberServiceProvider extends ServiceProvider
             ]);
         });
 
-        DashboardMenu::for('member')->beforeRetrieving(function (): void {
+        DashboardMenu::for('member')->beforeRetrieving(function () {
             DashboardMenu::make()
                 ->registerItem([
                     'id' => 'cms-member-dashboard',
@@ -123,7 +123,7 @@ class MemberServiceProvider extends ServiceProvider
 
         DashboardMenu::default();
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SettingOthersPanelSection::class,
                 fn () => PanelSectionItem::make('members')
@@ -135,9 +135,9 @@ class MemberServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             if (! is_in_admin(true)) {
-                Breadcrumbs::register('dashboard.index', function (BreadcrumbsGenerator $breadcrumbs): void {
+                Breadcrumbs::register('dashboard.index', function (BreadcrumbsGenerator $breadcrumbs) {
                     $breadcrumbs->push(trans('core/base::layouts.dashboard'), route('public.member.dashboard'));
                 }, true);
             }
@@ -152,7 +152,7 @@ class MemberServiceProvider extends ServiceProvider
             ]);
         }
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             EmailHandler::addTemplateSettings(MEMBER_MODULE_SCREEN_NAME, config('plugins.member.email', []));
 
             if (

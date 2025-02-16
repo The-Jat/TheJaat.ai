@@ -66,6 +66,4 @@ return [
         'domain' => 'The :attribute must be a valid domain.',
     ],
     'showing_records' => 'Showing :from to :to of :total records',
-    'copy' => 'Copy',
-    'copied' => 'Copied',
 ];

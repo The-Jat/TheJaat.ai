@@ -2,7 +2,6 @@
 
 namespace Botble\Theme;
 
-use Botble\Base\Facades\AdminHelper;
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Facades\Html;
 use Botble\Media\Facades\RvMedia;
@@ -21,13 +20,11 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Factory;
 use Symfony\Component\HttpFoundation\Cookie;
-use Throwable;
 
 class Theme implements ThemeContract
 {
@@ -99,14 +96,14 @@ class Theme implements ThemeContract
         }
 
         // Is theme ready?
-        if (! $this->exists($theme) && ! app()->runningInConsole() && ! AdminHelper::isInAdmin(true)) {
+        if (! $this->exists($theme) && ! app()->runningInConsole()) {
             throw new UnknownThemeException('Theme [' . $theme . '] not found.');
         }
 
         $this->inheritTheme = $this->getConfig('inherit');
 
         // If inherit theme is set and not exists, so throw exception.
-        if ($this->hasInheritTheme() && ! $this->exists($this->getInheritTheme()) && ! AdminHelper::isInAdmin(true)) {
+        if ($this->hasInheritTheme() && ! $this->exists($this->getInheritTheme())) {
             throw new UnknownThemeException('Parent theme [' . $this->getInheritTheme() . '] not found.');
         }
 
@@ -181,10 +178,13 @@ class Theme implements ThemeContract
      */
     public function getConfig(?string $key = null): mixed
     {
+        // dd($key);
+
         if (! $this->themeConfig) {
             $this->themeConfig = $this->config->get('packages.theme.general', []);
         }
 
+        // dd($this->themeConfig);
         $this->loadConfigFromTheme($this->theme);
 
         $this->themeConfig = $this->evaluateConfig($this->themeConfig);
@@ -345,8 +345,6 @@ class Theme implements ThemeContract
         if ($onEvent instanceof Closure) {
             $onEvent($args);
         }
-
-        $this->events->dispatch('theme.' . $event, $args);
     }
 
     /**
@@ -652,7 +650,9 @@ class Theme implements ThemeContract
      */
     public function scope(string $view, array $args = [], $default = null)
     {
+        // It read from the theme config, which 
         $viewDir = $this->getConfig('containerDir.view');
+        // It returns 'views'
 
         // Add namespace to find in a theme path.
         $path = $this->getThemeNamespace($viewDir . '.' . $view);
@@ -661,12 +661,19 @@ class Theme implements ThemeContract
             return $this->setUpContent($path, $args);
         }
 
+        if (theme_option('custom_blog_template')) {
+            if ($this->view->exists($view)) {
+                return $this->setUpContent($view, $args);
+            }
+        }
+
         if (! empty($default)) {
             return $this->of($default, $args);
         }
 
         $this->handleViewNotFound($path);
     }
+
 
     /**
      * Set up a content to template.
@@ -678,17 +685,7 @@ class Theme implements ThemeContract
         // Keeping arguments.
         $this->arguments = $args;
 
-        try {
-            $content = $this->view->make($view, $args)->render();
-        } catch (Throwable $exception) {
-            if (App::hasDebugModeEnabled()) {
-                throw $exception;
-            }
-
-            report($exception);
-
-            $content = str_replace(base_path('/'), '', $exception->getMessage());
-        }
+        $content = $this->view->make($view, $args)->render();
 
         // View path of content.
         $this->content = $view;
@@ -702,6 +699,7 @@ class Theme implements ThemeContract
     protected function handleViewNotFound(string $path): void
     {
         if (app()->isLocal() && app()->hasDebugModeEnabled()) {
+            // dd('here');
             $path = str_replace($this->getThemeNamespace(), $this->getThemeName(), $path);
             $file = str_replace('::', '/', str_replace('.', '/', $path));
             dd(
@@ -812,33 +810,31 @@ class Theme implements ThemeContract
 
     public function header(): string
     {
-        if (! empty($this->breadcrumb->crumbs)) {
-            $schema = [
-                '@context' => 'https://schema.org',
-                '@type' => 'BreadcrumbList',
-                'itemListElement' => [],
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [],
+        ];
+
+        $index = 1;
+
+        foreach ($this->breadcrumb->crumbs as $item) {
+            $schema['itemListElement'][] = [
+                '@type' => 'ListItem',
+                'position' => $index,
+                'name' => BaseHelper::clean($item['label']),
+                'item' => $item['url'],
             ];
 
-            $index = 1;
-
-            foreach ($this->breadcrumb->crumbs as $item) {
-                $schema['itemListElement'][] = [
-                    '@type' => 'ListItem',
-                    'position' => $index,
-                    'name' => BaseHelper::clean($item['label']),
-                    'item' => $item['url'],
-                ];
-
-                $index++;
-            }
-
-            $schema = json_encode($schema, JSON_UNESCAPED_UNICODE);
-
-            $this
-                ->asset()
-                ->container('header')
-                ->writeScript('breadcrumb-schema', $schema, attributes: ['type' => 'application/ld+json']);
+            $index++;
         }
+
+        $schema = json_encode($schema, JSON_UNESCAPED_UNICODE);
+
+        $this
+            ->asset()
+            ->container('header')
+            ->writeScript('breadcrumb-schema', $schema, attributes: ['type' => 'application/ld+json']);
 
         return $this->view->make('packages/theme::partials.header')->render();
     }
@@ -872,7 +868,7 @@ class Theme implements ThemeContract
 
     public function registerRoutes(Closure|callable $closure): Router
     {
-        return Route::group(['middleware' => ['web', 'core']], function () use ($closure): void {
+        return Route::group(['middleware' => ['web', 'core']], function () use ($closure) {
             Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), fn () => $closure());
         });
     }
@@ -947,12 +943,8 @@ class Theme implements ThemeContract
         return ThemeSupport::getSocialLinks();
     }
 
-    public function convertSocialLinksToArray(array|string|null $data): array
+    public function convertSocialLinksToArray(array $data): array
     {
-        if (! $data) {
-            return [];
-        }
-
         return ThemeSupport::convertSocialLinksToArray($data);
     }
 
@@ -1044,39 +1036,25 @@ class Theme implements ThemeContract
         return apply_filters('theme_logo', theme_option($logoKey));
     }
 
-    public function getFavicon(): ?string
-    {
-        return apply_filters('theme_favicon', theme_option('favicon'));
-    }
-
     public function getSiteTitle(): ?string
     {
         return apply_filters('theme_site_title', theme_option('site_title'));
     }
 
-    public function getLogoImage(
-        array $attributes = [],
-        string $logoKey = 'logo',
-        int $maxHeight = 0,
-        ?string $logoUrl = null
-    ): ?HtmlString {
-        if ($logoUrl) {
-            $logo = $logoUrl;
-        } else {
-            $logo = $this->getLogo($logoKey);
-        }
+    public function getLogoImage(array $attributes = [], string $logoKey = 'logo'): ?HtmlString
+    {
+        $logo = $this->getLogo($logoKey);
 
         if (! $logo) {
             return null;
         }
 
-        $height = theme_option('logo_height') ?: $maxHeight;
+        $attributes = [
+            ...$attributes,
+            'loading' => false,
+        ];
 
-        if ($height) {
-            $attributes['style'] = sprintf('max-height: %s', is_numeric($height) ? "{$height}px" : $height);
-        }
-
-        return apply_filters('theme_logo_image', RvMedia::image($logo, $this->getSiteTitle(), attributes: $attributes, lazy: false));
+        return apply_filters('theme_logo_image', RvMedia::image($logo, $this->getSiteTitle(), attributes: $attributes));
     }
 
     public function formatDate(CarbonInterface|string|int|null $date, ?string $format = null): ?string
@@ -1094,5 +1072,32 @@ class Theme implements ThemeContract
     public function renderSocialSharing(?string $url = null, ?string $title = null, ?string $thumbnail = null): string
     {
         return ThemeSupport::renderSocialSharingButtons($url, $title, $thumbnail);
+    }
+
+    /**
+     * Container view.
+     *
+     * Using a container module view inside a theme, this is
+     * useful when you separate a view inside a theme.
+     */
+    public function scopeBlog(string $view, array $args = [], $default = null)
+    {
+   
+        // It read from the theme config, which 
+        // $viewDir = $this->getConfig('containerDir.view');
+        // It returns 'views'
+
+        // Add namespace to find in a theme path.
+        // $path = $this->getThemeNamespace($viewDir . '.' . $view);
+
+        if ($this->view->exists($view)) {
+            return $this->setUpContent($view, $args);
+        }
+
+        if (! empty($default)) {
+            return $this->of($default, $args);
+        }
+        
+        $this->handleViewNotFound($view);
     }
 }

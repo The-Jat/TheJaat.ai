@@ -28,17 +28,17 @@ class HookServiceProvider extends ServiceProvider
     {
         Menu::addMenuOptionModel(Page::class);
 
-        $this->app['events']->listen(RenderingMenuOptions::class, function (): void {
+        $this->app['events']->listen(RenderingMenuOptions::class, function () {
             add_action(MENU_ACTION_SIDEBAR_OPTIONS, [$this, 'registerMenuOptions'], 10);
         });
 
-        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function () {
             add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addPageStatsWidget'], 15, 2);
         });
 
         add_filter(BASE_FILTER_PUBLIC_SINGLE_DATA, [$this, 'handleSingleView'], 1);
 
-        $this->app['events']->listen(RenderingThemeOptionSettings::class, function (): void {
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
             $pages = Page::query()
                 ->wherePublished();
 
@@ -47,7 +47,7 @@ class HookServiceProvider extends ServiceProvider
                 ->all();
 
             theme_option()
-                ->when($pages, function () use ($pages): void {
+                ->when($pages, function () use ($pages) {
                     theme_option()
                         ->setSection([
                             'title' => trans('packages/page::pages.theme_options.title'),
@@ -73,7 +73,7 @@ class HookServiceProvider extends ServiceProvider
                 });
         });
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             if (defined('THEME_FRONT_HEADER')) {
                 add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, function ($screen, $page): void {
                     add_filter(THEME_FRONT_HEADER, function (?string $html) use ($page): string|null {

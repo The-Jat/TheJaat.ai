@@ -5,14 +5,12 @@ namespace Botble\Setting\Forms;
 use Botble\Base\Facades\AdminAppearance;
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Forms\FieldOptions\CodeEditorFieldOption;
-use Botble\Base\Forms\FieldOptions\NumberFieldOption;
 use Botble\Base\Forms\FieldOptions\SelectFieldOption;
 use Botble\Base\Forms\Fields\CodeEditorField;
 use Botble\Base\Forms\Fields\ColorField;
 use Botble\Base\Forms\Fields\GoogleFontsField;
 use Botble\Base\Forms\Fields\MediaImageField;
 use Botble\Base\Forms\Fields\MediaImagesField;
-use Botble\Base\Forms\Fields\NumberField;
 use Botble\Base\Forms\Fields\OnOffCheckboxField;
 use Botble\Base\Forms\Fields\RadioField;
 use Botble\Base\Forms\Fields\SelectField;
@@ -35,16 +33,6 @@ class AdminAppearanceSettingForm extends SettingForm
                 'label' => trans('core/setting::setting.admin_appearance.form.admin_logo'),
                 'value' => setting('admin_logo'),
             ])
-            ->add(
-                'admin_logo_max_height',
-                NumberField::class,
-                NumberFieldOption::make()
-                    ->label(trans('core/setting::setting.admin_appearance.form.admin_logo_max_height'))
-                    ->helperText(trans('core/setting::setting.admin_appearance.form.admin_logo_max_height_helper', ['default' => '32px']))
-                    ->value(setting('admin_logo_max_height', 32))
-                    ->min(10)
-                    ->max(300)
-            )
             ->add('admin_favicon', MediaImageField::class, [
                 'label' => trans('core/setting::setting.admin_appearance.form.admin_favicon'),
                 'value' => setting('admin_favicon'),
@@ -91,7 +79,7 @@ class AdminAppearanceSettingForm extends SettingForm
                 'label' => trans('core/setting::setting.admin_appearance.form.link_hover_color'),
                 'value' => setting('admin_link_hover_color', '#1a569d'),
             ])
-            ->when(! empty($locales = Language::getAvailableLocales()), function (FormAbstract $form) use ($locales): void {
+            ->when(! empty($locales = Language::getAvailableLocales()), function (FormAbstract $form) use ($locales) {
                 $form->add(
                     AdminAppearance::getSettingKey('locale'),
                     SelectField::class,
@@ -103,6 +91,7 @@ class AdminAppearanceSettingForm extends SettingForm
                             ->all())
                         ->selected(AdminAppearance::getSetting('locale', config('core.base.general.locale', config('app.locale'))))
                         ->searchable()
+                        ->toArray()
                 );
             })
             ->add(AdminAppearance::getSettingKey('locale_direction'), RadioField::class, [
@@ -128,9 +117,17 @@ class AdminAppearanceSettingForm extends SettingForm
                 'value' => AdminAppearance::getContainerWidth(),
                 'values' => AdminAppearance::getContainerWidths(),
             ])
+            ->add('show_admin_bar', OnOffCheckboxField::class, [
+                'label' => trans('core/setting::setting.admin_appearance.form.show_admin_bar'),
+                'value' => setting('show_admin_bar', true),
+            ])
             ->add(AdminAppearance::getSettingKey('show_menu_item_icon'), OnOffCheckboxField::class, [
                 'label' => trans('core/setting::setting.admin_appearance.form.show_menu_item_icon'),
                 'value' => AdminAppearance::showMenuItemIcon(),
+            ])
+            ->add('show_theme_guideline_link', OnOffCheckboxField::class, [
+                'label' => trans('core/setting::setting.admin_appearance.form.show_guidelines'),
+                'value' => setting('show_theme_guideline_link', false),
             ])
             ->add(
                 AdminAppearance::getSettingKey('custom_css'),
@@ -139,6 +136,7 @@ class AdminAppearanceSettingForm extends SettingForm
                     ->label(trans('core/setting::setting.admin_appearance.form.custom_css'))
                     ->value(AdminAppearance::getSetting('custom_css'))
                     ->mode('css')
+                    ->toArray()
             )
             ->add(
                 AdminAppearance::getSettingKey('custom_header_js'),
@@ -149,6 +147,7 @@ class AdminAppearanceSettingForm extends SettingForm
                     ->value(AdminAppearance::getSetting('custom_header_js'))
                     ->mode('javascript')
                     ->maxLength(2500)
+                    ->toArray()
             )
             ->add(
                 AdminAppearance::getSettingKey('custom_body_js'),
@@ -159,6 +158,7 @@ class AdminAppearanceSettingForm extends SettingForm
                     ->value(AdminAppearance::getSetting('custom_body_js'))
                     ->mode('javascript')
                     ->maxLength(2500)
+                    ->toArray()
             )
             ->add(
                 AdminAppearance::getSettingKey('custom_footer_js'),
@@ -169,6 +169,7 @@ class AdminAppearanceSettingForm extends SettingForm
                     ->value(AdminAppearance::getSetting('custom_footer_js'))
                     ->mode('javascript')
                     ->maxLength(2500)
+                    ->toArray()
             );
     }
 }

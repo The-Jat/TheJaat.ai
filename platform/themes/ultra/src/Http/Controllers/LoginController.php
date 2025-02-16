@@ -10,7 +10,9 @@ class LoginController extends MemberLoginController
 {
     public function showLoginForm()
     {
-        abort_if(theme_option('allow_account_login', '') != 'yes', 404);
+        if (theme_option('allow_account_login', '') != 'yes') {
+            abort(404);
+        }
 
         SeoHelper::setTitle(trans('plugins/member::member.login'));
 

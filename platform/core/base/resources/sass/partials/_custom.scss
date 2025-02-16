@@ -27,17 +27,6 @@
     .form-check-input[type=checkbox] {
         box-shadow: 0 0 0 0.05rem rgba(255, 255, 255, .5);
     }
-
-    .permissions-tree {
-        .permissions-item {
-            background-color: var(--bb-bg-forms);
-
-            .permissions-header {
-                background-color: var(--bb-bg-surface);
-                border-bottom: 1px solid var(--bb-bg-surface);
-            }
-        }
-    }
 }
 
 .tagify__tag {
@@ -314,6 +303,10 @@ small {
 }
 
 @media screen and (min-width: 992px) {
+    .vertical-wrapper {
+        padding-inline-start: 15rem;
+    }
+
     .theme-option {
         .ck {
             &.ck-editor {
@@ -370,28 +363,4 @@ small {
             }
         }
     }
-}
-
-a.form-hint, .form-hint a {
-    color: rgba(var(--bb-link-color-rgb),var(--bb-link-opacity,1));
-}
-
-.ck.ck-editor ~ .form-hint {
-    margin-top: 15px;
-}
-
-.modal {
-    .modal-body {
-        .btn-close {
-            position: absolute;
-            right: 0;
-            top: 0;
-            height: 3.5rem;
-            width: 3.5rem;
-        }
-    }
-}
-
-.toastify-text {
-    word-break: break-word;
 }

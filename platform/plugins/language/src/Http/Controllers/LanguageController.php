@@ -80,7 +80,28 @@ class LanguageController extends SettingController
 
             $locale = $request->input('lang_locale');
 
-            $this->importLocaleIfMissing($locale);
+            if (! File::isDirectory(lang_path($locale))) {
+                $importedLocale = false;
+
+                if (is_plugin_active('translation')) {
+                    $result = app(Manager::class)->downloadRemoteLocale($locale);
+
+                    $importedLocale = ! $result['error'];
+                }
+
+                if (! $importedLocale) {
+                    $defaultLocale = lang_path('en');
+                    if (File::exists($defaultLocale)) {
+                        File::copyDirectory($defaultLocale, lang_path($locale));
+                    }
+
+                    $this->createLocaleInPath(lang_path('vendor/core'), $locale);
+                    $this->createLocaleInPath(lang_path('vendor/packages'), $locale);
+                    $this->createLocaleInPath(lang_path('vendor/plugins'), $locale);
+
+                    $this->copyThemeLangFiles($locale);
+                }
+            }
 
             $language = LanguageModel::query()->create($request->except('lang_id'));
 
@@ -140,48 +161,16 @@ class LanguageController extends SettingController
         }
     }
 
-    protected function importLocaleIfMissing(string $locale): bool
-    {
-        if (File::isDirectory(lang_path($locale))) {
-            return false;
-        }
-
-        $importedLocale = false;
-
-        if (is_plugin_active('translation')) {
-            $result = app(Manager::class)->downloadRemoteLocale($locale);
-
-            $importedLocale = ! $result['error'];
-        }
-
-        if (! $importedLocale) {
-            $defaultLocale = lang_path('en');
-            if (File::exists($defaultLocale)) {
-                File::copyDirectory($defaultLocale, lang_path($locale));
-            }
-
-            $this->createLocaleInPath(lang_path('vendor/core'), $locale);
-            $this->createLocaleInPath(lang_path('vendor/packages'), $locale);
-            $this->createLocaleInPath(lang_path('vendor/plugins'), $locale);
-
-            $this->copyThemeLangFiles($locale);
-        }
-
-        return $importedLocale;
-    }
-
     public function update(Request $request)
     {
         try {
             $language = LanguageModel::query()->where('lang_id', $request->input('lang_id'))->first();
-            abort_if(empty($language), 404);
+            if (empty($language)) {
+                abort(404);
+            }
 
             $language->fill($request->input());
             $language->save();
-
-            $locale = $request->input('lang_locale');
-
-            $this->importLocaleIfMissing($locale);
 
             $this->clearRoutesCache();
 
@@ -259,7 +248,7 @@ class LanguageController extends SettingController
         $language = LanguageModel::query()->where('lang_id', $id)->first();
 
         return DeleteResourceAction::make($language)
-            ->afterDeleting(function (DeleteResourceAction $action): void {
+            ->afterDeleting(function (DeleteResourceAction $action) {
                 $defaultLanguageId = false;
 
                 if ($action->getModel()->lang_is_default) {
@@ -280,7 +269,11 @@ class LanguageController extends SettingController
     {
         $newLanguageId = $request->input('lang_id');
 
-        $newLanguage = LanguageModel::query()->where('lang_id', $newLanguageId)->firstOrFail();
+        $newLanguage = LanguageModel::query()->where('lang_id', $newLanguageId)->first();
+
+        if (! $newLanguage) {
+            abort(404);
+        }
 
         $newLanguageCode = $newLanguage->lang_code;
 

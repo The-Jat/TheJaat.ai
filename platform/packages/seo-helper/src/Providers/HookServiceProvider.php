@@ -11,7 +11,6 @@ use Botble\Media\Facades\RvMedia;
 use Botble\Page\Models\Page;
 use Botble\SeoHelper\Facades\SeoHelper;
 use Botble\SeoHelper\Forms\SeoForm;
-use Botble\Theme\Facades\ThemeOption;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\Events\RouteMatched;
 
@@ -21,7 +20,7 @@ class HookServiceProvider extends ServiceProvider
     {
         add_action(BASE_ACTION_META_BOXES, [$this, 'addMetaBox'], 12, 2);
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             add_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, [$this, 'setSeoMeta'], 56, 2);
         });
     }
@@ -78,7 +77,7 @@ class HookServiceProvider extends ServiceProvider
 
     public function setSeoMeta(string $screen, BaseModel|Model|null $object): bool
     {
-        SeoHelper::meta()->addMeta('robots', ThemeOption::getOption('seo_index', true) ? 'index, follow' : 'noindex, nofollow');
+        SeoHelper::meta()->addMeta('robots', 'index, follow');
 
         if ($object instanceof Page && BaseHelper::isHomepage($object->getKey())) {
             return false;
@@ -99,19 +98,9 @@ class HookServiceProvider extends ServiceProvider
             if (! empty($meta['seo_image'])) {
                 SeoHelper::setImage(RvMedia::getImageUrl($meta['seo_image']));
             }
-
-            if (! empty($meta['index'])) {
-                SeoHelper::meta()->addMeta('robots', $meta['index'] === 'index' ? 'index, follow' : 'noindex, nofollow');
+            if (! empty($meta['index']) && $meta['index'] === 'noindex') {
+                SeoHelper::meta()->addMeta('robots', 'noindex, nofollow');
             }
-        }
-
-        $currentDescription = SeoHelper::getDescription();
-
-        if (
-            (! $currentDescription || $currentDescription === theme_option('seo_description'))
-            && ($object->description || $object->content)
-        ) {
-            SeoHelper::setDescription($object->description ?: $object->content);
         }
 
         return true;

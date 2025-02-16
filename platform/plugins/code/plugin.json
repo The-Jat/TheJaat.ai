@@ -1,0 +1,10 @@
+{
+    "id": "thejat/code",
+    "name": "Code",
+    "namespace": "Botble\\Code\\",
+    "provider": "Botble\\Code\\Providers\\CodeServiceProvider",
+    "author": "The Jat",
+    "url": "https://thejat.in",
+    "version": "2.0.0",
+    "description": "Coding problems, solutions and guidance."
+}

@@ -2,7 +2,6 @@
 
 namespace Botble\SeoHelper;
 
-use Botble\Base\Facades\BaseHelper;
 use Botble\SeoHelper\Contracts\Entities\AnalyticsContract;
 use Botble\SeoHelper\Contracts\Entities\DescriptionContract;
 use Botble\SeoHelper\Contracts\Entities\MiscTagsContract;
@@ -202,8 +201,6 @@ class SeoMeta implements SeoMetaContract
      */
     public function setDescription($content)
     {
-        $content = BaseHelper::cleanShortcodes($content);
-
         $this->description->set($content);
 
         return $this;

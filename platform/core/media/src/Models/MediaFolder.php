@@ -5,7 +5,6 @@ namespace Botble\Media\Models;
 use Botble\Base\Casts\SafeContent;
 use Botble\Base\Models\BaseModel;
 use Botble\Media\Facades\RvMedia;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,7 +33,7 @@ class MediaFolder extends BaseModel
 
     protected static function booted(): void
     {
-        static::deleted(function (MediaFolder $folder): void {
+        static::deleted(function (MediaFolder $folder) {
             if ($folder->isForceDeleting()) {
                 $folder->files()->onlyTrashed()->each(fn (MediaFile $file) => $file->forceDelete());
 
@@ -46,14 +45,8 @@ class MediaFolder extends BaseModel
             }
         });
 
-        static::restoring(function (MediaFolder $folder): void {
+        static::restoring(function (MediaFolder $folder) {
             $folder->files()->each(fn (MediaFile $file) => $file->restore());
-        });
-
-        static::addGlobalScope('ownMedia', function (Builder $query): void {
-            if (RvMedia::canOnlyViewOwnMedia()) {
-                $query->where('media_folders.user_id', auth()->id());
-            }
         });
     }
 

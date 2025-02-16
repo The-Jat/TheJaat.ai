@@ -577,7 +577,7 @@
                             rows="4"
                             name="urls"
                             class="form-control"
-                            placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg&#10;https://example.com/image3.jpg&#10;..."
+                            placeholder="http://example.com/image1.jpg&#10;http://example.com/image2.jpg&#10;http://example.com/image3.jpg&#10;..."
                         ></textarea>
 
                             <x-core::form.helper-text>
@@ -681,52 +681,6 @@
             {{ trans('core/media::media.save_changes') }}
         </x-core::button>
     </x-slot:footer>
-</x-core::modal>
-
-<x-core::modal
-    id="modal_share_items"
-    :title="trans('core/media::media.share')"
->
-    <div class="share-items">
-        <div class="mb-3">
-            {!! Form::label('media-share-type', trans('core/media::media.share_type'), [
-                'class' => 'form-label',
-            ]) !!}
-            {!! Form::customSelect('share_type', [
-                    'url' => trans('core/media::media.share_as_url'),
-                    'indirect_url' => trans('core/media::media.share_as_indirect_url'),
-                    'html' => trans('core/media::media.share_as_html'),
-                    'markdown' => trans('core/media::media.share_as_markdown'),
-                ], null, [
-                'id' => 'media-share-type',
-                'data-bb-value' => 'share-type',
-            ]) !!}
-        </div>
-
-        <div class="mb-3" data-bb-value="results">
-            {!! Form::label('media-share-results', trans('core/media::media.share_results'), [
-                'class' => 'form-label',
-            ]) !!}
-            {!! Form::textarea('share_result', '', [
-                'id' => 'media-share-results',
-                'class' => 'form-control',
-                'readonly' => true,
-                'data-bb-value' => 'share-result',
-            ]) !!}
-        </div>
-
-        <div class="mb-0 text-end">
-            <x-core::button
-                class="btn-icon"
-                data-bb-toggle="clipboard"
-                data-clipboard-parent="#modal_share_items .share-items"
-                data-clipboard-target="[data-bb-value='share-result']"
-            >
-                <x-core::icon name="ti ti-clipboard" data-clipboard-icon="true" />
-                <x-core::icon name="ti ti-check" data-clipboard-success-icon="true" class="text-success d-none" />
-            </x-core::button>
-        </div>
-    </div>
 </x-core::modal>
 
 <button class="d-none js-rv-clipboard-temp"></button>
@@ -873,7 +827,7 @@
     <div class="mb-3">
         <div class="input-group">
             <div class="input-group-text">
-                __icon__
+                <x-core::icon name="__icon__" />
             </div>
             <input class="form-control" placeholder="__placeholder__" value="__value__">
         </div>

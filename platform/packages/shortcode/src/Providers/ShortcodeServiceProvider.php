@@ -55,7 +55,7 @@ class ShortcodeServiceProvider extends ServiceProvider
             ->loadAndPublishViews()
             ->publishAssets();
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             add_filter(BASE_FILTER_FORM_EDITOR_BUTTONS, function (?string $buttons, array $attributes, string $id) {
                 if (! $this->hasWithShortcode($attributes)) {
                     return $buttons;

@@ -42,6 +42,27 @@ class Breadcrumb
         return $this;
     }
 
+    public function addBreadCrumbsFromArray(string|array|null $label)
+    {
+        if (! $this->enabled()) {
+            return $this;
+        }
+
+        if (is_array($label)) {
+            if (count($label) > 0) {
+                foreach ($label as $crumb) {
+                    $defaults = [
+                        'label' => '',
+                        'url' => '',
+                    ];
+                    $crumb = array_merge($defaults, $crumb);
+                    $this->add($crumb['label'], $crumb['url']);
+                }
+            }
+        }
+        // dd($this->crumbs);
+    }
+
     public function render(string $view = 'packages/theme::partials.breadcrumb'): string
     {
         return view($view)->render();

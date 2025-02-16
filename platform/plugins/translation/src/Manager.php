@@ -4,13 +4,10 @@ namespace Botble\Translation;
 
 use ArrayAccess;
 use Botble\Base\Facades\BaseHelper;
-use Botble\Base\Services\DeleteLocaleService;
 use Botble\Base\Services\DeleteUnusedTranslationFilesService;
 use Botble\Base\Services\DownloadLocaleService;
-use Botble\Base\Supports\Language;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Theme\Facades\Theme;
-use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
@@ -27,8 +24,6 @@ class Manager
 
     protected DownloadLocaleService $downloadLocaleService;
 
-    protected DeleteLocaleService $deleteLocaleService;
-
     protected DeleteUnusedTranslationFilesService $deleteUnusedTranslationFilesService;
 
     public function __construct(protected Application $app, protected Filesystem $files)
@@ -37,7 +32,6 @@ class Manager
 
         $this->downloadLocaleService = new DownloadLocaleService();
         $this->deleteUnusedTranslationFilesService = new DeleteUnusedTranslationFilesService();
-        $this->deleteLocaleService = new DeleteLocaleService();
     }
 
     public function publishLocales(): void
@@ -56,11 +50,9 @@ class Manager
         }
     }
 
-    public function updateTranslation(string $locale, string $group, string|array $key, ?string $value = null): void
+    public function updateTranslation(string $locale, string $group, string $key, ?string $value): void
     {
         $loader = Lang::getLoader();
-
-        $translationsArray = is_array($key) ? $key : [$key => $value];
 
         if (str_contains($group, DIRECTORY_SEPARATOR)) {
             $englishTranslations = $loader->load('en', Str::afterLast($group, DIRECTORY_SEPARATOR), Str::beforeLast($group, DIRECTORY_SEPARATOR));
@@ -70,13 +62,11 @@ class Manager
             $translations = $loader->load($locale, $group);
         }
 
-        foreach ($translationsArray as $transKey => $transValue) {
-            Arr::set($translations, $transKey, $transValue);
-        }
+        Arr::set($translations, $key, $value);
 
         $translations = array_merge($englishTranslations, $translations);
 
-        $file = $locale . DIRECTORY_SEPARATOR . $group;
+        $file = $locale . '/' . $group;
 
         File::ensureDirectoryExists(lang_path($locale));
 
@@ -85,16 +75,16 @@ class Manager
             $folderName = Arr::last($groups);
             Arr::forget($groups, count($groups) - 1);
 
-            $dir = 'vendor' . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $groups) . DIRECTORY_SEPARATOR . $locale;
+            $dir = 'vendor/' . implode('/', $groups) . '/' . $locale;
             File::ensureDirectoryExists(lang_path($dir));
 
-            $file = $dir . DIRECTORY_SEPARATOR . $folderName;
+            $file = $dir . '/' . $folderName;
         }
 
         $path = lang_path($file . '.php');
         $output = "<?php\n\nreturn " . VarExporter::export($translations) . ";\n";
 
-        File::put(str_replace('/', DIRECTORY_SEPARATOR, $path), $output);
+        File::put($path, $output);
     }
 
     public function getConfig(?string $key = null): string|array|null
@@ -109,10 +99,14 @@ class Manager
     public function removeUnusedThemeTranslations(): bool
     {
         if (Theme::hasInheritTheme()) {
-            $this->removeUnusedThemeTranslationsFromTheme(Theme::getInheritTheme());
+            $this->removeUnusedThemeTranslationsFromTheme(
+                Theme::getInheritTheme()
+            );
         }
 
-        $this->removeUnusedThemeTranslationsFromTheme(Theme::getThemeName());
+        $this->removeUnusedThemeTranslationsFromTheme(
+            Theme::getThemeName()
+        );
 
         return true;
     }
@@ -137,19 +131,14 @@ class Manager
 
                 $defaultEnglishFile = theme_path("$theme/lang/en.json");
 
-                if (! File::exists($defaultEnglishFile)) {
-                    $this->updateThemeTranslations();
-                }
-
-                if (File::exists($defaultEnglishFile)) {
+                if ($defaultEnglishFile) {
                     $enTranslations = BaseHelper::getFileData($defaultEnglishFile);
-                    $translations = [
-                        ...$enTranslations,
-                        ...$translations,
-                    ];
+                    $translations = array_merge($enTranslations, $translations);
+
+                    $enTranslationKeys = array_keys($enTranslations);
 
                     foreach ($translations as $key => $translation) {
-                        if (! array_key_exists($key, $enTranslations)) {
+                        if (! in_array($key, $enTranslationKeys)) {
                             Arr::forget($translations, $key);
                         }
                     }
@@ -165,13 +154,6 @@ class Manager
         }
 
         return true;
-    }
-
-    public function downloadLocaleIfMissing(string $locale): void
-    {
-        if (! array_key_exists($locale, Language::getAvailableLocales())) {
-            $this->downloadRemoteLocale($locale);
-        }
     }
 
     public function getRemoteAvailableLocales(): array
@@ -296,11 +278,7 @@ class Manager
 
             if (File::exists($themeLangPath)) {
 
-                try {
-                    File::ensureDirectoryExists(dirname($localeFilePath));
-                } catch (Throwable) {
-                    throw new Exception(trans('plugins/translation::translation.folder_is_not_writeable', ['lang_path' => lang_path()]));
-                }
+                File::ensureDirectoryExists(dirname($localeFilePath));
 
                 File::copy($themeLangPath, $localeFilePath);
             }
@@ -373,22 +351,17 @@ class Manager
 
     public function updateThemeTranslations(): int
     {
+        $theme = Theme::hasInheritTheme() ? Theme::getInheritTheme() : Theme::getThemeName();
         $keys = $this->findJsonTranslations(core_path());
         $keys += $this->findJsonTranslations(package_path());
         $keys += $this->findJsonTranslations(plugin_path());
-        $keys += $this->findJsonTranslations(theme_path());
-
+        $keys += $this->findJsonTranslations(theme_path($theme));
         ksort($keys);
 
         $data = json_encode($keys, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-        BaseHelper::saveFileData(theme_path(sprintf('%s/lang/en.json', Theme::getThemeName())), $data, false);
+        BaseHelper::saveFileData(theme_path(sprintf('%s/lang/en.json', $theme)), $data, false);
 
         return count($keys);
-    }
-
-    public function deleteLocale(string $locale): void
-    {
-        $this->deleteLocaleService->handle($locale);
     }
 }

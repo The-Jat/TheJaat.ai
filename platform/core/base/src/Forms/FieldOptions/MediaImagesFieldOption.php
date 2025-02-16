@@ -6,7 +6,7 @@ use Botble\Base\Forms\FormFieldOptions;
 
 class MediaImagesFieldOption extends FormFieldOptions
 {
-    protected array|string|bool|null $selected = null;
+    protected array|string|bool|null $selected;
 
     public static function make(): static
     {
@@ -21,11 +21,6 @@ class MediaImagesFieldOption extends FormFieldOptions
         return $this;
     }
 
-    public function values(array|string|bool|null $selected): static
-    {
-        return $this->selected($selected);
-    }
-
     public function getSelected(): array|string|bool|null
     {
         return $this->selected;
@@ -38,8 +33,6 @@ class MediaImagesFieldOption extends FormFieldOptions
         if (isset($this->selected)) {
             $data['selected'] = $this->getSelected();
         }
-
-        $data['values'] = $data['selected'] ?? $this->getSelected();
 
         return $data;
     }

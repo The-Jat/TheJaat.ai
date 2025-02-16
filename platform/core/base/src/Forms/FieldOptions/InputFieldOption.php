@@ -3,15 +3,14 @@
 namespace Botble\Base\Forms\FieldOptions;
 
 use Botble\Base\Forms\FormFieldOptions;
-use Closure;
 
 class InputFieldOption extends FormFieldOptions
 {
     protected array|float|string|bool|null $value;
 
-    public function value(array|float|string|bool|null|Closure $value): static
+    public function value(array|float|string|bool|null $value): static
     {
-        $this->value = $value instanceof Closure ? $value() : $value;
+        $this->value = $value;
 
         return $this;
     }

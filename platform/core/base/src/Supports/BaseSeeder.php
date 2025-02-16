@@ -16,7 +16,6 @@ use Carbon\Carbon;
 use Faker\Factory;
 use Faker\Generator;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Composer;
@@ -46,7 +45,7 @@ class BaseSeeder extends Seeder
             throw new FileNotFoundException('Folder not found: ' . $folderPath);
         }
 
-        $storage = $this->getMediaStorage();
+        $storage = Storage::disk('public');
 
         if ($storage->exists($folder)) {
             $storage->deleteDirectory($folder);
@@ -58,12 +57,7 @@ class BaseSeeder extends Seeder
         $files = [];
 
         foreach (File::allFiles($folderPath) as $file) {
-            try {
-                $files[] = RvMedia::uploadFromPath($file, 0, $folder);
-            } catch (Throwable $exception) {
-                $this->command->warn('Error when uploading file: ' . $file->getRealPath());
-                $this->command->warn($exception->getMessage());
-            }
+            $files[] = RvMedia::uploadFromPath($file, 0, $folder);
         }
 
         return $files;
@@ -74,24 +68,11 @@ class BaseSeeder extends Seeder
         $filePath = ($basePath ? sprintf('%s/%s', $basePath, $path) : $this->getBasePath() . '/' . $path);
         $path = str_replace(database_path('seeders/files/'), '', $filePath);
 
-        if ($this->getMediaStorage()->exists($path)) {
+        if (Storage::disk('public')->exists($path)) {
             return $path;
         }
 
         throw new FileNotFoundException('File not found: ' . $filePath);
-    }
-
-    protected function fileUrl(string $path, ?string $basePath = null, ?string $size = null)
-    {
-        $path = $this->filePath($path, $basePath);
-
-        if ($size) {
-            $path = RvMedia::getImageUrl($path, $size);
-
-            $path = str_replace(url('/'), '', $path);
-        }
-
-        return $path;
     }
 
     public function prepareRun(): void
@@ -153,7 +134,7 @@ class BaseSeeder extends Seeder
 
                 $process->start();
 
-                $process->wait(function ($type, $buffer): void {
+                $process->wait(function ($type, $buffer) {
                     $this->command->line($buffer);
                 });
 
@@ -226,12 +207,5 @@ class BaseSeeder extends Seeder
         foreach ($data['metadata'] as $key => $value) {
             MetaBoxFacade::saveMetaBoxData($model, $key, $value);
         }
-    }
-
-    protected function getMediaStorage(): Filesystem
-    {
-        RvMedia::setUploadPathAndURLToPublic();
-
-        return Storage::disk('public');
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('contact_custom_fields', function (Blueprint $table): void {
+        Schema::create('contact_custom_fields', function (Blueprint $table) {
             $table->id();
             $table->string('type');
             $table->boolean('required')->default(false);
@@ -19,7 +19,7 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('contact_custom_field_options', function (Blueprint $table): void {
+        Schema::create('contact_custom_field_options', function (Blueprint $table) {
             $table->id();
             $table->foreignId('custom_field_id');
             $table->string('label')->nullable();
@@ -28,7 +28,7 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('contact_custom_fields_translations', function (Blueprint $table): void {
+        Schema::create('contact_custom_fields_translations', function (Blueprint $table) {
             $table->foreignId('contact_custom_fields_id');
             $table->string('lang_code');
             $table->string('name')->nullable();
@@ -37,7 +37,7 @@ return new class () extends Migration {
             $table->primary(['lang_code', 'contact_custom_fields_id']);
         });
 
-        Schema::create('contact_custom_field_options_translations', function (Blueprint $table): void {
+        Schema::create('contact_custom_field_options_translations', function (Blueprint $table) {
             $table->foreignId('contact_custom_field_options_id');
             $table->string('lang_code');
             $table->string('label')->nullable();
@@ -46,7 +46,7 @@ return new class () extends Migration {
             $table->primary(['lang_code', 'contact_custom_field_options_id']);
         });
 
-        Schema::table('contacts', function (Blueprint $table): void {
+        Schema::table('contacts', function (Blueprint $table) {
             $table->text('custom_fields')->nullable()->after('content');
         });
     }
@@ -58,7 +58,7 @@ return new class () extends Migration {
         Schema::dropIfExists('contact_custom_fields_translations');
         Schema::dropIfExists('contact_custom_field_options_translations');
 
-        Schema::table('contacts', function (Blueprint $table): void {
+        Schema::table('contacts', function (Blueprint $table) {
             $table->dropColumn('custom_fields');
         });
     }

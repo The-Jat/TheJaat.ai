@@ -4,8 +4,8 @@ namespace Botble\Base\Forms;
 
 use Botble\Base\Supports\Builders\HasAttributes;
 use Botble\Base\Supports\Builders\HasLabel;
-use Botble\Base\Traits\FieldOptions\HasCollapsibleField;
 use Botble\Base\Traits\Forms\CanSpanColumns;
+use Botble\Base\Traits\Forms\HasCollapsibleField;
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Traits\Conditionable;
@@ -33,8 +33,6 @@ class FormFieldOptions implements Arrayable
     protected Closure|bool $disabled = false;
 
     protected array|bool|string|int|null $defaultValue;
-
-    protected bool $labelShow = true;
 
     public static function make(): static
     {
@@ -155,10 +153,6 @@ class FormFieldOptions implements Arrayable
             $data['label_attr'] = $this->getLabelAttributes();
         }
 
-        if ($this->getLabel()) {
-            $data['label_show'] = $this->isLabelShow();
-        }
-
         if ($this->wrapperAttributes || $this->wrapperAttributes === false) {
             $data['wrapper'] = $this->getWrapperAttributes();
         }
@@ -176,17 +170,5 @@ class FormFieldOptions implements Arrayable
         }
 
         return $data;
-    }
-
-    public function isLabelShow(): bool
-    {
-        return $this->labelShow;
-    }
-
-    public function labelShow(bool $labelShow): static
-    {
-        $this->labelShow = $labelShow;
-
-        return $this;
     }
 }

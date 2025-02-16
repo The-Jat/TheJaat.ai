@@ -14,11 +14,11 @@ use Botble\Comment\Models\Comment;
 use Botble\Comment\Repositories\Interfaces\CommentInterface;
 use Botble\Comment\Repositories\Interfaces\CommentLikeInterface;
 use Botble\Comment\Repositories\Interfaces\CommentRecommendInterface;
+use Botble\Media\Facades\RvMedia;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
-use RvMedia;
 
 class CommentFrontController extends BaseController
 {
@@ -80,8 +80,8 @@ class CommentFrontController extends BaseController
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'reference' => ['required'],
-            'comment' => ['required', 'min:5'],
+            'reference' => 'required',
+            'comment' => 'required|min:5',
         ]);
     }
 
@@ -174,7 +174,7 @@ class CommentFrontController extends BaseController
     public function changeAvatar(Request $request, BaseHttpResponse $response)
     {
         $validator = Validator::make($request->all(), [
-            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png'],
+            'photo' => 'required|image|mimes:jpg,jpeg,png',
         ]);
 
         if ($validator->fails()) {

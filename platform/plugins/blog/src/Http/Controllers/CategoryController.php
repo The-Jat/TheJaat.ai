@@ -32,8 +32,10 @@ class CategoryController extends BaseController
 
         $categories = Category::query()
             ->orderByDesc('is_default')
-            ->oldest('order')->oldest()
-            ->with('slugable');
+            ->orderBy('order')
+            ->orderBy('created_at')
+            ->with('slugable')
+            ->withCount('posts');
 
         $categories = RepositoryHelper::applyBeforeExecuteQuery($categories, new Category())->get();
 
@@ -76,7 +78,7 @@ class CategoryController extends BaseController
 
         $form = CategoryForm::create();
         $form
-            ->saving(function (CategoryForm $form) use ($request): void {
+            ->saving(function (CategoryForm $form) use ($request) {
                 $form
                     ->getModel()
                     ->fill([...$request->validated(),

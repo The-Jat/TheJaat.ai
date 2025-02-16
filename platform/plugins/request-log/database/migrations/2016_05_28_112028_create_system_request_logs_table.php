@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('request_logs', function (Blueprint $table): void {
+        Schema::create('request_logs', function (Blueprint $table) {
+            $table->engine = 'InnoDB';
             $table->id();
             $table->integer('status_code')->nullable();
             $table->string('url')->nullable();

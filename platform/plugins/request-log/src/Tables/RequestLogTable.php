@@ -39,7 +39,7 @@ class RequestLogTable extends TableAbstract
             ])
             ->addAction(DeleteAction::make()->route('request-log.destroy'))
             ->addBulkAction(DeleteBulkAction::make()->permission('request-log.destroy'))
-            ->queryUsing(function (Builder $query): void {
+            ->queryUsing(function (Builder $query) {
                 $query
                     ->select([
                     'id',

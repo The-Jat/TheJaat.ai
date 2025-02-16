@@ -8,7 +8,6 @@ use Botble\Base\Facades\EmailHandler;
 use Botble\Base\Facades\PanelSectionManager;
 use Botble\Base\PanelSections\PanelSectionItem;
 use Botble\Base\PanelSections\System\SystemPanelSection;
-use Botble\Base\Supports\DashboardMenuItem;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Setting\Commands\CronJobTestCommand;
@@ -63,27 +62,25 @@ class SettingServiceProvider extends ServiceProvider
             ->loadMigrations()
             ->publishAssets();
 
-        DashboardMenu::default()->beforeRetrieving(function (): void {
+        DashboardMenu::default()->beforeRetrieving(function () {
             DashboardMenu::make()
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('cms-core-settings')
-                        ->priority(9999)
-                        ->name('core/setting::setting.title')
-                        ->icon('ti ti-settings')
-                        ->route('settings.index')
-                        ->permission('settings.index')
-                );
+                ->registerItem([
+                    'id' => 'cms-core-settings',
+                    'priority' => 9999,
+                    'name' => 'core/setting::setting.title',
+                    'icon' => 'ti ti-settings',
+                    'route' => 'settings.index',
+                ]);
         });
 
         $events = $this->app['events'];
 
-        $events->listen(RouteMatched::class, function (): void {
+        $events->listen(RouteMatched::class, function () {
             EmailHandler::addTemplateSettings('base', config('core.setting.email', []), 'core');
         });
 
         PanelSectionManager::default()
-            ->beforeRendering(function (): void {
+            ->beforeRendering(function () {
                 PanelSectionManager::setGroupName(trans('core/setting::setting.title'))
                     ->register([
                         SettingCommonPanelSection::class,
@@ -91,7 +88,7 @@ class SettingServiceProvider extends ServiceProvider
                     ]);
             });
 
-        PanelSectionManager::group('system')->beforeRendering(function (): void {
+        PanelSectionManager::group('system')->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SystemPanelSection::class,
                 fn () => PanelSectionItem::make('cronjob')
@@ -110,8 +107,8 @@ class SettingServiceProvider extends ServiceProvider
                 CronJobTestCommand::class,
             ]);
 
-            $this->app->afterResolving(Schedule::class, function (Schedule $schedule): void {
-                rescue(function () use ($schedule): void {
+            $this->app->afterResolving(Schedule::class, function (Schedule $schedule) {
+                rescue(function () use ($schedule) {
                     $schedule
                         ->command(CronJobTestCommand::class)
                         ->everyMinute();

@@ -92,12 +92,11 @@
             href="#"
             class="me-2 cursor-pointer"
         >{{ $addImagesLabel }}</a>
-        <a
-            href="#"
-            class="text-danger"
+        <button
+            class="text-danger cursor-pointer btn-link"
             data-bb-toggle="gallery-reset"
         >
             {{ $resetLabel }}
-        </a>
+        </button>
     </div>
 </div>

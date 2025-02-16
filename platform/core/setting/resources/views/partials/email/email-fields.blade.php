@@ -1,7 +1,23 @@
+<x-core::form.select
+    name="email_driver"
+    :label="trans('core/setting::setting.email.mailer')"
+    :options="[
+        'smtp' => 'SMTP',
+        'mailgun' => 'Mailgun',
+        'ses' => 'SES',
+        'postmark' => 'Postmark',
+        'log' => 'Log',
+        'array' => 'Array',
+    ] + (function_exists('proc_open') ? ['sendmail' => 'Sendmail'] : [])"
+    :value="old('email_driver', old('email_driver', setting('email_driver', config('mail.default'))))"
+    data-bb-toggle="collapse"
+    data-bb-target=".email-fields"
+/>
+
 <div
     data-bb-value="smtp"
     class="email-fields"
-    @style(['display: none;' => $mailer !== 'smtp'])
+    @style(['display: none;' => old('email_driver', setting('email_driver', config('mail.default'))) !== 'smtp'])
 >
     <x-core::form.text-input
         name="email_port"
@@ -40,6 +56,14 @@
     />
 
     <x-core::form.text-input
+        name="email_encryption"
+        :label="trans('core/setting::setting.email.encryption')"
+        data-counter="20"
+        :value="old('email_encryption', setting('email_encryption', config('mail.mailers.smtp.encryption')))"
+        :placeholder="trans('core/setting::setting.email.encryption_placeholder')"
+    />
+
+    <x-core::form.text-input
         name="email_local_domain"
         :label="trans('core/setting::setting.email.local_domain')"
         data-counter="20"
@@ -51,13 +75,13 @@
 <div
     data-bb-value="mailgun"
     class="email-fields"
-    @style(['display: none;' => $mailer !== 'mailgun'])
+    @style(['display: none;' => old('email_driver', setting('email_driver', config('mail.default'))) !== 'mailgun'])
 >
     <x-core::form.text-input
         name="email_mail_gun_domain"
         :label="trans('core/setting::setting.email.mail_gun_domain')"
         data-counter="120"
-        :value="old('email_mail_gun_domain', setting('email_mail_gun_domain'))"
+        :value="old('email_mail_gun_domain', setting('email_mail_gun_domain', config('services.mailgun.domain')))"
         :placeholder="trans('core/setting::setting.email.mail_gun_domain_placeholder')"
     />
 
@@ -66,7 +90,7 @@
             name="email_mail_gun_secret"
             :label="trans('core/setting::setting.email.mail_gun_secret')"
             data-counter="120"
-            :value="old('email_mail_gun_secret', setting('email_mail_gun_secret'))"
+            :value="old('email_mail_gun_secret', setting('email_mail_gun_secret', config('services.mailgun.secret')))"
             :placeholder="trans('core/setting::setting.email.mail_gun_secret_placeholder')"
         />
     @endif
@@ -75,7 +99,7 @@
         name="email_mail_gun_endpoint"
         :label="trans('core/setting::setting.email.mail_gun_endpoint')"
         data-counter="120"
-        :value="old('email_mail_gun_endpoint', setting('email_mail_gun_endpoint', 'api.mailgun.net'))"
+        :value="old('email_mail_gun_endpoint', setting('email_mail_gun_endpoint', config('services.mailgun.endpoint')))"
         :placeholder="trans('core/setting::setting.email.mail_gun_endpoint_placeholder')"
     />
 </div>
@@ -83,7 +107,7 @@
 <div
     data-bb-value="ses"
     class="email-fields"
-    @style(['display: none;' => $mailer !== 'ses'])
+    @style(['display: none;' => old('email_driver', setting('email_driver', config('mail.default'))) !== 'ses'])
 >
     <x-core::form.text-input
         name="email_ses_key"
@@ -115,7 +139,7 @@
 <div
     data-bb-value="postmark"
     class="email-fields"
-    @style(['display: none;' => $mailer !== 'postmark'])
+    @style(['display: none;' => old('email_driver', setting('email_driver', config('mail.default'))) !== 'postmark'])
 >
     @if (!BaseHelper::hasDemoModeEnabled())
         <x-core::form.text-input
@@ -131,7 +155,7 @@
 <div
     data-bb-value="sendmail"
     class="email-fields"
-    @style(['display: none;' => old('email_driver', $mailer) !== 'sendmail'])
+    @style(['display: none;' => old('email_driver', old('email_driver', setting('email_driver', config('mail.default')))) !== 'sendmail'])
 >
     <x-core::form.text-input
         name="email_sendmail_path"
@@ -146,7 +170,7 @@
 <div
     data-bb-value="log"
     class="email-fields"
-    @style(['display: none;' => $mailer !== 'log'])
+    @style(['display: none;' => old('email_driver', old('email_driver', setting('email_driver', config('mail.default')))) !== 'log'])
 >
     <x-core::form.select
         name="email_log_channel"

@@ -6,7 +6,6 @@ use Botble\Base\Casts\SafeContent;
 use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Models\BaseModel;
 use Botble\Media\Facades\RvMedia;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,7 +30,6 @@ class MediaFile extends BaseModel
         'folder_id',
         'user_id',
         'alt',
-        'visibility',
     ];
 
     protected $casts = [
@@ -39,19 +37,9 @@ class MediaFile extends BaseModel
         'name' => SafeContent::class,
     ];
 
-    protected $appends = [
-        'indirect_url',
-    ];
-
     protected static function booted(): void
     {
-        static::forceDeleted(fn (MediaFile $file) => RvMedia::deleteFile($file));
-
-        static::addGlobalScope('ownMedia', function (Builder $query): void {
-            if (RvMedia::canOnlyViewOwnMedia()) {
-                $query->where('media_files.user_id', auth()->id());
-            }
-        });
+        static::forceDeleting(fn (MediaFile $file) => RvMedia::deleteFile($file));
     }
 
     public function folder(): BelongsTo
@@ -85,90 +73,17 @@ class MediaFile extends BaseModel
 
     protected function icon(): Attribute
     {
-        return Attribute::make(
-            get: function ($value, $attributes) {
-                $types = [
-                    'jpeg' => [
-                        'image/jpeg',
-                        'image/jpg',
-                    ],
-                    'png' => [
-                        'image/png',
-                    ],
-                    'gif' => [
-                        'image/gif',
-                    ],
-                    'video' => [
-                        'video/mp4',
-                        'video/m4v',
-                        'video/mov',
-                        'video/quicktime',
-                    ],
-                    'document' => [
-                        'text/plain',
-                        'text/csv',
-                    ],
-                    'zip' => [
-                        'application/zip',
-                        'application/x-zip-compressed',
-                        'application/x-compressed',
-                        'multipart/x-zip',
-                    ],
-                    'audio' => [
-                        'audio/mpeg',
-                        'audio/mp3',
-                        'audio/wav',
-                    ],
-                    'docx' => [
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    ],
-                    'doc' => [
-                        'application/msword',
-                    ],
-                    'excel' => [
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        'application/vnd.ms-excel',
-                        'application/excel',
-                        'application/x-excel',
-                        'application/x-msexcel',
-                    ],
-                    'pdf' => [
-                        'application/pdf',
-                    ],
-                    'powerpoint' => [
-                        'application/vnd.ms-powerpoint',
-                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                    ],
-                ];
+        return Attribute::get(function () {
+            $icon = match ($this->type) {
+                'image' => 'ti ti-photo',
+                'video' => 'ti ti-video',
+                'pdf' => 'ti ti-file-type-pdf',
+                'excel' => 'ti ti-file-spreadsheet',
+                default => 'ti ti-file',
+            };
 
-                $type = $this->type;
-
-                foreach ($types as $key => $value) {
-                    if (in_array($attributes['mime_type'], $value)) {
-                        $type = $key;
-
-                        break;
-                    }
-                }
-
-                $icon = match ($type) {
-                    'image' => 'ti ti-photo',
-                    'video' => 'ti ti-video',
-                    'pdf' => 'ti ti-file-type-pdf',
-                    'excel' => 'ti ti-file-spreadsheet',
-                    'zip' => 'ti ti-file-zip',
-                    'docx' => 'ti ti-file-type-docx',
-                    'doc' => 'ti ti-file-type-doc',
-                    'powerpoint' => 'ti ti-presentation',
-                    'jpeg' => 'ti ti-jpg',
-                    'png' => 'ti ti-png',
-                    'gif' => 'ti ti-gif',
-                    default => 'ti ti-file',
-                };
-
-                return apply_filters('cms_media_file_icon', BaseHelper::renderIcon($icon), $this);
-            }
-        );
+            return BaseHelper::renderIcon($icon);
+        });
     }
 
     protected function previewUrl(): Attribute
@@ -178,26 +93,14 @@ class MediaFile extends BaseModel
 
             switch ($this->type) {
                 case 'image':
-                case 'jpeg':
-                case 'png':
-                case 'gif':
-                    if ($this->visibility === 'public') {
-                        $preview = RvMedia::url($this->url);
-                    }
-
-                    break;
+                case 'pdf':
                 case 'text':
                 case 'video':
                     $preview = RvMedia::url($this->url);
 
                     break;
                 case 'document':
-                case 'pdf':
-                case 'doc':
-                case 'docx':
-                case 'excel':
-                case 'powerpoint':
-                    if ($this->mime_type === 'application/pdf' && $this->visibility === 'public') {
+                    if ($this->mime_type === 'application/pdf') {
                         $preview = RvMedia::url($this->url);
 
                         break;
@@ -205,7 +108,6 @@ class MediaFile extends BaseModel
 
                     $config = config('core.media.media.preview.document', []);
                     if (
-                        $this->visibility === 'public' &&
                         Arr::get($config, 'enabled') &&
                         Request::ip() !== '127.0.0.1' &&
                         in_array($this->mime_type, Arr::get($config, 'mime_types', [])) &&
@@ -226,21 +128,9 @@ class MediaFile extends BaseModel
         return Attribute::get(fn () => Arr::get(config('core.media.media.preview', []), "$this->type.type"));
     }
 
-    protected function indirectUrl(): Attribute
-    {
-        return Attribute::get(function () {
-            $id = static::isUsingStringId()
-                ? $this->getKey()
-                : dechex((int) $this->getKey());
-            $hash = sha1($id);
-
-            return route('media.indirect.url', compact('hash', 'id'));
-        })->shouldCache();
-    }
-
     public function canGenerateThumbnails(): bool
     {
-        return (! $this->visibility || $this->visibility === 'public') && RvMedia::canGenerateThumbnails($this->mime_type);
+        return RvMedia::canGenerateThumbnails($this->mime_type);
     }
 
     public static function createName(string $name, int|string|null $folder): string
@@ -256,10 +146,6 @@ class MediaFile extends BaseModel
 
     public static function createSlug(string $name, string $extension, ?string $folderPath): string
     {
-        if (setting('media_convert_file_name_to_uuid')) {
-            return Str::uuid() . '.' . $extension;
-        }
-
         if (setting('media_use_original_name_for_file_path')) {
             $slug = $name;
         } else {

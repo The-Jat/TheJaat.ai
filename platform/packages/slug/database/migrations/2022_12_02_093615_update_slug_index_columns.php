@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::table('slugs', function (Blueprint $table): void {
-            if (! Schema::hasIndex($table->getTable(), 'slugs_reference_id_index')) {
+        $sm = Schema::getConnection()->getDoctrineSchemaManager();
+
+        Schema::table('slugs', function (Blueprint $table) use ($sm) {
+            if (! $sm->introspectTable($table->getTable())->hasIndex('slugs_reference_id_index')) {
                 $table->index('reference_id');
             }
         });
@@ -29,8 +31,10 @@ return new class () extends Migration {
 
     public function down(): void
     {
-        Schema::table('slugs', function (Blueprint $table): void {
-            if (Schema::hasIndex($table->getTable(), 'slugs_reference_id_index')) {
+        $sm = Schema::getConnection()->getDoctrineSchemaManager();
+
+        Schema::table('slugs', function (Blueprint $table) use ($sm) {
+            if ($sm->introspectTable($table->getTable())->hasIndex('reference_id')) {
                 $table->dropIndex('reference_id');
             }
         });

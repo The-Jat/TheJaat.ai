@@ -128,12 +128,6 @@ $(() => {
             formData.append(submitter.name, submitter.value)
         }
 
-        $form.find('select').each(function() {
-            if ($(this).val() == null) {
-                formData.append($(this).attr('name'), '')
-            }
-        })
-
         const method = $form.attr('method').toLowerCase() || 'post'
 
         $httpClient

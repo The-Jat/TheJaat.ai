@@ -1,12 +1,15 @@
-@if (is_array($item->dependencies))
-    <ul>
+<ul>
+    @if (is_array($item->dependencies))
         @foreach ($item->dependencies as $dependencyName => $dependencyVersion)
             <li class="py-1">{{ $dependencyName }}: <x-core::badge
                     color="primary"
                     :label="$dependencyVersion"
                 /></li>
         @endforeach
-    </ul>
-@else
-    <p class="ms-3">&mdash;</p>
-@endif
+    @else
+        <li><x-core::badge
+                color="primary"
+                :label="$dependencyVersion"
+            /></li>
+    @endif
+</ul>

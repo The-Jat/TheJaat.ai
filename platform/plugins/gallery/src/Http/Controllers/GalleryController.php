@@ -37,7 +37,7 @@ class GalleryController extends BaseController
     {
         $form = GalleryForm::create();
 
-        $form->saving(function (GalleryForm $form) use ($request): void {
+        $form->saving(function (GalleryForm $form) use ($request) {
             $form
                 ->getModel()
                 ->fill([...$request->validated(), 'user_id' => Auth::guard()->id()])

@@ -6,8 +6,6 @@ use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Services\ClearCacheService;
 use Botble\Base\Supports\Helper;
 use Botble\PluginManagement\Events\ActivatedPluginEvent;
-use Botble\PluginManagement\Events\DeactivatedPlugin;
-use Botble\PluginManagement\Events\RemovedPlugin;
 use Botble\PluginManagement\PluginManifest;
 use Botble\Setting\Facades\Setting;
 use Composer\Autoload\ClassLoader;
@@ -40,14 +38,14 @@ class PluginService
 
         $content = $this->getPluginInfo($plugin);
 
+        $pluginName = Arr::get($content, 'name') ?? Str::studly($plugin);
+
         if (empty($content)) {
             return [
                 'error' => true,
                 'message' => trans('packages/plugin-management::plugin.invalid_json'),
             ];
         }
-
-        $pluginName = Arr::get($content, 'name') ?? Str::studly($plugin);
 
         $minimumCoreVersion = Arr::get($content, 'minimum_core_version');
         $coreVersion = get_core_version();
@@ -276,8 +274,6 @@ class PluginService
 
         $this->pluginManifest->generateManifest();
 
-        RemovedPlugin::dispatch($plugin);
-
         return [
             'error' => false,
             'message' => trans('packages/plugin-management::plugin.plugin_removed'),
@@ -292,28 +288,7 @@ class PluginService
             return $validate;
         }
 
-        $activatedPlugins = get_active_plugins();
         $content = $this->getPluginInfo($plugin);
-
-        $requiredBy = [];
-
-        foreach ($activatedPlugins as $activePlugin) {
-            $pluginInfo = $this->getPluginInfo($activePlugin);
-
-            if ($pluginInfo && isset($pluginInfo['required_plugins']) && in_array($plugin, $pluginInfo['required_plugins'])) {
-                $requiredBy[$activePlugin] = $pluginInfo['name'];
-            }
-        }
-
-        if (! empty($requiredBy)) {
-            return [
-                'error' => true,
-                'message' => trans(
-                    'packages/plugin-management::plugin.required_by_other_plugins',
-                    ['plugin' => $content['name'], 'required_by' => implode(',', $requiredBy)]
-                ),
-            ];
-        }
 
         $this->clearCache();
 
@@ -323,6 +298,7 @@ class PluginService
             $loader->register(true);
         }
 
+        $activatedPlugins = get_active_plugins();
         if (in_array($plugin, $activatedPlugins)) {
             if (class_exists($content['namespace'] . 'Plugin')) {
                 call_user_func([$content['namespace'] . 'Plugin', 'deactivate']);
@@ -341,8 +317,6 @@ class PluginService
             $this->clearCache();
 
             $this->pluginManifest->generateManifest();
-
-            DeactivatedPlugin::dispatch($plugin);
 
             return [
                 'error' => false,

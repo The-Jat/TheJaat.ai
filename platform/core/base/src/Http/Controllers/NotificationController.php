@@ -7,7 +7,6 @@ use Botble\Base\Models\AdminNotification;
 use Botble\Base\Models\AdminNotificationQueryBuilder;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Http\RedirectResponse;
 
 class NotificationController extends BaseController
 {
@@ -55,14 +54,14 @@ class NotificationController extends BaseController
         return $this->httpResponse();
     }
 
-    public function deleteAll(): BaseHttpResponse
+    public function deleteAll()
     {
         AdminNotification::query()->delete();
 
         return $this->httpResponse();
     }
 
-    public function read(int|string $id): RedirectResponse
+    public function read(int|string $id)
     {
         /**
          * @var AdminNotification $notificationItem
@@ -80,7 +79,7 @@ class NotificationController extends BaseController
         return redirect()->to(url($notificationItem->action_url));
     }
 
-    public function readAll(): BaseHttpResponse
+    public function readAll()
     {
         AdminNotification::query()
             ->whereNull('read_at')

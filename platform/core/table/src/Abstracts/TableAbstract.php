@@ -88,10 +88,6 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
 
     protected int $defaultSortColumn = 1;
 
-    protected ?string $defaultSortColumnName = null;
-
-    protected Closure $defaultSortingCallback;
-
     protected bool $hasResponsive = true;
 
     protected string $exportClass = TableExportHandler::class;
@@ -115,8 +111,6 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
      * @var \Closure(\Illuminate\Contracts\Database\Eloquent\Builder): void
      */
     protected Closure $modifyQueryUsingCallback;
-
-    protected bool $earlyTable = false;
 
     protected string $dom = "fBrt<'card-footer d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2'<'d-flex justify-content-between align-items-center gap-3'l<'m-0 text-muted'i>><'d-flex justify-content-center'p>>";
 
@@ -262,7 +256,12 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
                 ],
                 'infoFiltered' => trans('core/table::table.filtered'),
             ],
-            'order' => $this->useDefaultSorting ? $this->getDefaultSorting() : [],
+            'aaSorting' => $this->useDefaultSorting ? [
+                [
+                    ($this->hasBulkActions() ? $this->defaultSortColumn : 0),
+                    'desc',
+                ],
+            ] : [],
             'responsive' => $this->hasResponsive,
             'autoWidth' => false,
         ];
@@ -277,49 +276,12 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
             ->parameters($parameters);
     }
 
-    public function getDefaultSorting(): array
-    {
-        $defaultSortColumnIndex = $this->hasBulkActions() ? $this->defaultSortColumn : 0;
-
-        if ($this->defaultSortColumnName) {
-            $columns = $this->getColumns();
-
-            foreach ($columns as $index => $column) {
-                if (Arr::get($column->toArray(), 'name') === $this->defaultSortColumnName) {
-                    $defaultSortColumnIndex = $index;
-
-                    break;
-                }
-            }
-        }
-
-        return isset($this->defaultSortingCallback)
-            ? call_user_func($this->defaultSortingCallback, $this)
-            : [
-                [
-                    $defaultSortColumnIndex,
-                    'desc',
-                ],
-            ];
-    }
-
-    public function defaultSortingUsing(Closure $callback): static
-    {
-        $this->useDefaultSorting = true;
-
-        $this->defaultSortingCallback = $callback;
-
-        return $this;
-    }
-
     /**
      * @param  \Closure(static $table): \Illuminate\Http\JsonResponse  $onAjaxCallback
      */
     public function onAjax(Closure $onAjaxCallback): static
     {
         $this->onAjaxCallback = $onAjaxCallback;
-
-        $this->earlyTable = true;
 
         return $this;
     }
@@ -402,8 +364,6 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
 
         $this->model = $model;
 
-        $this->earlyTable = true;
-
         return $this;
     }
 
@@ -451,12 +411,8 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
         return $this;
     }
 
-    public function removeColumns(array $columns = []): static
+    public function removeColumns(array $columns): static
     {
-        if (! $columns) {
-            $columns = array_map(fn ($column) => $column->get('data'), $this->getColumns());
-        }
-
         foreach ($columns as $column) {
             $this->removeColumn($column);
         }
@@ -612,7 +568,7 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
             $buttons[] = 'visibility';
         }
 
-        return apply_filters('cms_table_default_buttons', $buttons, $this);
+        return $buttons;
     }
 
     public function htmlInitComplete(): ?string
@@ -667,14 +623,8 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
 
                 if (searchInputWrapper.val()) {
                     searchInputWrapper.addClass('border-primary bg-info-subtle')
-
-                    searchInputWrapper.closest('label').find('.search-reset-icon').show()
-                    searchInputWrapper.closest('label').find('.search-icon').hide()
                 } else {
                     searchInputWrapper.removeClass('border-primary bg-info-subtle')
-
-                    searchInputWrapper.closest('label').find('.search-reset-icon').hide()
-                    searchInputWrapper.closest('label').find('.search-icon').show()
                 }
             }, 200);
         JS . $this->htmlInitCompleteFunction();
@@ -781,7 +731,7 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
             case 'customSelect':
                 $attributes['class'] = str_replace('form-control ', '', $attributes['class']);
                 $attributes['placeholder'] = trans('core/table::table.select_option');
-                $html = Form::customSelect($inputName, $data, $value, $attributes)->toHtml(); // @phpstan-ignore-line
+                $html = Form::customSelect($inputName, $data, $value, $attributes)->toHtml();
 
                 break;
 
@@ -789,7 +739,7 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
                 $attributes['class'] = str_replace('form-control ', '', $attributes['class']);
                 $attributes['class'] = $attributes['class'] . ' select-search-full';
                 $attributes['placeholder'] = trans('core/table::table.select_option');
-                $html = Form::customSelect($inputName, $data, $value, $attributes)->toHtml(); // @phpstan-ignore-line
+                $html = Form::customSelect($inputName, $data, $value, $attributes)->toHtml();
 
                 break;
 
@@ -803,7 +753,6 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
                     'data-placeholder' => Arr::get($data, 'placeholder', $attributes['placeholder']),
                 ];
 
-                // @phpstan-ignore-next-line
                 $html = Form::customSelect($inputName, Arr::get($data, 'selected', []), $value, $attributes)->toHtml();
 
                 break;
@@ -819,7 +768,7 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
                 break;
 
             case 'datePicker':
-                $html = Form::datePicker($inputName, $value, $attributes)->toHtml(); // @phpstan-ignore-line
+                $html = Form::datePicker($inputName, $value, $attributes)->toHtml();
 
                 break;
 
@@ -834,24 +783,7 @@ abstract class TableAbstract extends DataTable implements ExtensibleContract
 
     public function getFilters(): array
     {
-        $filters = $this->filters;
-
-        if (! $filters) {
-            $filters = $this->getAllBulkChanges();
-        } else {
-            foreach ($filters as $key => $filter) {
-                if ($filter instanceof TableBulkChangeAbstract) {
-                    if ($filter->getName()) {
-                        $filters[$filter->getName()] = $filter->toArray();
-                        Arr::forget($filters, $key);
-                    } else {
-                        $filters[$key] = $filter->toArray();
-                    }
-                }
-            }
-        }
-
-        return apply_filters('base_filter_table_filters', $filters, $this);
+        return apply_filters('base_filter_table_filters', $this->getAllBulkChanges(), $this);
     }
 
     protected function addCreateButton(string $url, ?string $permission = null, array $buttons = []): array

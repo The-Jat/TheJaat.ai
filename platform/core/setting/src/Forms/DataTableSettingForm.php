@@ -28,6 +28,7 @@ class DataTableSettingForm extends SettingForm
                     ])
                     ->selected(setting('datatables_pagination_type'))
                     ->label(trans('core/setting::setting.datatable.form.pagination_type'))
+                    ->toArray()
             )
             ->add(
                 'datatables_default_show_column_visibility',
@@ -35,6 +36,7 @@ class DataTableSettingForm extends SettingForm
                 CheckboxFieldOption::make()
                     ->label(trans('core/setting::setting.datatable.form.show_column_visibility'))
                     ->value(setting('datatables_default_show_column_visibility', false))
+                    ->toArray()
             )
             ->add(
                 'datatables_default_show_export_button',
@@ -42,6 +44,7 @@ class DataTableSettingForm extends SettingForm
                 CheckboxFieldOption::make()
                     ->label(trans('core/setting::setting.datatable.form.show_export_button'))
                     ->value(setting('datatables_default_show_export_button', false))
+                    ->toArray()
             );
     }
 }

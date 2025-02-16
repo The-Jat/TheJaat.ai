@@ -2,6 +2,7 @@
 
 namespace Botble\Base\Providers;
 
+use App\Http\Middleware\VerifyCsrfToken;
 use Botble\ACL\Events\RoleAssignmentEvent;
 use Botble\ACL\Events\RoleUpdateEvent;
 use Botble\Base\Events\AdminNotificationEvent;
@@ -31,20 +32,16 @@ use Botble\Base\Listeners\PushDashboardMenuToSystemPanel;
 use Botble\Base\Listeners\SendMailListener;
 use Botble\Base\Listeners\UpdatedContentListener;
 use Botble\Base\Models\AdminNotification;
-use Botble\Dashboard\Events\RenderingDashboardWidgets;
 use Botble\Support\Http\Middleware\BaseMiddleware;
-use Botble\Support\Services\Cache\Cache;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Config\Repository;
 use Illuminate\Database\Events\MigrationsStarted;
 use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -87,7 +84,7 @@ class EventServiceProvider extends ServiceProvider
     {
         $events = $this->app['events'];
 
-        $events->listen(RouteMatched::class, function (): void {
+        $events->listen(RouteMatched::class, function () {
             /**
              * @var Router $router
              */
@@ -99,23 +96,31 @@ class EventServiceProvider extends ServiceProvider
             $router->aliasMiddleware('preventDemo', DisableInDemoModeMiddleware::class);
             $router->middlewareGroup('core', [CoreMiddleware::class]);
 
-            $this->app->extend('core.middleware', function ($middleware) {
-                return array_merge($middleware, [
-                    EnsureLicenseHasBeenActivated::class,
-                ]);
-            });
+            // $this->app->extend('core.middleware', function ($middleware) {
+            //     return array_merge($middleware, [
+            //         EnsureLicenseHasBeenActivated::class,
+            //     ]);
+            // });
+            // This above code causing the require activation license dialog box to pop-up.
+            // This is what this code does...
+            /*
+            1. $this->app->extend('core.middleware', function ($middleware) { ... });
+                $this->app: Refers to the Laravel application's service container, which manages bindings and resolves dependencies throughout the application.
+                extend('core.middleware', function ($middleware) { ... }):
+                extend() is a method provided by Laravel's service container (Illuminate\Container\Container).
+                It allows you to modify an existing binding or service definition identified by 'core.middleware'.
+            2. function ($middleware) { ... }
+                This is an anonymous function (closure) that receives the current value (which is an array of middleware) associated with 'core.middleware'.
+                Inside this function, you can manipulate or extend the middleware array as needed.
+            3. return array_merge($middleware, [ EnsureLicenseHasBeenActivated::class, ]);
+                array_merge($middleware, [ EnsureLicenseHasBeenActivated::class, ]):
+                Combines the existing middleware ($middleware) with an additional middleware class [ EnsureLicenseHasBeenActivated::class ].
+                EnsureLicenseHasBeenActivated::class is presumably a middleware class that you want to add to the middleware stack.
+            */
 
             add_filter(BASE_FILTER_TOP_HEADER_LAYOUT, function ($options) {
                 try {
-                    $cache = Cache::make(AdminNotification::class);
-
-                    if ($cache->has('admin-notifications-count')) {
-                        $countNotificationUnread = $cache->get('admin-notifications-count');
-                    } else {
-                        $countNotificationUnread = AdminNotification::countUnread();
-
-                        $cache->put('admin-notifications-count', $countNotificationUnread, 60 * 60 * 24);
-                    }
+                    $countNotificationUnread = AdminNotification::countUnread();
                 } catch (Throwable) {
                     $countNotificationUnread = 0;
                 }
@@ -136,28 +141,22 @@ class EventServiceProvider extends ServiceProvider
             $this->disableCsrfProtection();
         });
 
-        $events->listen(MigrationsStarted::class, function (): void {
-            rescue(function (): void {
+        $events->listen(MigrationsStarted::class, function () {
+            rescue(function () {
                 if (DB::getDefaultConnection() === 'mysql') {
                     DB::statement('SET SESSION sql_require_primary_key=0');
                 }
             }, report: false);
         });
 
-        $events->listen(['cache:cleared'], function (): void {
-            $files = $this->app['files'];
-
-            $files->delete(storage_path('cache_keys.json'));
-
-            $files->deleteDirectory(storage_path('app/chunks'));
-            $files->deleteDirectory(storage_path('app/data-synchronize'));
-            $files->deleteDirectory(storage_path('app/marketplace'));
+        $events->listen(['cache:cleared'], function () {
+            $this->app['files']->delete(storage_path('cache_keys.json'));
         });
 
         $events->listen(PanelSectionsRendering::class, PushDashboardMenuToSystemPanel::class);
 
         if ($this->app->isLocal()) {
-            DB::listen(function (QueryExecuted $queryExecuted): void {
+            DB::listen(function (QueryExecuted $queryExecuted) {
                 if ($queryExecuted->time < 500) {
                     return;
                 }
@@ -165,21 +164,6 @@ class EventServiceProvider extends ServiceProvider
                 Log::warning(sprintf('DB query exceeded %s ms. SQL: %s', $queryExecuted->time, $queryExecuted->sql));
             });
         }
-
-        $this->app['events']->listen(RenderingDashboardWidgets::class, function (): void {
-            add_filter(DASHBOARD_FILTER_ADMIN_NOTIFICATIONS, function (?string $html) {
-
-                $size = File::size(storage_path('framework/cache'));
-
-                if ($size < 1024 * 1024 * 100) {
-                    return $html;
-                }
-
-                $size = BaseHelper::humanFilesize($size);
-
-                return $html . view('core/base::system.partials.cache-too-large-alert', compact('size'))->render();
-            }, 5);
-        });
     }
 
     protected function disableCsrfProtection(): void

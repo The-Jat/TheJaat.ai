@@ -9,7 +9,6 @@ use Exception;
 use GuzzleHttp\Psr7\Utils;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
-use Throwable;
 
 class DownloadLocaleService
 {
@@ -39,7 +38,6 @@ class DownloadLocaleService
         BaseHelper::maximumExecutionTimeAndMemoryLimit();
 
         Http::withoutVerifying()
-            ->timeout(300)
             ->sink(Utils::tryFopen($destination, 'w'))
             ->get(sprintf('https://github.com/%s/archive/refs/heads/master.zip', self::REPOSITORY))
             ->throw();
@@ -54,18 +52,14 @@ class DownloadLocaleService
             File::copyDirectory("{$path}/vendor", lang_path('vendor'));
         }
 
-        if (class_exists('Theme')) {
-            $parentTheme = Theme::getThemeName();
+        $parentTheme = Theme::getThemeName();
 
-            if (Theme::hasInheritTheme()) {
-                $parentTheme = Theme::getInheritTheme();
-            }
+        if (Theme::hasInheritTheme()) {
+            $parentTheme = Theme::getInheritTheme();
+        }
 
-            File::ensureDirectoryExists(lang_path("vendor/themes/{$parentTheme}"));
-
-            if (File::exists("{$path}/{$locale}.json") && ! File::exists(lang_path("vendor/themes/{$parentTheme}/{$locale}.json"))) {
-                File::copy("{$path}/{$locale}.json", lang_path("vendor/themes/{$parentTheme}/{$locale}.json"));
-            }
+        if (File::exists("{$path}/{$locale}.json") && ! File::exists(lang_path("vendor/themes/{$parentTheme}/{$locale}.json"))) {
+            File::copy("{$path}/{$locale}.json", lang_path("vendor/themes/{$parentTheme}/{$locale}.json"));
         }
 
         File::delete($destination);
@@ -88,9 +82,7 @@ class DownloadLocaleService
                     $locales[] = $item['path'];
                 }
             }
-        } catch (Throwable $e) {
-            BaseHelper::logError($e);
-
+        } catch (Exception) {
             return [];
         }
 

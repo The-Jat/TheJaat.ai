@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::table('galleries', function (Blueprint $table): void {
+        Schema::table('galleries', function (Blueprint $table) {
             $table->foreignId('user_id')->nullable()->change();
         });
     }

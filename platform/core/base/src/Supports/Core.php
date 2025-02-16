@@ -25,7 +25,6 @@ use Botble\Base\Events\SystemUpdateExtractedFiles;
 use Botble\Base\Events\SystemUpdatePublished;
 use Botble\Base\Events\SystemUpdatePublishing;
 use Botble\Base\Events\SystemUpdateUnavailable;
-use Botble\Base\Exceptions\CouldNotConnectToLicenseServerException;
 use Botble\Base\Exceptions\LicenseInvalidException;
 use Botble\Base\Exceptions\LicenseIsAlreadyActivatedException;
 use Botble\Base\Exceptions\MissingCURLExtensionException;
@@ -40,10 +39,8 @@ use Exception;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -73,13 +70,13 @@ final class Core
 
     private string $version = '1.0.0';
 
-    private string $minimumPhpVersion = '8.2.0';
+    private string $minimumPhpVersion = '8.1.0';
 
     private string $licenseUrl = 'https://license.botble.com';
 
     private string $licenseKey = 'CAF4B17F6D3F656125F9';
 
-    private string $cacheLicenseKeyName = '45d0da541764683476f933028d945a46270ba404';
+    private string $cacheLicenseKeyName = '45d0da541764682476f833028d945a46270ba404';
 
     private string $skipLicenseReminderFilePath;
 
@@ -300,7 +297,7 @@ final class Core
 
         $product = $this->parseProductUpdateResponse($response);
 
-        return tap($product, function (CoreProduct|false $coreProduct): void {
+        return tap($product, function (CoreProduct|false $coreProduct) {
             if (! $coreProduct || ! $coreProduct->hasUpdate()) {
                 SystemUpdateUnavailable::dispatch();
 
@@ -318,25 +315,17 @@ final class Core
 
     public function getLatestVersion(): CoreProduct|false
     {
-        try {
-            $response = $this->createRequest('check_update', [
-                'product_id' => $this->productId,
-                'current_version' => '0.0.0',
-            ]);
+        $response = $this->createRequest('check_update', [
+            'product_id' => $this->productId,
+            'current_version' => '0.0.0',
+        ]);
 
-            return $this->parseProductUpdateResponse($response);
-        } catch (CouldNotConnectToLicenseServerException) {
-            return false;
-        }
+        return $this->parseProductUpdateResponse($response);
     }
 
     public function getUpdateSize(string $updateId): float
     {
-        try {
-            $sizeUpdateResponse = $this->createRequest('get_update_size/' . $updateId, method: 'HEAD');
-        } catch (CouldNotConnectToLicenseServerException) {
-            return 0;
-        }
+        $sizeUpdateResponse = $this->createRequest('get_update_size/' . $updateId, method: 'HEAD');
 
         return (float) $sizeUpdateResponse->header('Content-Length') ?: 1;
     }
@@ -520,7 +509,7 @@ final class Core
         }
     }
 
-    public function runMigrationFiles(): void
+    private function runMigrationFiles(): void
     {
         SystemUpdateDBMigrating::dispatch();
 
@@ -683,32 +672,24 @@ final class Core
             throw new MissingCURLExtensionException();
         }
 
-        try {
-            $request = Http::baseUrl(ltrim($this->licenseUrl, '/') . '/api')
-                ->withHeaders([
-                    'LB-API-KEY' => $this->licenseKey,
-                    'LB-URL' => rtrim(url(''), '/'),
-                    'LB-IP' => $this->getClientIpAddress(),
-                    'LB-LANG' => 'english',
-                ])
-                ->asJson()
-                ->acceptJson()
-                ->withoutVerifying()
-                ->connectTimeout(100)
-                ->timeout(300);
+        $request = Http::baseUrl(ltrim($this->licenseUrl, '/') . '/api')
+            ->withHeaders([
+                'LB-API-KEY' => $this->licenseKey,
+                'LB-URL' => rtrim(url(''), '/'),
+                'LB-IP' => $this->getClientIpAddress(),
+                'LB-LANG' => 'english',
+            ])
+            ->asJson()
+            ->acceptJson()
+            ->withoutVerifying()
+            ->connectTimeout(100)
+            ->timeout(300);
 
-            return match (Str::upper($method)) {
-                'GET' => $request->get($path, $data),
-                'HEAD' => $request->head($path),
-                default => $request->post($path, $data)
-            };
-        } catch (ConnectionException $exception) {
-            if (App::hasDebugModeEnabled()) {
-                throw $exception;
-            }
-
-            throw new CouldNotConnectToLicenseServerException('Could not connect to the license server. Please try again later.');
-        }
+        return match (Str::upper($method)) {
+            'GET' => $request->get($path, $data),
+            'HEAD' => $request->head($path),
+            default => $request->post($path, $data)
+        };
     }
 
     private function createDeactivateRequest(array $data): bool
@@ -746,14 +727,7 @@ final class Core
             'license_file' => $this->getLicenseFile(),
         ];
 
-        try {
-            $response = $this->createRequest('verify_license', $data);
-        } catch (CouldNotConnectToLicenseServerException) {
-            LicenseUnverified::dispatch();
-
-            return false;
-        }
-
+        $response = $this->createRequest('verify_license', $data);
         $data = $response->json();
 
         if ($verified = $response->ok() && Arr::get($data, 'status')) {

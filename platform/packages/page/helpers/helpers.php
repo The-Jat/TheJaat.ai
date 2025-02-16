@@ -10,7 +10,7 @@ if (! function_exists('get_all_pages')) {
     function get_all_pages(bool $active = true): Collection
     {
         $pages = Page::query()
-            ->when($active, function (BaseQueryBuilder $query): void {
+            ->when($active, function (BaseQueryBuilder $query) {
                 $query->wherePublished();
             })
             ->orderByDesc('created_at')

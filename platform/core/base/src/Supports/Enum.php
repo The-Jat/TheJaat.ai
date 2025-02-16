@@ -20,10 +20,6 @@ abstract class Enum implements CastsAttributes, JsonSerializable
 
     protected mixed $value = null;
 
-    final public function __construct()
-    {
-    }
-
     public function make($value): static
     {
         if ($value instanceof static) {
@@ -102,9 +98,10 @@ abstract class Enum implements CastsAttributes, JsonSerializable
     /**
      * Returns a value when called statically like so: MyEnum::SOME_VALUE() given SOME_VALUE is a class constant
      *
+     * @param string $name
+     * @param array $arguments
      *
      * @return static
-     *
      * @throws BadMethodCallException
      */
     public static function __callStatic(string $name, array $arguments)
@@ -155,7 +152,8 @@ abstract class Enum implements CastsAttributes, JsonSerializable
     /**
      * Return key for value
      *
-     * @param  string|int  $value
+     * @param string|int $value
+     *
      * @return false|int|string
      */
     public static function search($value): bool|int|string
@@ -171,9 +169,10 @@ abstract class Enum implements CastsAttributes, JsonSerializable
     /**
      * Compares one Enum with another.
      *
+     * @param Enum|null $enum
      * @return bool True if Enums are equal, false if not equal
      */
-    final public function equals(?Enum $enum = null): bool
+    final public function equals(Enum $enum = null): bool
     {
         return $enum !== null && $this->getValue() === $enum->getValue() && get_called_class() === get_class($enum);
     }

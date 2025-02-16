@@ -47,12 +47,6 @@ return [
     'theme_option_general' => 'General',
     'theme_option_general_description' => 'General settings',
     'theme_option_seo_open_graph_image' => 'SEO default Open Graph image',
-    'theme_option_seo_index' => 'SEO Index',
-    'theme_option_seo_index_helper' => 'When "No Index" is selected, search engines are blocked from indexing the site, preventing it from appearing in search engine results.',
-    'seo_index_options' => [
-        'index' => 'Index',
-        'no_index' => 'No Index',
-    ],
     'theme_option_logo' => 'Logo',
     'theme_option_favicon' => 'Favicon',
     'theme_option_breadcrumb' => 'Breadcrumb',
@@ -77,5 +71,4 @@ return [
             'google_tag_code' => 'Google tag code',
         ],
     ],
-    'term_and_privacy_policy_url' => 'Terms and Privacy Policy URL',
 ];

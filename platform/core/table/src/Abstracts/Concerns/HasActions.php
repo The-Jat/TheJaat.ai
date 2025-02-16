@@ -200,6 +200,6 @@ trait HasActions
      */
     protected function hasOperations(): bool
     {
-        return ! $this->earlyTable && $this->hasOperations && ! $this->isSimpleTable() && empty($this->getRowActions());
+        return $this->hasOperations && ! $this->isSimpleTable() && empty($this->getRowActions());
     }
 }

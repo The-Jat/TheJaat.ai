@@ -3,10 +3,8 @@
 namespace Botble\Icon\Commands;
 
 use Botble\Icon\Facades\Icon;
-use Carbon\Carbon;
 use GuzzleHttp\Psr7\Utils as Psr7Utils;
 use Illuminate\Console\Command;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -20,9 +18,7 @@ class IconUpdateCommand extends Command
     {
         $this->components->info('Fetching latest release of Tabler Icons...');
 
-        $response = Http::withoutVerifying()
-            ->timeout(300)
-            ->get('https://api.github.com/repos/tabler/tabler-icons/releases/latest');
+        $response = Http::withoutVerifying()->get('https://api.github.com/repos/tabler/tabler-icons/releases/latest');
 
         if ($response->failed()) {
             $this->components->error($response->reason() ?: 'Failed to fetch latest release of Tabler Icons.');
@@ -38,25 +34,9 @@ class IconUpdateCommand extends Command
         $destination = storage_path("app/$folderName");
         $zipDestination = "$destination.zip";
 
-        if (
-            ! File::exists($zipDestination)
-            || Carbon::createFromTimestamp(filectime($zipDestination))->diffInHours() > 1
-        ) {
-            $this->components->info("Downloading v$tagName...");
+        $this->components->info("Downloading v$tagName...");
 
-            try {
-                Http::withoutVerifying()
-                    ->timeout(300)
-                    ->sink(Psr7Utils::tryFopen($zipDestination, 'w+'))
-                    ->get($downloadUrl);
-            } catch (ConnectionException $exception) {
-                File::delete($zipDestination);
-
-                $this->components->error($exception->getMessage());
-
-                return self::FAILURE;
-            }
-        }
+        Http::withoutVerifying()->sink(Psr7Utils::tryFopen($zipDestination, 'w+'))->get($downloadUrl);
 
         $this->components->info('Extracting files...');
 

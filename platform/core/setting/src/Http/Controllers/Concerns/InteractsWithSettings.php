@@ -2,7 +2,6 @@
 
 namespace Botble\Setting\Http\Controllers\Concerns;
 
-use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Setting\Facades\Setting;
 use Illuminate\Support\Arr;
@@ -31,8 +30,6 @@ trait InteractsWithSettings
         if (! method_exists($this, 'httpResponse')) {
             return BaseHttpResponse::make();
         }
-
-        DashboardMenu::clearCaches();
 
         return $this
             ->httpResponse()

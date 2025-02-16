@@ -28,7 +28,4 @@ return [
     'menu_id' => 'Menu ID',
     'badge_text' => 'Badge text',
     'badge_color' => 'Badge color',
-    'items' => 'Items',
-    'locations' => 'Locations',
-    'main_navigation' => 'Main Navigation',
 ];

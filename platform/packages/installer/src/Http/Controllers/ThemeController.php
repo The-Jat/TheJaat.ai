@@ -20,7 +20,9 @@ class ThemeController extends BaseController
     public function __construct()
     {
         $this->middleware(function (Request $request, Closure $next) {
-            abort_if(count(Manager::getThemes()) < 2, 404);
+            if (count(Manager::getThemes()) < 2) {
+                abort(404);
+            }
 
             return $next($request);
         });

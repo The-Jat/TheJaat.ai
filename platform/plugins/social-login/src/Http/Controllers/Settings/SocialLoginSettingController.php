@@ -24,17 +24,12 @@ class SocialLoginSettingController extends SettingController
 
         $data = [
             "{$prefix}enable" => $request->input("{$prefix}enable"),
-            "{$prefix}style" => $request->input("{$prefix}style"),
         ];
 
         foreach (SocialService::getProviders() as $provider => $item) {
             $prefix = 'social_login_' . $provider . '_';
 
             $data["{$prefix}enable"] = $request->input("{$prefix}enable");
-
-            if ($provider === 'google') {
-                $data["{$prefix}use_google_button"] = $request->boolean("{$prefix}use_google_button");
-            }
 
             foreach ($item['data'] as $input) {
                 if (

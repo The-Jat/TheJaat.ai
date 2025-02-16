@@ -34,6 +34,7 @@ class ContactSettingForm extends SettingForm
                     ->label(trans('plugins/contact::contact.settings.blacklist_keywords'))
                     ->placeholder(trans('plugins/contact::contact.settings.blacklist_keywords_placeholder'))
                     ->helperText(trans('plugins/contact::contact.settings.blacklist_keywords_helper'))
+                    ->toArray()
             )
             ->add(
                 'receiver_emails',
@@ -44,6 +45,7 @@ class ContactSettingForm extends SettingForm
                     ->label(trans('plugins/contact::contact.settings.receiver_emails'))
                     ->placeholder(trans('plugins/contact::contact.settings.receiver_emails_placeholder'))
                     ->helperText(trans('plugins/contact::contact.settings.receiver_emails_helper'))
+                    ->toArray()
             );
     }
 }

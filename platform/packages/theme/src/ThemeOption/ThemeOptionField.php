@@ -22,11 +22,9 @@ abstract class ThemeOptionField implements Arrayable
 
     protected array $attributes = [];
 
-    protected float $priority = 999;
-
     public static function make(): static
     {
-        return app(static::class);
+        return new static();
     }
 
     abstract public function fieldType(): string;
@@ -92,18 +90,6 @@ abstract class ThemeOptionField implements Arrayable
         return $this->value ?: $this->defaultValue;
     }
 
-    public function priority(float $priority): static
-    {
-        $this->priority = $priority;
-
-        return $this;
-    }
-
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
     public function toArray(): array
     {
         $attributes = [];
@@ -118,12 +104,11 @@ abstract class ThemeOptionField implements Arrayable
 
         $attributes = [
             ...$attributes,
-            'id' => $this->id ?? $this->getName(),
+            'id' => $this->id ?? $this->name,
             'type' => $this->fieldType(),
             'label' => $this->label,
-            'priority' => $this->priority,
             'attributes' => [
-                'name' => $this->getName(),
+                'name' => $this->name,
             ],
         ];
 

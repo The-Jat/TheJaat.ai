@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('members', function (Blueprint $table): void {
+        Schema::create('members', function (Blueprint $table) {
             $table->id();
             $table->string('first_name', 120);
             $table->string('last_name', 120);
@@ -24,13 +24,13 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('member_password_resets', function (Blueprint $table): void {
+        Schema::create('member_password_resets', function (Blueprint $table) {
             $table->string('email')->index();
             $table->string('token')->index();
             $table->timestamp('created_at')->nullable();
         });
 
-        Schema::create('member_activity_logs', function (Blueprint $table): void {
+        Schema::create('member_activity_logs', function (Blueprint $table) {
             $table->id();
             $table->string('action', 120);
             $table->text('user_agent')->nullable();

@@ -10,10 +10,11 @@ class ClearCacheAfterUpdateData
 {
     public function handle(UpdatedContentEvent $event): void
     {
-        if (! $event->data instanceof BaseModel) {
+        if (! setting('enable_cache', false) || ! $event->data instanceof BaseModel) {
             return;
         }
 
-        Cache::make($event->data::class)->flush();
+        $cache = new Cache(app('cache'), $event->data::class);
+        $cache->flush();
     }
 }

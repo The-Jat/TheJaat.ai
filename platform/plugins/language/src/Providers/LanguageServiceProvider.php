@@ -67,7 +67,7 @@ class LanguageServiceProvider extends ServiceProvider
         }
 
         if (! $this->app->runningInConsole() && is_plugin_active('language')) {
-            PanelSectionManager::default()->beforeRendering(function (): void {
+            PanelSectionManager::default()->beforeRendering(function () {
                 PanelSectionManager::registerItem(
                     SettingCommonPanelSection::class,
                     fn () => PanelSectionItem::make('language')
@@ -79,12 +79,12 @@ class LanguageServiceProvider extends ServiceProvider
                 );
             });
 
-            $this->app['events']->listen(RouteMatched::class, function (): void {
+            $this->app['events']->listen(RouteMatched::class, function () {
                 Assets::addScriptsDirectly('vendor/core/plugins/language/js/language-global.js')
                     ->addStylesDirectly(['vendor/core/plugins/language/css/language.css']);
             });
 
-            $this->app->booted(function (): void {
+            $this->app->booted(function () {
                 if (defined('THEME_OPTIONS_MODULE_SCREEN_NAME')) {
                     Language::registerModule(THEME_OPTIONS_MODULE_SCREEN_NAME);
                 }

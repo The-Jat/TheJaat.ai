@@ -73,7 +73,7 @@ class MemberTable extends TableAbstract
                                 return $query;
                             }
 
-                            return $query->where(function (Builder $query) use ($keyword): void {
+                            return $query->where(function (Builder $query) use ($keyword) {
                                 $likeKeyword = '%' . $keyword . '%';
 
                                 $query

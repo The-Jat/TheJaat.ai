@@ -27,6 +27,7 @@ class ProfileForm extends FormAbstract
                     ->label(trans('core/acl::users.info.first_name'))
                     ->required()
                     ->maxLength(30)
+                    ->toArray()
             )
             ->add(
                 'last_name',
@@ -35,6 +36,7 @@ class ProfileForm extends FormAbstract
                     ->label(trans('core/acl::users.info.last_name'))
                     ->required()
                     ->maxLength(30)
+                    ->toArray()
             )
             ->add(
                 'username',
@@ -43,8 +45,9 @@ class ProfileForm extends FormAbstract
                     ->label(trans('core/acl::users.username'))
                     ->required()
                     ->maxLength(30)
+                    ->toArray()
             )
-            ->add('email', TextField::class, EmailFieldOption::make()->required())
+            ->add('email', TextField::class, EmailFieldOption::make()->required()->toArray())
             ->setActionButtons(view('core/acl::users.profile.actions')->render());
     }
 }

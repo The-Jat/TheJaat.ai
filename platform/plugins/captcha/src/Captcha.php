@@ -24,13 +24,17 @@ class Captcha extends CaptchaContract
 
         CaptchaRendering::dispatch($attributes, $options, $headContent, $footerContent);
 
-        add_filter(['theme-front-header', 'ecommerce_checkout_header'], function ($html) use ($headContent) {
-            return $html . $headContent;
-        }, 299);
+        if (defined('THEME_FRONT_HEADER')) {
+            add_filter(THEME_FRONT_HEADER, function ($html) use ($headContent) {
+                return $html . $headContent;
+            }, 299);
+        }
 
-        add_filter(['theme-front-footer', 'ecommerce_checkout_footer'], function (?string $html) use ($footerContent): string {
-            return $html . $footerContent;
-        }, 99);
+        if (defined('THEME_FRONT_FOOTER')) {
+            add_filter(THEME_FRONT_FOOTER, function (?string $html) use ($footerContent): string {
+                return $html . $footerContent;
+            }, 99);
+        }
 
         add_filter(BASE_FILTER_HEAD_LAYOUT_TEMPLATE, function ($html) use ($headContent) {
             return $html . $headContent;

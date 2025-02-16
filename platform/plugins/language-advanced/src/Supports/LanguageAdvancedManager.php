@@ -45,11 +45,7 @@ class LanguageAdvancedManager
 
         $data = apply_filters('language_advanced_before_save', $data, $object, $request);
 
-        $data = array_map(function ($value) {
-            return is_array($value) ? json_encode($value) : $value;
-        }, $data);
-
-        $translate = DB::table($table)->where($condition)->exists();
+        $translate = DB::table($table)->where($condition)->first();
 
         if ($translate) {
             DB::table($table)->where($condition)->update($data);
@@ -131,19 +127,6 @@ class LanguageAdvancedManager
         return true;
     }
 
-    public static function removeModule(array|string $model): void
-    {
-        foreach ((array) $model as $item) {
-            $supported = self::getSupported();
-
-            if (isset($supported[$item])) {
-                unset($supported[$item]);
-            }
-
-            config(['plugins.language-advanced.general.supported' => $supported]);
-        }
-    }
-
     public static function delete(BaseModel|Model|string|null $object): bool
     {
         if (! self::isSupported($object)) {
@@ -184,10 +167,10 @@ class LanguageAdvancedManager
             /**
              * @var Model $item
              */
-            $item::resolveRelationUsing('translations', function ($model) {
+            $item::resolveRelationUsing('translations', function ($model) use ($locale) {
                 $instance = tap(
                     new TranslationResolver(),
-                    function ($instance): void {
+                    function ($instance) {
                         if (! $instance->getConnectionName()) {
                             $instance->setConnection(DB::getDefaultConnection());
                         }
@@ -216,20 +199,16 @@ class LanguageAdvancedManager
                     $item,
                     'get' . ucfirst(Str::camel($column)) . 'Attribute',
                     function () use ($column, $locale, $isDefaultLocale) {
-                        /**
-                         * @var Model $model
-                         */
-                        $model = $this; // @phpstan-ignore-line
-
                         if (
-                            ! $model->lang_code &&
+                            ! $this->lang_code && // @phpstan-ignore-line
                             ! $isDefaultLocale &&
-                            $translation = $model->translations->where('lang_code', $locale)->value($column)
+                            $translation = $this->translations->where('lang_code', $locale)->value($column) // @phpstan-ignore-line
                         ) {
                             return $translation;
                         }
 
-                        return $model->getAttribute($column);
+                        // @phpstan-ignore-next-line
+                        return $this->getAttribute($column);
                     }
                 );
             }

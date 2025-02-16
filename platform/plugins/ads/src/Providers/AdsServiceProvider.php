@@ -7,7 +7,6 @@ use Botble\Ads\Forms\AdsForm;
 use Botble\Ads\Models\Ads;
 use Botble\Ads\Repositories\Eloquent\AdsRepository;
 use Botble\Ads\Repositories\Interfaces\AdsInterface;
-use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Facades\DashboardMenu;
 use Botble\Base\Facades\PanelSectionManager;
 use Botble\Base\Forms\FieldOptions\SelectFieldOption;
@@ -22,7 +21,6 @@ use Illuminate\Foundation\AliasLoader;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Throwable;
 
 class AdsServiceProvider extends ServiceProvider
 {
@@ -41,14 +39,14 @@ class AdsServiceProvider extends ServiceProvider
     {
         $this
             ->setNamespace('plugins/ads')
-            ->loadAndPublishConfigurations(['permissions', 'general'])
+            ->loadAndPublishConfigurations(['permissions'])
             ->loadMigrations()
             ->loadAndPublishTranslations()
             ->loadRoutes()
             ->loadHelpers()
             ->loadAndPublishViews();
 
-        DashboardMenu::beforeRetrieving(function (): void {
+        DashboardMenu::beforeRetrieving(function () {
             DashboardMenu::make()
                 ->registerItem([
                     'id' => 'cms-plugins-ads',
@@ -75,7 +73,7 @@ class AdsServiceProvider extends ServiceProvider
                 ]);
         });
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SettingOthersPanelSection::class,
                 fn () => PanelSectionItem::make('ads')
@@ -87,7 +85,7 @@ class AdsServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             if (class_exists(Shortcode::class)) {
                 Shortcode::register('ads', __('Ads'), __('Ads'), function ($shortcode) {
                     if (! $shortcode->key) {
@@ -111,6 +109,7 @@ class AdsServiceProvider extends ServiceProvider
                             SelectFieldOption::make()
                                 ->label(trans('plugins/ads::ads.select_ad'))
                                 ->choices($ads)
+                                ->toArray()
                         );
                 });
             }
@@ -156,19 +155,11 @@ class AdsServiceProvider extends ServiceProvider
             }, 128);
         }
 
-        try {
-            add_filter('ads_render', function (?string $html, string|array $location, array $attributes = []) {
-                if (! is_string($location)) {
-                    return null;
-                }
+        add_filter('ads_render', function (string $location, array $attributes = []) {
+            return AdsManager::display($location, $attributes);
+        }, 128, 2);
 
-                return $html . AdsManager::display($location, $attributes);
-            }, 128, 3);
-        } catch (Throwable $exception) {
-            BaseHelper::logError($exception);
-        }
-
-        AdsForm::beforeRendering(function (): void {
+        AdsForm::beforeRendering(function () {
             add_action(BASE_ACTION_TOP_FORM_CONTENT_NOTIFICATION, function ($request, $data = null) {
                 if (! $data instanceof Ads || ! in_array(Route::currentRouteName(), ['ads.create', 'ads.edit'])) {
                     return false;

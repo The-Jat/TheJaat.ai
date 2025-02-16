@@ -39,19 +39,19 @@ trait RevisionableTrait
      */
     public static function bootRevisionableTrait(): void
     {
-        static::saving(function ($model): void {
+        static::saving(function ($model) {
             $model->preSave();
         });
 
-        static::saved(function ($model): void {
+        static::saved(function ($model) {
             $model->postSave();
         });
 
-        static::created(function ($model): void {
+        static::created(function ($model) {
             $model->postCreate();
         });
 
-        static::deleted(function ($model): void {
+        static::deleted(function ($model) {
             $model->preSave();
             $model->postDelete();
         });
@@ -141,7 +141,7 @@ trait RevisionableTrait
                     'updated_at' => new DateTime(),
                 ];
 
-                if (BaseModel::isUsingStringId()) {
+                if (BaseModel::getTypeOfId() !== 'BIGINT') {
                     $data['id'] = (new BaseModel())->newUniqueId();
                 }
 

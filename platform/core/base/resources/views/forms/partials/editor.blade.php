@@ -1,7 +1,6 @@
 @if (!Arr::get($attributes, 'without-buttons', false))
     @php
         $id = Arr::get($attributes, 'id', $name);
-        Arr::set($attributes, 'id', $id);
     @endphp
 
     <div class="mb-2 btn-list">

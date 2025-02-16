@@ -1,7 +1,7 @@
 <header class="main-header header-style-1">
     {!! Theme::partial('header.top-bar', ['background' => 'background-white']) !!}
 
-    @if (theme_option('logo'))
+    @if (theme_option('logo') && theme_option('logo_enabled', 1))
         <div class="header-logo background-white text-center pt-40 pb-40 d-none d-lg-block">
             <div class="container">
                 <div class="row">

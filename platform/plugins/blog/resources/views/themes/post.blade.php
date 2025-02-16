@@ -1,6 +1,9 @@
 <div>
     <h3>{{ $post->name }}</h3>
     {!! Theme::breadcrumb()->render() !!}
+    @php
+        // ddd("post");
+    @endphp
 </div>
 <header>
     <h3>{{ $post->name }}</h3>

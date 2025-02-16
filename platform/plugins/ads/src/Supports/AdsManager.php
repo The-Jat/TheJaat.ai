@@ -136,6 +136,6 @@ class AdsManager
     {
         return $data
             ->where('status', BaseStatusEnum::PUBLISHED)
-            ->filter(fn (Ads $item) => $item->ads_type === 'google_adsense' || $item->expired_at->gte(Carbon::now()));
+            ->filter(fn (Ads $item) => $item->expired_at->gte(Carbon::now()));
     }
 }

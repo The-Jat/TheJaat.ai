@@ -2,13 +2,13 @@
 
 namespace Botble\Theme\Forms\Settings;
 
-use Botble\Base\Facades\Html;
 use Botble\Base\Forms\FieldOptions\CodeEditorFieldOption;
 use Botble\Base\Forms\FieldOptions\RadioFieldOption;
 use Botble\Base\Forms\FieldOptions\TextFieldOption;
 use Botble\Base\Forms\Fields\CodeEditorField;
 use Botble\Base\Forms\Fields\RadioField;
 use Botble\Base\Forms\Fields\TextField;
+use Botble\Base\Forms\FormCollapse;
 use Botble\Setting\Forms\SettingForm;
 use Botble\Theme\Http\Requests\WebsiteTrackingSettingRequest;
 
@@ -26,37 +26,51 @@ class WebsiteTrackingSettingForm extends SettingForm
             ->setSectionTitle(trans('packages/theme::theme.settings.website_tracking.title'))
             ->setSectionDescription(trans('packages/theme::theme.settings.website_tracking.description'))
             ->setValidatorClass(WebsiteTrackingSettingRequest::class)
-            ->add(
-                'google_tag_manager_type',
-                RadioField::class,
-                RadioFieldOption::make()
-                    ->choices([
-                        'id' => trans('packages/theme::theme.settings.website_tracking.google_tag_id'),
-                        'code' => trans('packages/theme::theme.settings.website_tracking.google_tag_code'),
-                    ])
-                    ->selected($targetValue = old('google_tag_manager_type', $defaultType))
-            )
-            ->add(
-                'google_tag_manager_id',
-                TextField::class,
-                TextFieldOption::make()
-                    ->collapsible('google_tag_manager_type', 'id', $targetValue)
-                    ->value($googleTagManagerId)
-                    ->placeholder(trans('packages/theme::theme.settings.website_tracking.google_tag_id_placeholder'))
-                    ->helperText(
-                        Html::link('https://support.google.com/analytics/answer/9539598#find-G-ID', attributes: ['target' => '_blank'])
+            ->addCollapsible(
+                FormCollapse::make('google_tag_manager')
+                    ->targetField(
+                        'google_tag_manager_type',
+                        RadioField::class,
+                        RadioFieldOption::make()
+                            ->choices([
+                                'id' => $tagIdLabel = trans('packages/theme::theme.settings.website_tracking.google_tag_id'),
+                                'code' => $codeLabel = trans('packages/theme::theme.settings.website_tracking.google_tag_code'),
+                            ])
+                            ->selected($targetValue = old('google_tag_manager_type', $defaultType))
+                            ->toArray()
                     )
-            )
-            ->add(
-                'google_tag_manager_code',
-                CodeEditorField::class,
-                CodeEditorFieldOption::make()
-                     ->collapsible('google_tag_manager_type', 'code', $targetValue)
-                     ->value($googleTagManagerCode)
-                     ->mode('html')
-                     ->helperText(
-                         Html::link('https://developers.google.com/tag-platform/gtagjs/install', attributes: ['target' => '_blank'])
-                     )
+                    ->fieldset(function (WebsiteTrackingSettingForm $form) use ($googleTagManagerId, $tagIdLabel) {
+                        $form->add(
+                            'google_tag_manager_id',
+                            TextField::class,
+                            TextFieldOption::make()
+                                ->label($tagIdLabel)
+                                ->value($googleTagManagerId)
+                                ->placeholder(trans('packages/theme::theme.settings.website_tracking.google_tag_id_placeholder'))
+                                ->helperText(
+                                    sprintf(
+                                        "<a href='https://support.google.com/analytics/answer/9539598#find-G-ID' target='_blank'>%s</a>",
+                                        'https://support.google.com/analytics/answer/9539598#find-G-ID'
+                                    )
+                                )
+                                ->toArray()
+                        );
+                    }, targetFieldValue: 'id', isOpened: $targetValue === 'id')
+                    ->fieldset(function (WebsiteTrackingSettingForm $form) use ($googleTagManagerCode, $codeLabel) {
+                        $form->add(
+                            'google_tag_manager_code',
+                            CodeEditorField::class,
+                            CodeEditorFieldOption::make()
+                                ->label($codeLabel)
+                                ->value($googleTagManagerCode)
+                                ->mode('html')
+                                ->helperText(sprintf(
+                                    "<a href='https://developers.google.com/tag-platform/gtagjs/install' target='_blank'>%s</a>",
+                                    'https://developers.google.com/tag-platform/gtagjs/install'
+                                ))
+                                ->toArray()
+                        );
+                    }, targetFieldValue: 'code', isOpened: $targetValue === 'code')
             );
     }
 }

@@ -39,7 +39,7 @@ class EditorManagement {
 
         const ckFileRepository = editor.plugins.get('FileRepository')
 
-        if (ckFileRepository && typeof RV_MEDIA_URL != 'undefined' && RV_MEDIA_URL.media_upload_from_editor) {
+        if (ckFileRepository && RV_MEDIA_URL.media_upload_from_editor) {
             ckFileRepository.createUploadAdapter = (loader) => {
                 return new CKEditorUploadAdapter(loader, RV_MEDIA_URL.media_upload_from_editor, editor.t)
             }
@@ -142,6 +142,17 @@ class EditorManagement {
             },
             codeBlock: {
                 languages: [
+                    /* we can add class as well,
+                        1. The defualt class for the language options is: "language-LanguageName"
+                            For example for the below code, the default class which would be applied
+                            is: "language-cpp".
+                            { language: 'cpp', label: 'C++' },
+                        2. We can add the additional class as well,
+                            like we used in the below line, it will add two classes
+                            first the custom one - language-assembly-x86
+                            and second one is default one - language-assembly.
+                            { language: 'assembly', label: 'Assembly', class: 'language-assembly-x86' }
+                    */
                     { language: 'plaintext', label: 'Plain text' },
                     { language: 'c', label: 'C' },
                     { language: 'cs', label: 'C#' },
@@ -157,6 +168,14 @@ class EditorManagement {
                     { language: 'typescript', label: 'TypeScript' },
                     { language: 'xml', label: 'XML' },
                     { language: 'dart', label: 'Dart', class: 'language-dart' },
+
+                    
+                    { language: 'bash', label: 'Bash' },
+                    { language: 'shell', label: 'Shell' },
+                    { language: 'json', label: 'JSON' },
+                    { language: 'makefile', label: 'Makefile' },
+                    { language: 'dockerfile', label: 'Dockerfile' },
+                    { language: 'assembly', label: 'Assembly', class: 'language-assembly-x86' },
                 ],
             },
             link: {
@@ -322,7 +341,6 @@ class EditorManagement {
                     this.uploadImageFromEditor(e.target.files[0], callback)
                 })
             },
-            directionality: $('body').prop('dir') || 'ltr',
         }
 
         if (localStorage.getItem('themeMode') === 'dark') {

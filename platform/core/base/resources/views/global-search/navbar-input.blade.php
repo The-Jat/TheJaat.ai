@@ -6,7 +6,6 @@
     :input-group="true"
     :group-flat="true"
     tabindex="0"
-    id="global-search-input"
     wrapper-class-default=""
     data-bb-toggle="gs-navbar-input"
     autocomplete="off"

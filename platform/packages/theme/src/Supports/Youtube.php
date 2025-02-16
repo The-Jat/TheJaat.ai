@@ -2,7 +2,6 @@
 
 namespace Botble\Theme\Supports;
 
-use Botble\Media\Facades\RvMedia;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
@@ -84,12 +83,5 @@ class Youtube
         $regExp = '/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|shorts\/|v\/)?)([\w\-]+)(\S+)?$/';
 
         return preg_match($regExp, $url);
-    }
-
-    public static function getThumbnail(?string $url): string
-    {
-        $id = self::getYoutubeVideoID($url);
-
-        return $id ? "https://i.ytimg.com/vi_webp/$id/maxresdefault.webp" : RvMedia::getDefaultImage();
     }
 }

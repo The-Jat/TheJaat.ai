@@ -23,7 +23,8 @@ class CustomJSForm extends FormAbstract
                     ->helperText(trans('packages/theme::theme.custom_header_js_placeholder'))
                     ->value(setting('custom_header_js'))
                     ->mode('javascript')
-                    ->maxLength(10000)
+                    ->maxLength(2500)
+                    ->toArray()
             )
             ->add(
                 'custom_body_js',
@@ -33,7 +34,8 @@ class CustomJSForm extends FormAbstract
                     ->helperText(trans('packages/theme::theme.custom_body_js_placeholder'))
                     ->value(setting('custom_body_js'))
                     ->mode('javascript')
-                    ->maxLength(10000)
+                    ->maxLength(2500)
+                    ->toArray()
             )
             ->add(
                 'custom_footer_js',
@@ -43,7 +45,8 @@ class CustomJSForm extends FormAbstract
                     ->helperText(trans('packages/theme::theme.custom_footer_js_placeholder'))
                     ->value(setting('custom_footer_js'))
                     ->mode('javascript')
-                    ->maxLength(10000)
+                    ->maxLength(2500)
+                    ->toArray()
             );
     }
 }

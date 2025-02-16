@@ -10,7 +10,7 @@
                         >
                             <img
                                 src="{{ setting('admin_logo') ? RvMedia::getImageUrl(setting('admin_logo')) : url(config('core.base.general.logo')) }}"
-                                style="max-height: 50px; max-width: 100%;"
+                                height="36"
                                 alt="{{ setting('admin_title', config('core.base.general.base_name')) }}"
                             >
                         </a>

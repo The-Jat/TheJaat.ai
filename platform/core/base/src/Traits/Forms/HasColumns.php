@@ -6,7 +6,7 @@ use Illuminate\Support\HtmlString;
 
 trait HasColumns
 {
-    public function columns(int|array $columns = 2): static
+    public function columns(int|array $columns = 2): self
     {
         if (! is_array($columns)) {
             $columns = [

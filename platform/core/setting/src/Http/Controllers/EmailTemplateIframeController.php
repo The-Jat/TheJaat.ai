@@ -6,7 +6,6 @@ use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Setting\Http\Traits\GetEmailTemplateDataTrait;
 use Illuminate\Http\Request;
-use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 
 class EmailTemplateIframeController extends BaseController
 {
@@ -32,10 +31,6 @@ class EmailTemplateIframeController extends BaseController
             $content = get_setting_email_template_content($type, $module, $template);
         }
 
-        $inlineCss = new CssToInlineStyles();
-
-        $content = $emailHandler->prepareData($content);
-
-        return $inlineCss->convert($content, $emailHandler->getCssContent());
+        return $emailHandler->prepareData($content);
     }
 }

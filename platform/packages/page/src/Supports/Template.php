@@ -9,13 +9,16 @@ class Template
 {
     public static function registerPageTemplate(array $templates = []): void
     {
-        $validTemplates = array_filter($templates, function ($key) {
-            return in_array($key, self::getExistsTemplate());
-        }, ARRAY_FILTER_USE_KEY);
+        $validTemplates = [];
+        foreach ($templates as $key => $template) {
+            if (in_array($key, self::getExistsTemplate())) {
+                $validTemplates[$key] = $template;
+            }
+        }
 
         config([
             'packages.page.general.templates' => array_merge(
-                config('packages.page.general.templates', []),
+                config('packages.page.general.templates'),
                 $validTemplates
             ),
         ]);

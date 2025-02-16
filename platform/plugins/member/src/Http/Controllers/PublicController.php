@@ -35,7 +35,9 @@ class PublicController extends BaseController
     public function getAuthor(string $slug)
     {
         $slug = SlugHelper::getSlug($slug, SlugHelper::getPrefix(Member::class), Member::class);
-        abort_unless($slug, 404);
+        if (! $slug) {
+            abort(404);
+        }
 
         $condition = [
             'id' => $slug->reference_id,
@@ -51,7 +53,9 @@ class PublicController extends BaseController
             ->with(['slugable'])
             ->first();
 
-        abort_unless($author, 404);
+        if (! $author) {
+            abort(404);
+        }
 
         SeoHelper::setTitle($author->name)->setDescription($author->description);
 

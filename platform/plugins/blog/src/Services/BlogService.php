@@ -3,7 +3,6 @@
 namespace Botble\Blog\Services;
 
 use Botble\Base\Enums\BaseStatusEnum;
-use Botble\Base\Facades\AdminHelper;
 use Botble\Base\Supports\Helper;
 use Botble\Blog\Models\Category;
 use Botble\Blog\Models\Post;
@@ -17,6 +16,7 @@ use Botble\Theme\Facades\AdminBar;
 use Botble\Theme\Facades\Theme;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 
 class BlogService
 {
@@ -31,7 +31,7 @@ class BlogService
             'status' => BaseStatusEnum::PUBLISHED,
         ];
 
-        if (AdminHelper::isPreviewing()) {
+        if (Auth::guard()->check() && request()->input('preview')) {
             Arr::forget($condition, 'status');
         }
 
@@ -91,8 +91,12 @@ class BlogService
 
                 do_action(BASE_ACTION_PUBLIC_RENDER_SINGLE, POST_MODULE_SCREEN_NAME, $post);
 
+                // If the custom_blog_template theme option is true, thene
+                // read the template from the blog_post_template theme option.
+                $view = (theme_option('custom_blog_template')) ? theme_option('blog_post_template'): "";
+
                 return [
-                    'view' => 'post',
+                    'view' => ($view) ? $view : 'post',
                     'default_view' => 'plugins/blog::themes.post',
                     'data' => compact('post'),
                     'slug' => $post->slug,

@@ -9,6 +9,7 @@ use Botble\Page\Forms\PageForm;
 use Botble\Page\Http\Requests\PageRequest;
 use Botble\Page\Models\Page;
 use Botble\Page\Tables\PageTable;
+use Illuminate\Support\Facades\Auth;
 
 class PageController extends BaseController
 {
@@ -34,9 +35,14 @@ class PageController extends BaseController
 
     public function store(PageRequest $request)
     {
-        $form = PageForm::create()
-            ->setRequest($request)
-            ->save();
+        $form = PageForm::create()->setRequest($request);
+
+        $form->saving(function (PageForm $form) {
+            $form
+                ->getModel()
+                ->fill([...$form->getRequest()->input(), 'user_id' => Auth::guard()->id()])
+                ->save();
+        });
 
         return $this
             ->httpResponse()
@@ -64,7 +70,7 @@ class PageController extends BaseController
             ->withUpdatedSuccessMessage();
     }
 
-    public function destroy(Page $page): DeleteResourceAction
+    public function destroy(Page $page)
     {
         return DeleteResourceAction::make($page);
     }

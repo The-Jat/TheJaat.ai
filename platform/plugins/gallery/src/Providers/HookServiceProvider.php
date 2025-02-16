@@ -6,10 +6,7 @@ use Botble\Base\Facades\AdminHelper;
 use Botble\Base\Facades\Assets;
 use Botble\Base\Facades\Html;
 use Botble\Base\Facades\MetaBox;
-use Botble\Base\Forms\FieldOptions\NumberFieldOption;
-use Botble\Base\Forms\FieldOptions\SelectFieldOption;
 use Botble\Base\Forms\Fields\NumberField;
-use Botble\Base\Forms\Fields\SelectField;
 use Botble\Base\Forms\Fields\TextField;
 use Botble\Base\Models\BaseModel;
 use Botble\Base\Supports\ServiceProvider;
@@ -24,7 +21,6 @@ use Botble\Slug\Models\Slug;
 use Botble\Theme\Events\RenderingThemeOptionSettings;
 use Botble\Theme\Facades\Theme;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class HookServiceProvider extends ServiceProvider
@@ -42,41 +38,20 @@ class HookServiceProvider extends ServiceProvider
             );
 
             shortcode()->setAdminConfig('gallery', function (array $attributes) {
-                $galleries = GalleryModel::query()
-                    ->pluck('name', 'id')
-                    ->all();
-
-                $galleryIds = explode(',', Arr::get($attributes, 'gallery_ids', ''));
-
                 return ShortcodeForm::createFromArray($attributes)
                     ->withLazyLoading()
                     ->add('title', TextField::class, [
                         'label' => __('Title'),
                     ])
-                    ->add(
-                        'limit',
-                        NumberField::class,
-                        NumberFieldOption::make()
-                            ->label(__('Limit'))
-                            ->helperText(__('Number of galleries to show. Set to 0 or leave it empty to show all. It will be overridden if you select galleries below.'))
-                            ->defaultValue(5)
-                    )
-                    ->add(
-                        'gallery_ids',
-                        SelectField::class,
-                        SelectFieldOption::make()
-                            ->label(__('Galleries'))
-                            ->choices($galleries)
-                            ->selected($galleryIds)
-                            ->searchable()
-                            ->multiple()
-                    );
+                    ->add('limit', NumberField::class, [
+                        'label' => __('Limit'),
+                    ]);
             });
         }
 
         add_filter(BASE_FILTER_PUBLIC_SINGLE_DATA, [$this, 'handleSingleView'], 11);
 
-        PageTable::beforeRendering(function (): void {
+        PageTable::beforeRendering(function () {
             add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, [$this, 'addAdditionNameToPageName'], 147, 2);
         });
 
@@ -84,7 +59,7 @@ class HookServiceProvider extends ServiceProvider
             add_filter(PAGE_FILTER_FRONT_PAGE_CONTENT, [$this, 'renderGalleriesPage'], 2, 2);
         }
 
-        $this->app['events']->listen(RenderingThemeOptionSettings::class, function (): void {
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
             add_action(RENDERING_THEME_OPTIONS_PAGE, [$this, 'addThemeOptions'], 11);
         });
     }
@@ -92,7 +67,6 @@ class HookServiceProvider extends ServiceProvider
     public function addGalleryBox(string $context, array|string|Model|null $object = null): void
     {
         if (
-            (Gallery::isEnabledGalleryImagesMetaBox() || $object instanceof GalleryModel) &&
             AdminHelper::isInAdmin(true) &&
             $object instanceof BaseModel &&
             in_array($object::class, Gallery::getSupportedModules()) &&
@@ -128,13 +102,10 @@ class HookServiceProvider extends ServiceProvider
     {
         $limit = (int) $shortcode->limit;
 
-        $galleryIds = \Botble\Shortcode\Facades\Shortcode::fields()->parseIds($shortcode->gallery_ids);
-
         $galleries = GalleryModel::query()
             ->with(['slugable', 'user'])
             ->wherePublished()
-            ->when($limit > 0 && ! $galleryIds, fn ($query) => $query->limit($limit))
-            ->when($galleryIds, fn ($query) => $query->whereIn('id', $galleryIds))
+            ->when($limit > 0, fn ($query) => $query->limit($limit))
             ->orderBy('order')
             ->orderByDesc('created_at')
             ->get();
@@ -158,7 +129,7 @@ class HookServiceProvider extends ServiceProvider
                 $view = $viewPath;
             }
 
-            return view($view, ['galleries' => get_galleries(-1)])->render();
+            return view($view, ['galleries' => get_galleries()])->render();
         }
 
         return $content;

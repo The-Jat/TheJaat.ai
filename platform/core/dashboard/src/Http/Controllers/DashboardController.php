@@ -29,7 +29,7 @@ class DashboardController extends BaseController
 
         $widgets = DashboardWidget::query()
             ->with([
-                'settings' => function (HasMany $query) use ($request): void {
+                'settings' => function (HasMany $query) use ($request) {
                     $query
                         ->where('user_id', $request->user()->getKey())
                         ->select(['status', 'order', 'settings', 'widget_id'])
@@ -40,6 +40,7 @@ class DashboardController extends BaseController
             ->get();
 
         $widgetData = apply_filters(DASHBOARD_FILTER_ADMIN_LIST, [], $widgets);
+        ksort($widgetData);
 
         $availableWidgetIds = collect($widgetData)->pluck('id')->all();
 
@@ -47,17 +48,8 @@ class DashboardController extends BaseController
             return ! in_array($item->getKey(), $availableWidgetIds);
         });
 
-        $statWidgets = collect($widgetData)
-            ->where('type', '!=', 'widget')
-            ->sortBy('priority')
-            ->pluck('view')
-            ->all();
-
-        $userWidgets = collect($widgetData)
-            ->where('type', 'widget')
-            ->sortBy('priority')
-            ->pluck('view')
-            ->all();
+        $statWidgets = collect($widgetData)->where('type', '!=', 'widget')->pluck('view')->all();
+        $userWidgets = collect($widgetData)->where('type', 'widget')->pluck('view')->all();
 
         return view('core/dashboard::list', compact('widgets', 'userWidgets', 'statWidgets'));
     }
@@ -129,12 +121,8 @@ class DashboardController extends BaseController
                 'user_id' => $request->user()->getKey(),
             ]);
 
-            $maxOrder = DashboardWidgetSetting::query()->max('order');
-
-            $maxOrder = $maxOrder < 125 ? $maxOrder : 10;
-
             $widgetSetting->status = 0;
-            $widgetSetting->order = $maxOrder + 1;
+            $widgetSetting->order = 99 + $widgetSetting->order;
             $widgetSetting->save();
         }
 
@@ -159,12 +147,8 @@ class DashboardController extends BaseController
             ) {
                 $widgetSetting->status = 1;
             } else {
-                $maxOrder = DashboardWidgetSetting::query()->max('order');
-
-                $maxOrder = $maxOrder < 125 ? $maxOrder : 10;
-
                 $widgetSetting->status = 0;
-                $widgetSetting->order = $maxOrder + 1;
+                $widgetSetting->order = 99 + $widgetSetting->order;
             }
 
             $widgetSetting->save();

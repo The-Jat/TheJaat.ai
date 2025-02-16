@@ -76,9 +76,6 @@ trait HasMenuSeeder
 
         Arr::forget($menuNode, 'children');
 
-        /**
-         * @var MenuNode $createdNode
-         */
         $createdNode = MenuNode::query()->create($menuNode);
 
         $this->createMetadata($createdNode, $menuNode);

@@ -9,7 +9,7 @@ use Botble\Base\Facades\BaseHelper;
 use Botble\Support\Services\Cache\Cache;
 use Carbon\Carbon;
 use Closure;
-use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Cache\CacheManager;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -39,10 +39,11 @@ class DashboardMenu
 
     public function __construct(
         protected Application $app,
-        protected Request $request
+        protected Request $request,
+        CacheManager $cache
     ) {
         $this->cacheEnabled = (bool) setting('cache_admin_menu_enable', false);
-        $this->cache = Cache::make(static::class);
+        $this->cache = new Cache($cache, static::class);
     }
 
     public function make(): static
@@ -83,14 +84,10 @@ class DashboardMenu
         return $this->groupId;
     }
 
-    public function registerItem(Arrayable|array $options): static
+    public function registerItem(array $options): static
     {
         if ($this->hasCache()) {
             return $this;
-        }
-
-        if ($options instanceof Arrayable) {
-            $options = $options->toArray();
         }
 
         if (isset($options['children'])) {
@@ -105,8 +102,8 @@ class DashboardMenu
             'icon' => null,
             'url' => '',
             'route' => '',
-            'permissions' => [],
             'children' => [],
+            'permissions' => [],
             'active' => false,
         ];
 
@@ -180,7 +177,7 @@ class DashboardMenu
 
             return tap(
                 apply_filters('dashboard_menu', $items, $this),
-                function ($menu): void {
+                function ($menu) {
                     $this->dispatchAfterRetrieved($menu);
                 }
             );
@@ -192,7 +189,7 @@ class DashboardMenu
             $items = value($value);
         }
 
-        return tap($this->applyActive($items), function (Collection $items): void {
+        return tap($this->applyActive($items), function (Collection $items) {
             DashboardMenuRetrieved::dispatch($this, $items);
 
             do_action('rendered_dashboard_menu', $this, $items);
@@ -358,8 +355,6 @@ class DashboardMenu
         return $items
             ->mapWithKeys(function ($item) use ($existsIds): array {
                 $item['url'] = $this->parseUrl($item['url'] ?? null);
-
-                $item['name'] = $item['name'] instanceof Closure ? call_user_func($item['name']) : $item['name'];
 
                 if (! empty($item['parent_id'])) {
                     if (! in_array($item['parent_id'], $existsIds)) {

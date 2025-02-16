@@ -62,7 +62,7 @@ class AclServiceProvider extends ServiceProvider
 
         $this->garbageCollect();
 
-        $this->app['events']->listen(RouteMatched::class, function (): void {
+        $this->app['events']->listen(RouteMatched::class, function () {
             $router = $this->app['router'];
 
             $router->aliasMiddleware('auth', Authenticate::class);
@@ -71,14 +71,14 @@ class AclServiceProvider extends ServiceProvider
 
         $this->registerPanelSections();
 
-        $this->app->booted(function (): void {
+        $this->app->booted(function () {
             config()->set(['auth.providers.users.model' => User::class]);
 
             EmailHandler::addTemplateSettings('acl', config('core.acl.email', []), 'core');
 
             $this->app->register(HookServiceProvider::class);
 
-            View::composer('core/acl::layouts.guest', function (IlluminateView $view): void {
+            View::composer('core/acl::layouts.guest', function (IlluminateView $view) {
                 $view->with('backgroundUrl', $this->getLoginPageBackgroundUrl());
             });
         });
@@ -87,7 +87,7 @@ class AclServiceProvider extends ServiceProvider
     protected function registerPanelSections(): void
     {
         PanelSectionManager::group('system')
-            ->beforeRendering(function (): void {
+            ->beforeRendering(function () {
                 PanelSectionManager::registerItems(
                     SystemPanelSection::class,
                     fn () => [

@@ -74,15 +74,11 @@ class AssetContainer
         $inheritTheme = ThemeFacade::getInheritTheme();
         $theme = ThemeFacade::getThemeName();
 
-        if (! $inheritTheme || $inheritTheme === $theme) {
+        if ($inheritTheme === $theme) {
             return $path;
         }
 
-        return str_replace(
-            '//',
-            '/',
-            str_replace($theme, $inheritTheme, $path)
-        );
+        return str_replace($theme, $inheritTheme, $path);
     }
 
     public function isInheritTheme(): bool

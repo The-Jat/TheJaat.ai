@@ -5,7 +5,6 @@ namespace Botble\AuditLog\Models;
 use Botble\ACL\Models\User;
 use Botble\Base\Models\BaseModel;
 use Botble\Base\Models\BaseQueryBuilder;
-use Botble\Setting\Enums\DataRetentionPeriod;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,12 +36,6 @@ class AuditHistory extends BaseModel
 
     public function prunable(): Builder|BaseQueryBuilder
     {
-        $days = setting('audit_log_data_retention_period', DataRetentionPeriod::ONE_MONTH);
-
-        if ($days === DataRetentionPeriod::NEVER) {
-            return $this->query()->where('id', '<', 0);
-        }
-
-        return $this->query()->where('created_at', '<', Carbon::now()->subDays($days));
+        return static::query()->where('created_at', '<=', Carbon::now()->subMonth());
     }
 }

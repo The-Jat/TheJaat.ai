@@ -23,7 +23,7 @@ class AdsSettingForm extends SettingForm
             ->setSectionDescription(trans('plugins/ads::ads.settings.description'))
             ->setValidatorClass(AdsSettingRequest::class);
 
-        $googleAdSenseLink = Html::link('https://www.google.com/adsense', 'Google AdSense', ['target' => '_blank']);
+        $googleAdSenseLink = Html::link('http://www.google.com/adsense', 'Google AdSense', ['target' => '_blank']);
 
         $this
             ->add(
@@ -35,6 +35,7 @@ class AdsSettingForm extends SettingForm
                         'link' => $googleAdSenseLink,
                     ]))
                     ->value(setting('ads_google_adsense_auto_ads'))
+                    ->toArray()
             )
             ->add(
                 'ads_google_adsense_unit_client_id',
@@ -46,12 +47,14 @@ class AdsSettingForm extends SettingForm
                     ]))
                     ->value(setting('ads_google_adsense_unit_client_id'))
                     ->placeholder('ca-pub-123456789')
+                    ->toArray()
             )
             ->add(
                 'ads_google_adsense_what_is_client_id',
                 HtmlField::class,
                 HtmlFieldOption::make()
                     ->view('plugins/ads::partials.google-adsense.client-id')
+                    ->toArray()
             )
             ->add('ads_google_adsense_txt_file', 'file', [
                 'label' => __('Your Google Adsense ads.txt'),
@@ -59,7 +62,7 @@ class AdsSettingForm extends SettingForm
             ->add(
                 'ads_google_adsense_txt',
                 HtmlField::class,
-                HtmlFieldOption::make()->view('plugins/ads::partials.google-adsense.txt')
+                HtmlFieldOption::make()->view('plugins/ads::partials.google-adsense.txt')->toArray()
             )
         ;
     }

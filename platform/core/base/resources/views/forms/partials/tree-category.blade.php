@@ -23,8 +23,6 @@
                             class="fetch-data text-truncate"
                             role="button"
                             data-href="{{ $canEdit && $editRoute ? route($editRoute, $category->id) : '' }}"
-                            title="ID: {{ $category->id }}"
-                            data-bs-toggle="tooltip"
                         >
                             {{ $category->name }}
                         </span>

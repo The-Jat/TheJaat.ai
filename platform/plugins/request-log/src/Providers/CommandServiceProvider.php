@@ -20,7 +20,7 @@ class CommandServiceProvider extends ServiceProvider
             RequestLogClearCommand::class,
         ]);
 
-        $this->app->afterResolving(Schedule::class, function (Schedule $schedule): void {
+        $this->app->afterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command(PruneCommand::class, ['--model' => RequestLog::class])->dailyAt('00:30');
         });
     }

@@ -42,6 +42,7 @@ class ShortcodeForm extends FormAbstract
                         'yes' => __('Yes'),
                     ])
                     ->helperText(__('When enabled, shortcode content will be loaded sequentially as the page loads, rather than all at once. This can help improve page load times.'))
+                    ->toArray(),
             );
 
             return $this;

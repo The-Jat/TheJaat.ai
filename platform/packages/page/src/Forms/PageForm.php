@@ -4,7 +4,6 @@ namespace Botble\Page\Forms;
 
 use Botble\Base\Forms\FieldOptions\ContentFieldOption;
 use Botble\Base\Forms\FieldOptions\DescriptionFieldOption;
-use Botble\Base\Forms\FieldOptions\MediaImageFieldOption;
 use Botble\Base\Forms\FieldOptions\NameFieldOption;
 use Botble\Base\Forms\FieldOptions\SelectFieldOption;
 use Botble\Base\Forms\FieldOptions\StatusFieldOption;
@@ -25,10 +24,11 @@ class PageForm extends FormAbstract
         $this
             ->model(Page::class)
             ->setValidatorClass(PageRequest::class)
-            ->add('name', TextField::class, NameFieldOption::make()->maxLength(120)->required())
-            ->add('description', TextareaField::class, DescriptionFieldOption::make())
-            ->add('content', EditorField::class, ContentFieldOption::make()->allowedShortcodes())
-            ->add('status', SelectField::class, StatusFieldOption::make())
+            ->hasTabs()
+            ->add('name', TextField::class, NameFieldOption::make()->maxLength(120)->required()->toArray())
+            ->add('description', TextareaField::class, DescriptionFieldOption::make()->toArray())
+            ->add('content', EditorField::class, ContentFieldOption::make()->allowedShortcodes()->toArray())
+            ->add('status', SelectField::class, StatusFieldOption::make()->toArray())
             ->when(Template::getPageTemplates(), function (PageForm $form, array $templates) {
                 return $form
                     ->add(
@@ -38,9 +38,10 @@ class PageForm extends FormAbstract
                             ->label(trans('core/base::forms.template'))
                             ->required()
                             ->choices($templates)
+                            ->toArray()
                     );
             })
-            ->add('image', MediaImageField::class, MediaImageFieldOption::make())
+            ->add('image', MediaImageField::class)
             ->setBreakFieldPoint('status');
     }
 }

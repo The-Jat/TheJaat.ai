@@ -45,7 +45,7 @@ class PostCollectionServiceProvider extends ServiceProvider
         SlugHelper::registerModule(PostCollection::class, 'Posts Collection');
         SlugHelper::setPrefix(PostCollection::class, 'posts-collection');
 
-        Event::listen(RouteMatched::class, function (): void {
+        Event::listen(RouteMatched::class, function () {
             if (defined('LANGUAGE_MODULE_SCREEN_NAME')) {
                 \Language::registerModule([PostCollection::class]);
             }

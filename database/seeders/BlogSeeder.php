@@ -98,7 +98,6 @@ class BlogSeeder extends BaseSeeder
             $categoryDetail = Category::create([
                 'name' => $item['name'],
                 'author_id' => 1,
-                'author_type' => User::class,
             ]);
 
             Slug::create([

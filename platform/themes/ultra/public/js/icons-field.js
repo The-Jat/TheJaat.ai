@@ -1,1 +1,50 @@
-$(document).ready((function(){"use strict";var t=["ti-flickr","ti-flickr-alt","ti-instagram","ti-google","ti-github","ti-facebook","ti-dropbox","ti-dropbox-alt","ti-dribbble","ti-apple","ti-android","ti-yahoo","ti-trello","ti-stack-overflow","ti-soundcloud","ti-sharethis","ti-sharethis-alt","ti-reddit","ti-microsoft","ti-microsoft-alt","ti-linux","ti-jsfiddle","ti-joomla","ti-html5","ti-css3","ti-drupal","ti-wordpress","ti-tumblr","ti-tumblr-alt","ti-skype","ti-youtube","ti-vimeo","ti-vimeo-alt","ti-twitter","ti-twitter-alt","ti-linkedin","ti-pinterest","ti-pinterest-alt","ti-themify-logo","ti-themify-favicon","ti-themify-favicon-alt"],i=function(){$(".icon-select").each((function(i,e){var o=$(e).children("option:selected").val(),n="";o||(n='<option value="">&nbsp;</option>'),t.forEach((function(t){n+='<option value="'+t+'">'+t+"</option>"})),$(e).html(n),$(e).val(o);var a={templateResult:function(t){return t.id?$('<span><i class="'+t.id+'"></i></span>&nbsp; '+t.text+"</span>"):t.text},width:"100%",templateSelection:function(t){return t.id?$('<span><i class="'+t.id+'"></i></span>&nbsp; '+t.text+"</span>"):t.text}},l=$(e).closest(".modal");l.length&&(a.dropdownParent=l),$(e).select2(a)}))};i(),document.addEventListener("core-init-resources",(function(t){i()}))}));
+/******/ (() => { // webpackBootstrap
+var __webpack_exports__ = {};
+/*!********************************************************!*\
+  !*** ./platform/themes/ultra/assets/js/icons-field.js ***!
+  \********************************************************/
+$(document).ready(function () {
+  'use strict';
+
+  var icons = ['ti-flickr', 'ti-flickr-alt', 'ti-instagram', 'ti-google', 'ti-github', 'ti-facebook', 'ti-dropbox', 'ti-dropbox-alt', 'ti-dribbble', 'ti-apple', 'ti-android', 'ti-yahoo', 'ti-trello', 'ti-stack-overflow', 'ti-soundcloud', 'ti-sharethis', 'ti-sharethis-alt', 'ti-reddit', 'ti-microsoft', 'ti-microsoft-alt', 'ti-linux', 'ti-jsfiddle', 'ti-joomla', 'ti-html5', 'ti-css3', 'ti-drupal', 'ti-wordpress', 'ti-tumblr', 'ti-tumblr-alt', 'ti-skype', 'ti-youtube', 'ti-vimeo', 'ti-vimeo-alt', 'ti-twitter', 'ti-twitter-alt', 'ti-linkedin', 'ti-pinterest', 'ti-pinterest-alt', 'ti-themify-logo', 'ti-themify-favicon', 'ti-themify-favicon-alt'];
+  var initIconsField = function initIconsField() {
+    $('.icon-select').each(function (index, el) {
+      var value = $(el).children('option:selected').val();
+      var options = '';
+      if (!value) {
+        options = '<option value="">&nbsp;</option>';
+      }
+      icons.forEach(function (value) {
+        options += '<option value="' + value + '">' + value + '</option>';
+      });
+      $(el).html(options);
+      $(el).val(value);
+      var select2Options = {
+        templateResult: function templateResult(state) {
+          if (!state.id) {
+            return state.text;
+          }
+          return $('<span><i class="' + state.id + '"></i></span>&nbsp; ' + state.text + '</span>');
+        },
+        width: '100%',
+        templateSelection: function templateSelection(state) {
+          if (!state.id) {
+            return state.text;
+          }
+          return $('<span><i class="' + state.id + '"></i></span>&nbsp; ' + state.text + '</span>');
+        }
+      };
+      var parent = $(el).closest('.modal');
+      if (parent.length) {
+        select2Options.dropdownParent = parent;
+      }
+      $(el).select2(select2Options);
+    });
+  };
+  initIconsField();
+  document.addEventListener('core-init-resources', function (e) {
+    initIconsField();
+  });
+});
+/******/ })()
+;

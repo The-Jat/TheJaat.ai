@@ -50,6 +50,7 @@ class AuthForm extends FormAbstract
                     '<h2 class="h3 text-center mb-3">%s</h2>',
                     $heading
                 ))
+                ->toArray()
         );
 
         return $this;
@@ -61,17 +62,17 @@ class AuthForm extends FormAbstract
             ->add(
                 'open_wrap_button',
                 HtmlField::class,
-                HtmlFieldOption::make()->content('<div class="form-footer">')
+                HtmlFieldOption::make()->content('<div class="form-footer">')->toArray()
             )
             ->add(
                 'submit',
                 HtmlField::class,
-                HtmlFieldOption::make()->view('core/acl::auth.includes.submit', compact('label', 'icon'))
+                HtmlFieldOption::make()->view('core/acl::auth.includes.submit', compact('label', 'icon'))->toArray()
             )
             ->add(
                 'close_wrap_button',
                 HtmlField::class,
-                HtmlFieldOption::make()->content('</div>')
+                HtmlFieldOption::make()->content('</div>')->toArray()
             );
 
         return $this;

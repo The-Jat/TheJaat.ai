@@ -14,7 +14,7 @@ class GalleryRequest extends Request
     {
         return [
             'name' => ['required', 'string', 'max:250'],
-            'description' => ['required', 'string', 'max:10000'],
+            'description' => ['required', 'string', 'max:400'],
             'order' => ['required', 'integer', 'min:0', 'max:127'],
             'status' => [Rule::in(BaseStatusEnum::values())],
             'is_featured' => [new OnOffRule()],

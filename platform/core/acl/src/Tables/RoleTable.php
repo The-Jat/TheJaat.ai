@@ -48,7 +48,7 @@ class RoleTable extends TableAbstract
             ])
             ->addBulkAction(DeleteBulkAction::make()->permission('roles.destroy'))
             ->addBulkChange(NameBulkChange::make())
-            ->queryUsing(function (Builder $query): void {
+            ->queryUsing(function (Builder $query) {
                 $query
                     ->with('author')
                     ->select([

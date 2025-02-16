@@ -11,7 +11,7 @@ return new class () extends Migration {
             return;
         }
 
-        Schema::create('pages_translations', function (Blueprint $table): void {
+        Schema::create('pages_translations', function (Blueprint $table) {
             $table->string('lang_code', 20);
             $table->foreignId('pages_id');
             $table->string('name')->nullable();

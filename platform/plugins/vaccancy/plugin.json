@@ -1,0 +1,10 @@
+{
+    "id": "botble/vaccancy",
+    "name": "Vaccancy",
+    "namespace": "Botble\\Vaccancy\\",
+    "provider": "Botble\\Vaccancy\\Providers\\VaccancyServiceProvider",
+    "author": "The Jat",
+    "url": "https://thejat.in",
+    "version": "1.0.0",
+    "description": "Manage vacccancy posts, categories, tags"
+}

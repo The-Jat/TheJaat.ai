@@ -10,8 +10,6 @@ use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Auth\Authenticatable;
 
-use Illuminate\Validation\Rule;
-
 use function Laravel\Prompts\{password, text};
 
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -47,46 +45,27 @@ class UserCreateCommand extends Command
             'first_name' => text(
                 label: 'First name',
                 required: true,
-                validate: $this->validate([
-                    'required',
-                    'min:2',
-                    'max:60',
-                ]),
+                validate: $this->validate('min:2|max:60'),
             ),
             'last_name' => text(
                 label: 'Last name',
                 required: true,
-                validate: $this->validate([
-                    'required',
-                    'min:2',
-                    'max:60',
-                ]),
+                validate: $this->validate('min:2|max:60'),
             ),
             'email' => text(
                 label: 'Email address',
                 required: true,
-                validate: $this->validate([
-                    'email',
-                    'max:60',
-                    Rule::unique((new User())->getTable(), 'email'),
-                ])
+                validate: $this->validate('email|max:60|unique:users,email')
             ),
             'username' => text(
                 label: 'Username',
                 required: true,
-                validate: $this->validate([
-                    'min:4',
-                    'max:60',
-                    Rule::unique((new User())->getTable(), 'username'),
-                ])
+                validate: $this->validate('min:4|max:60|unique:users,username')
             ),
             'password' => password(
                 label: 'Password',
                 required: true,
-                validate: $this->validate([
-                    'min:6',
-                    'max:60',
-                ])
+                validate: $this->validate('min:6|max:60')
             ),
         ];
     }

@@ -44,7 +44,7 @@ class CommandServiceProvider extends ServiceProvider
             'Core Version' => get_core_version(),
         ]);
 
-        $this->app->afterResolving(Schedule::class, function (Schedule $schedule): void {
+        $this->app->afterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command(ClearExpiredCacheCommand::class)->everyFiveMinutes();
         });
     }

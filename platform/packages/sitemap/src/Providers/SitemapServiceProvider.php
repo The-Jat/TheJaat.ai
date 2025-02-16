@@ -10,7 +10,6 @@ use Botble\Base\Traits\LoadAndPublishDataTrait;
 use Botble\Sitemap\Sitemap;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Routing\ResponseFactory;
-use Illuminate\Foundation\Application;
 
 class SitemapServiceProvider extends ServiceProvider
 {
@@ -20,8 +19,8 @@ class SitemapServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->app->bind('sitemap', function (Application $app) {
-            $config = $app['config']->get('packages.sitemap.config', []);
+        $this->app->bind('sitemap', function ($app) {
+            $config = config('packages.sitemap.config');
 
             return new Sitemap(
                 $config,
@@ -48,8 +47,8 @@ class SitemapServiceProvider extends ServiceProvider
             CreatedContentEvent::class,
             UpdatedContentEvent::class,
             DeletedContentEvent::class,
-        ], function (): void {
-            $this->app['cache']->forget('cache_site_map_key');
+        ], function () {
+            cache()->forget('cache_site_map_key');
         });
     }
 

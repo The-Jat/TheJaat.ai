@@ -6,9 +6,7 @@ use Botble\ACL\Models\User;
 use Botble\Blog\Models\Category;
 use Botble\Blog\Models\Post;
 use Botble\Blog\Models\Tag;
-use Botble\Setting\Facades\Setting;
 use Botble\Slug\Facades\SlugHelper;
-use Botble\Slug\Models\Slug;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +24,6 @@ trait HasBlogSeeder
             $item['description'] ??= $faker->text();
             $item['is_featured'] ??= ! isset($item['parent_id']) && $index != 0;
             $item['author_id'] ??= 1;
-            $item['author_type'] ??= User::class;
             $item['parent_id'] ??= 0;
 
             $category = $this->createBlogCategory(Arr::except($item, 'children'));
@@ -50,9 +47,6 @@ trait HasBlogSeeder
         }
 
         foreach ($tags as $item) {
-            $item['author_id'] ??= 1;
-            $item['author_type'] ??= User::class;
-
             /**
              * @var Tag $tag
              */
@@ -82,13 +76,7 @@ trait HasBlogSeeder
             $item['views'] ??= $faker->numberBetween(100, 2500);
             $item['description'] ??= $faker->realText();
             $item['is_featured'] ??= $faker->boolean();
-
-            if (! empty($item['content'])) {
-                $item['content'] = $this->removeBaseUrlFromString((string) $item['content']);
-            } else {
-                $item['content'] = $faker->realText();
-            }
-
+            $item['content'] ??= $this->removeBaseUrlFromString((string) $item['content']);
             $item['author_id'] ??= $userIds->random();
             $item['author_type'] ??= User::class;
 
@@ -131,18 +119,5 @@ trait HasBlogSeeder
         $this->createMetadata($category, $item);
 
         return $category;
-    }
-
-    public function setPostSlugPrefix(string $prefix = 'blog')
-    {
-        Setting::set([
-            SlugHelper::getPermalinkSettingKey(Post::class) => $prefix,
-            SlugHelper::getPermalinkSettingKey(Category::class) => $prefix,
-        ]);
-
-        Setting::save();
-
-        Slug::query()->where('reference_type', Post::class)->update(['prefix' => $prefix]);
-        Slug::query()->where('reference_type', Category::class)->update(['prefix' => $prefix]);
     }
 }

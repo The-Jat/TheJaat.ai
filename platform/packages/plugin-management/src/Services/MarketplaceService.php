@@ -36,7 +36,7 @@ class MarketplaceService
 
         $this->token = $token ?? $core['marketplaceToken'];
 
-        $this->publishedPath = storage_path('app/marketplace');
+        $this->publishedPath = storage_path('app/marketplace/');
 
         $this->productId = $core['productId'];
 
@@ -47,7 +47,9 @@ class MarketplaceService
 
     public function callApi(string $method, string $path, array $request = []): JsonResponse|Response
     {
-        abort_unless(config('packages.plugin-management.general.enable_marketplace_feature'), 404);
+        if (! config('packages.plugin-management.general.enable_marketplace_feature')) {
+            abort(404);
+        }
 
         try {
             $request = array_merge($request, [
@@ -109,25 +111,24 @@ class MarketplaceService
             throw new Exception(Arr::get($content, 'message') ?: $data);
         }
 
-        $storageTempPath = $this->publishedPath . '/' . $id;
+        File::ensureDirectoryExists($this->publishedPath . $id);
 
-        File::ensureDirectoryExists($storageTempPath, 0775);
+        $destination = $this->publishedPath . $id . '/' . $name . '.zip';
 
-        $destination = $storageTempPath . '/' . $name . '.zip';
-
-        File::cleanDirectory($storageTempPath);
+        File::cleanDirectory($this->publishedPath . $id);
 
         File::put($destination, $data);
 
-        $this->extractFile($storageTempPath, $name);
-        $this->copyToPath($storageTempPath, plugin_path($name));
+        $this->extractFile($id, $name);
+        $this->copyToPath($id, plugin_path($name));
 
         return true;
     }
 
-    protected function extractFile(string $pathTo, string $name): string
+    protected function extractFile(string $id, string $name): string
     {
-        $destination = $pathTo . '/' . $name . '.zip';
+        $destination = $this->publishedPath . $id . '/' . $name . '.zip';
+        $pathTo = $this->publishedPath . $id;
 
         $zipper = new Zipper();
 
@@ -140,15 +141,15 @@ class MarketplaceService
         return $pathTo;
     }
 
-    protected function copyToPath(string $fromPath, string $destinationPath): string
+    protected function copyToPath(string $id, string $path): string
     {
-        File::ensureDirectoryExists($destinationPath, 0775);
+        $pathTemp = $this->publishedPath . $id;
 
-        if (File::isDirectory($fromPath)) {
-            File::copyDirectory($fromPath, $destinationPath);
-            File::deleteDirectory($fromPath);
+        if (File::isDirectory($pathTemp)) {
+            File::copyDirectory($pathTemp, $path);
+            File::deleteDirectory($pathTemp);
         }
 
-        return $destinationPath;
+        return $path;
     }
 }

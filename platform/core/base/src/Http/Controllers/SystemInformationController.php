@@ -9,7 +9,7 @@ use Botble\Base\Tables\InfoTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
-class SystemInformationController extends BaseSystemController
+class SystemInformationController extends BaseController
 {
     public function index(Request $request, InfoTable $infoTable)
     {

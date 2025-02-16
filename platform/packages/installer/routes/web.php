@@ -13,15 +13,15 @@ Route::group([
     'prefix' => 'install',
     'as' => 'installers.',
     'middleware' => ['web'],
-], function (): void {
-    Route::group(['middleware' => 'install'], function (): void {
+], function () {
+    Route::group(['middleware' => 'install'], function () {
         Route::get('welcome', [InstallController::class, 'index'])->name('welcome');
         Route::post('welcome/next', [InstallController::class, 'next'])->name('welcome.next');
         Route::resource('requirements', RequirementController::class)->only(['index']);
         Route::resource('environments', EnvironmentController::class)->only(['index', 'store']);
     });
 
-    Route::group(['middleware' => 'installing'], function (): void {
+    Route::group(['middleware' => 'installing'], function () {
         Route::get('themes', [ThemeController::class, 'index'])->name('themes.index');
         Route::post('themes', [ThemeController::class, 'store'])->name('themes.store');
         Route::resource('accounts', AccountController::class)->only(['index', 'store']);

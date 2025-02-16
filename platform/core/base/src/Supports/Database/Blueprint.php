@@ -11,11 +11,11 @@ use Throwable;
 
 class Blueprint extends IlluminateBlueprint
 {
-    public function __construct($table, ?Closure $callback = null, $prefix = '')
+    public function __construct($table, Closure $callback = null, $prefix = '')
     {
         parent::__construct($table, $callback, $prefix);
 
-        rescue(function (): void {
+        rescue(function () {
             if (DB::getDefaultConnection() === 'mysql') {
                 DB::statement('SET SESSION sql_require_primary_key=0');
             }

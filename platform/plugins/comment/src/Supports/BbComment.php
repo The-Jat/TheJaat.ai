@@ -2,12 +2,12 @@
 
 namespace Botble\Comment\Supports;
 
-use BaseHelper;
+use Botble\Base\Facades\BaseHelper;
 use Botble\Base\Models\BaseModel;
 use Botble\Comment\Models\CommentUser;
-use Hash;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Hash;
 
 class BbComment
 {

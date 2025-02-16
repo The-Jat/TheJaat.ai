@@ -41,9 +41,9 @@ class MediaSettingController extends SettingController
     public function generateThumbnails(Request $request): BaseHttpResponse
     {
         $request->validate([
-            'total' => ['required', 'numeric', 'min:0'],
-            'offset' => ['required', 'numeric', 'min:0'],
-            'limit' => ['required', 'numeric', 'min:1'],
+            'total' => ['required', 'numeric'],
+            'offset' => ['required', 'numeric'],
+            'limit' => ['required', 'numeric'],
         ]);
 
         BaseHelper::maximumExecutionTimeAndMemoryLimit();
@@ -52,9 +52,7 @@ class MediaSettingController extends SettingController
         $offset = $request->input('offset', 0);
         $limit = $request->input('limit', RvMedia::getConfig('generate_thumbnails_chunk_limit'));
 
-        /**
-         * @var Collection<MediaFile> $files
-         */
+        /** @var Collection<MediaFile> */
         $files = MediaFile::query()
             ->select(['url', 'mime_type', 'folder_id'])
             ->skip($offset)
@@ -63,18 +61,18 @@ class MediaSettingController extends SettingController
 
         $errors = [];
 
-        if ($files->isNotEmpty()) {
-            foreach ($files as $file) {
-                try {
-                    RvMedia::generateThumbnails($file);
-                } catch (Throwable $exception) {
-                    BaseHelper::logError($exception);
-                    $errors[] = $file->url;
-                }
-            }
+        // if ($files->isNotEmpty()) {
+        //     foreach ($files as $file) {
+        //         try {
+        //             RvMedia::generateThumbnails($file);
+        //         } catch (Throwable $exception) {
+        //             BaseHelper::logError($exception);
+        //             $errors[] = $file->url;
+        //         }
+        //     }
 
-            $errors = array_map(fn ($item) => [$item], array_unique($errors));
-        }
+        //     $errors = array_map(fn ($item) => [$item], array_unique($errors));
+        // }
 
         if ($errors) {
             return $this

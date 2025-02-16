@@ -16,10 +16,10 @@ class TableExportHandler extends DataTablesExportHandler implements WithEvents
     public function registerEvents(): array
     {
         return [
-            BeforeSheet::class => function (BeforeSheet $event): void {
+            BeforeSheet::class => function (BeforeSheet $event) {
                 $this->beforeSheet($event);
             },
-            AfterSheet::class => function (AfterSheet $event): void {
+            AfterSheet::class => function (AfterSheet $event) {
                 $this->afterSheet($event);
             },
         ];

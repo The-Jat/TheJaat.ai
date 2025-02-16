@@ -9,7 +9,6 @@ use Botble\Media\Facades\RvMedia;
 use Botble\SocialLogin\Facades\SocialService;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -32,13 +31,6 @@ class SocialLoginController extends BaseController
                 ->httpResponse()
                 ->setError()
                 ->setNextUrl(BaseHelper::getHomepageUrl());
-        }
-
-        if (BaseHelper::hasDemoModeEnabled() && $provider !== 'google') {
-            return $this
-                ->httpResponse()
-                ->setError()
-                ->setMessage(__('This feature is temporary disabled in demo mode. Please use another login option. Such as Google.'));
         }
 
         $this->setProvider($provider);
@@ -171,19 +163,13 @@ class SocialLoginController extends BaseController
             $account->fill($data);
             $account->confirmed_at = Carbon::now();
             $account->save();
-
-            event(new Registered($account));
         }
 
         Auth::guard($guard)->login($account, true);
 
-        $redirectUrl = $providerData['redirect_url'] ?: BaseHelper::getHomepageUrl();
-
-        $redirectUrl = session()->has('url.intended') ? session('url.intended') : $redirectUrl;
-
         return $this
             ->httpResponse()
-            ->setNextUrl($redirectUrl)
+            ->setNextUrl($providerData['redirect_url'] ?: BaseHelper::getHomepageUrl())
             ->setMessage(trans('core/acl::auth.login.success'));
     }
 

@@ -3,7 +3,6 @@
 namespace Botble\Setting\Http\Controllers;
 
 use Botble\Base\Facades\Assets;
-use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Setting\Forms\EmailTemplateSettingForm;
 use Botble\Setting\Http\Requests\EmailTemplateSettingRequest;
 use Illuminate\Contracts\View\View;
@@ -21,7 +20,7 @@ class EmailTemplateSettingController extends SettingController
         return view('core/setting::email-templates', compact('form'));
     }
 
-    public function update(EmailTemplateSettingRequest $request): BaseHttpResponse
+    public function update(EmailTemplateSettingRequest $request)
     {
         return $this->performUpdate(
             $request->validated()

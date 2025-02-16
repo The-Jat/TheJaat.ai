@@ -7,7 +7,6 @@ use Botble\Base\Models\BaseModel;
 use Botble\Language\Models\Language;
 use Botble\Language\Models\LanguageMeta;
 use Botble\Table\Columns\Column;
-use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Contracts\Routing\UrlRoutable;
@@ -92,11 +91,7 @@ class LanguageManager
             return $this->supportedLocales;
         }
 
-        try {
-            $languages = $this->getActiveLanguage();
-        } catch (Exception) {
-            $languages = [];
-        }
+        $languages = $this->getActiveLanguage();
 
         $locales = [];
         foreach ($languages as $language) {
@@ -508,7 +503,6 @@ class LanguageManager
         if ($forceDefaultLocation || ! ($locale === $this->getDefaultLocale() && $this->hideDefaultLocaleInURL())) {
             $route = '/' . $locale;
         }
-
         if (is_string($locale) && $this->translator->has($transKeyName, $locale)) {
             $translation = $this->translator->get($transKeyName, [], $locale);
             $route .= '/' . $translation;
@@ -777,10 +771,6 @@ class LanguageManager
 
     public function getCurrentAdminLocaleCode(): ?string
     {
-        if ($this->app->runningInConsole()) {
-            return null;
-        }
-
         $supportedLocales = $this->getSupportedLocales();
 
         if (empty($supportedLocales)) {
@@ -795,6 +785,10 @@ class LanguageManager
 
         if ($refLang) {
             return $refLang;
+        }
+
+        if (in_array($this->request->segment(1), $this->getSupportedLanguagesKeys())) {
+            return $this->request->segment(1);
         }
 
         return Arr::get($supportedLocales, $this->getDefaultLocale() . '.lang_code');
@@ -926,18 +920,10 @@ class LanguageManager
             return $this->defaultLanguage;
         }
 
-        $defaultLanguage = Language::query()
+        $this->defaultLanguage = Language::query()
             ->where('lang_is_default', 1)
             ->select($select)
             ->first();
-
-        if (! $defaultLanguage) {
-            $defaultLanguage = Language::query()
-                ->select($select)
-                ->first();
-        }
-
-        $this->defaultLanguage = $defaultLanguage;
 
         $this->defaultLanguageSelect = $select;
 
@@ -1166,7 +1152,7 @@ class LanguageManager
                         'reference_id',
                         'reference_type',
                     ])
-                    ->when(! is_in_admin(), function (Builder|Relation $query): void {
+                    ->when(! is_in_admin(), function (Builder|Relation $query) {
                         $query->where('lang_meta_code', $this->getCurrentLocaleCode());
                     });
             });

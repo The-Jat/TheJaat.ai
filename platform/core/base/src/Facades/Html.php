@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Illuminate\Support\HtmlString linkAsset($url, $title = null, $attributes = [], $secure = null, $escape = true)
  * @method static \Illuminate\Support\HtmlString linkRoute($name, $title = null, $parameters = [], $attributes = [], $secure = null, $escape = true)
  * @method static \Illuminate\Support\HtmlString linkAction($action, $title = null, $parameters = [], $attributes = [], $secure = null, $escape = true)
- * @method static \Illuminate\Support\HtmlString mailto($email, $title = null, $attributes = [], $escape = true, bool $obfuscate = true)
+ * @method static \Illuminate\Support\HtmlString mailto($email, $title = null, $attributes = [], $escape = true)
  * @method static string email($email)
  * @method static string obfuscate($value)
  * @method static string nbsp($num = 1)

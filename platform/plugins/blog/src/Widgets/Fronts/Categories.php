@@ -63,7 +63,7 @@ class Categories extends AbstractWidget
         }
 
         return WidgetForm::createFromArray($data)
-            ->add('name', TextField::class, NameFieldOption::make())
+            ->add('name', TextField::class, NameFieldOption::make()->toArray())
             ->add(
                 'category_ids',
                 SelectField::class,
@@ -73,6 +73,7 @@ class Categories extends AbstractWidget
                     ->selected($categoryIds)
                     ->searchable()
                     ->multiple()
+                    ->toArray(),
             )
             ->add(
                 'display_posts_count',
@@ -84,6 +85,7 @@ class Categories extends AbstractWidget
                         'no' => __('No'),
                     ])
                     ->selected($data['display_posts_count'])
+                    ->toArray()
             );
     }
 

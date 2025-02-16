@@ -32,6 +32,7 @@ class SiteCopyright extends AbstractWidget
                             'link' => Html::link(route('theme.options'), __('Theme options')),
                         ])
                     )
+                    ->toArray()
             );
     }
 

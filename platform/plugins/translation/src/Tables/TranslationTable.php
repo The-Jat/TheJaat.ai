@@ -5,14 +5,13 @@ namespace Botble\Translation\Tables;
 use Botble\Base\Facades\Assets;
 use Botble\Base\Facades\Html;
 use Botble\Base\Supports\Language;
-use Botble\DataSynchronize\Table\HeaderActions\ExportHeaderAction;
-use Botble\DataSynchronize\Table\HeaderActions\ImportHeaderAction;
 use Botble\Table\Abstracts\TableAbstract;
 use Botble\Table\BulkChanges\SelectBulkChange;
 use Botble\Table\CollectionDataTable;
 use Botble\Table\Columns\FormattedColumn;
-use Botble\Translation\Services\GetGroupedTranslationsService;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 
 class TranslationTable extends TableAbstract
@@ -23,6 +22,8 @@ class TranslationTable extends TableAbstract
     {
         parent::setup();
 
+        $this->hasOperations = false;
+        $this->setView('core/table::base-table');
         $this->pageLength = 100;
 
         Assets::addScripts(['bootstrap-editable'])
@@ -31,22 +32,43 @@ class TranslationTable extends TableAbstract
         $this->useDefaultSorting = false;
 
         $this
-            ->setView('core/table::base-table')
-            ->addHeaderActions([
-                ExportHeaderAction::make()->route('tools.data-synchronize.export.other-translations.index')->permission('other-translations.export'),
-                ImportHeaderAction::make()->route('tools.data-synchronize.import.other-translations.index')->permission('other-translations.import'),
-            ])
-            ->addFilters([
-                SelectBulkChange::make()
-                    ->name('group')
-                    ->title(trans('plugins/translation::translation.group'))
-                    ->choices((new GetGroupedTranslationsService())->getGroups()),
-            ])
             ->onAjax(function () {
-                $translations = (new GetGroupedTranslationsService())->handle();
+                $translations = [];
+
+                $langLoader = Lang::getLoader();
+
+                foreach ($this->getGroups() as $group) {
+                    if (! str_contains($group, DIRECTORY_SEPARATOR)) {
+                        $trans = $langLoader->load('en', $group);
+                    } else {
+                        $trans = $langLoader->load('en', Str::afterLast($group, DIRECTORY_SEPARATOR), Str::beforeLast($group, DIRECTORY_SEPARATOR));
+                    }
+
+                    if ($trans && is_array($trans)) {
+                        foreach (Arr::dot($trans) as $key => $value) {
+                            if (empty($value)) {
+                                continue;
+                            }
+
+                            $translations[$group][$key] = $value;
+                        }
+                    }
+                }
+
+                $translationsCollection = collect();
+
+                foreach ($translations as $group => $items) {
+                    foreach (Arr::dot($items) as $key => $value) {
+                        $translationsCollection->push([
+                            'group' => $group,
+                            'key' => $key,
+                            'value' => $value,
+                        ]);
+                    }
+                }
 
                 if ($this->isFiltering()) {
-                    $translations = $translations->filter(function ($item) {
+                    $translationsCollection = $translationsCollection->filter(function ($item) {
                         $filterColumns = $this->request()->query('filter_columns');
                         $filterOperator = $this->request()->query('filter_operators');
                         $filterValues = $this->request()->query('filter_values');
@@ -77,7 +99,7 @@ class TranslationTable extends TableAbstract
                 }
 
                 if ($this->request()->filled('group')) {
-                    $translations = $translations->filter(function ($item) {
+                    $translationsCollection = $translationsCollection->filter(function ($item) {
                         return $item['group'] === $this->request()->query('group');
                     });
                 }
@@ -85,7 +107,7 @@ class TranslationTable extends TableAbstract
                 return $this->toJson(
                     $this
                         ->table
-                        ->of($translations)
+                        ->of($translationsCollection)
                         ->filter(function (CollectionDataTable $query) {
                             if ($keyword = $this->request->input('search.value')) {
                                 $query->collection = $query->collection->filter(function ($item) use ($keyword) {
@@ -97,6 +119,17 @@ class TranslationTable extends TableAbstract
                         })
                 );
             });
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            'group' => SelectBulkChange::make()
+                ->name('group')
+                ->title(trans('plugins/translation::translation.group'))
+                ->choices($this->getGroups())
+                ->validate(['required', 'string'])->toArray(),
+        ];
     }
 
     public function columns(): array
@@ -183,6 +216,37 @@ class TranslationTable extends TableAbstract
     protected function formatKeyAndValue(?string $value): ?string
     {
         return htmlentities($value, ENT_QUOTES, 'UTF-8', false);
+    }
+
+    protected function getGroups(): array
+    {
+        $groups = [];
+
+        if (File::isDirectory(lang_path('en'))) {
+            foreach (File::allFiles(lang_path('en')) as $directory) {
+                $group = File::name($directory);
+
+                $groups[$group] = $group;
+            }
+        }
+
+        foreach (Lang::getLoader()->namespaces() as $namespace => $langPath) {
+            $defaultLanguage = $langPath . DIRECTORY_SEPARATOR . 'en';
+
+            if (! File::isDirectory($defaultLanguage)) {
+                continue;
+            }
+
+            foreach (File::allFiles($defaultLanguage) as $directory) {
+                $group =  $namespace . DIRECTORY_SEPARATOR . File::name($directory);
+
+                $groups[$group] = $group;
+            }
+        }
+
+        ksort($groups);
+
+        return $groups;
     }
 
     public function htmlDrawCallbackFunction(): ?string

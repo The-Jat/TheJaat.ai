@@ -14,13 +14,6 @@ class ActivityLogClearCommand extends Command
         $this->components->info('Processing...');
 
         $count = AuditHistory::query()->count();
-
-        if ($count === 0) {
-            $this->components->info('No record found!');
-
-            return self::SUCCESS;
-        }
-
         AuditHistory::query()->truncate();
 
         $this->components->info(sprintf('Done. Deleted %s records!', number_format($count)));

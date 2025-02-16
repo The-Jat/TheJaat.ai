@@ -2,7 +2,6 @@
 
 namespace Botble\ACL\Http\Middleware;
 
-use Botble\ACL\Models\User;
 use Botble\Base\Http\Responses\BaseHttpResponse;
 use Closure;
 use Illuminate\Http\Request;
@@ -14,7 +13,7 @@ class CheckUserUpdatePermission
         $currentUser = $request->user();
 
         /**
-         * @var User $user
+         * @var \Botble\ACL\Models\User $user
          */
         $user = $request->route('user');
 

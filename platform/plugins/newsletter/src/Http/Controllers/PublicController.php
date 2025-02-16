@@ -22,7 +22,7 @@ class PublicController extends BaseController
         $newsletterForm = NewsletterForm::create();
         $newsletterForm->setRequest($request);
 
-        $newsletterForm->onlyValidatedData()->saving(function (NewsletterForm $form): void {
+        $newsletterForm->onlyValidatedData()->saving(function (NewsletterForm $form) {
             /**
              * @var NewsletterRequest $request
              */
@@ -50,7 +50,9 @@ class PublicController extends BaseController
 
     public function getUnsubscribe(int|string $id, Request $request)
     {
-        abort_unless(URL::hasValidSignature($request), 404);
+        if (! URL::hasValidSignature($request)) {
+            abort(404);
+        }
 
         /**
          * @var Newsletter $newsletter

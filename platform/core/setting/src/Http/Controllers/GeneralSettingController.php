@@ -55,7 +55,7 @@ class GeneralSettingController extends SettingController
     {
         if ($request->expectsJson() && ! $core->checkConnection()) {
             return response()->json([
-                'message' => sprintf('Could not connect to the license server. Please try again later. Your site IP: %s', Helper::getIpFromThirdParty()),
+                'message' => sprintf('Your IP (%s) has been blocked or your server is not connected to the internet.', Helper::getIpFromThirdParty()),
             ], 400);
         }
 
@@ -91,8 +91,6 @@ class GeneralSettingController extends SettingController
                 'licensed_to' => setting('licensed_to'),
             ];
 
-            $core->clearLicenseReminder();
-
             return $this
                 ->httpResponse()
                 ->setMessage('Your license is activated.')->setData($data);
@@ -103,7 +101,7 @@ class GeneralSettingController extends SettingController
         }
     }
 
-    public function activateLicense(LicenseSettingRequest $request, Core $core): BaseHttpResponse
+    public function activateLicense(LicenseSettingRequest $request, Core $core)
     {
         $buyer = $request->input('buyer');
 
@@ -184,8 +182,6 @@ class GeneralSettingController extends SettingController
         Setting::forceSet('licensed_to', $buyer)->save();
 
         $activatedAt = Carbon::createFromTimestamp(filectime($core->getLicenseFilePath()));
-
-        $core->clearLicenseReminder();
 
         return [
             'activated_at' => $activatedAt->format('M d Y'),

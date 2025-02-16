@@ -68,7 +68,7 @@ class Member extends BaseModel implements
 
     protected static function booted(): void
     {
-        static::deleting(function (Member $account): void {
+        static::deleting(function (Member $account) {
             $folder = Storage::path($account->upload_folder);
             if (File::isDirectory($folder) && Str::endsWith($account->upload_folder, '/' . $account->getKey())) {
                 File::deleteDirectory($folder);

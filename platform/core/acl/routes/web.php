@@ -7,9 +7,9 @@ use Botble\ACL\Http\Middleware\CheckUserUpdatePermission;
 use Botble\Base\Facades\AdminHelper;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['namespace' => 'Botble\ACL\Http\Controllers'], function (): void {
-    AdminHelper::registerRoutes(function (): void {
-        Route::group(['middleware' => 'guest'], function (): void {
+Route::group(['namespace' => 'Botble\ACL\Http\Controllers'], function () {
+    AdminHelper::registerRoutes(function () {
+        Route::group(['middleware' => 'guest'], function () {
             Route::get('login', [LoginController::class, 'showLoginForm'])->name('access.login');
             Route::post('login', [LoginController::class, 'login'])->name('access.login.post');
 
@@ -25,15 +25,15 @@ Route::group(['namespace' => 'Botble\ACL\Http\Controllers'], function (): void {
         });
     }, ['web', 'core']);
 
-    AdminHelper::registerRoutes(function (): void {
+    AdminHelper::registerRoutes(function () {
         Route::get('logout', [
             'as' => 'access.logout',
             'uses' => 'Auth\LoginController@logout',
             'permission' => false,
         ]);
 
-        Route::group(['prefix' => 'system'], function (): void {
-            Route::group(['prefix' => 'users', 'as' => 'users.'], function (): void {
+        Route::group(['prefix' => 'system'], function () {
+            Route::group(['prefix' => 'users', 'as' => 'users.'], function () {
                 Route::resource('', 'UserController')->except(['edit', 'update'])->parameters(['' => 'user']);
 
                 Route::post('modify-profile-image/{user}', [
@@ -48,7 +48,7 @@ Route::group(['namespace' => 'Botble\ACL\Http\Controllers'], function (): void {
                     'permission' => false,
                 ])->wherePrimaryKey();
 
-                Route::middleware(CheckUserUpdatePermission::class)->group(function (): void {
+                Route::middleware(CheckUserUpdatePermission::class)->group(function () {
                     Route::put('password/{user}', [
                         'as' => 'change-password',
                         'uses' => 'UserController@postChangePassword',
@@ -96,7 +96,7 @@ Route::group(['namespace' => 'Botble\ACL\Http\Controllers'], function (): void {
                 ])->wherePrimaryKey('user');
             });
 
-            Route::group(['prefix' => 'roles', 'as' => 'roles.'], function (): void {
+            Route::group(['prefix' => 'roles', 'as' => 'roles.'], function () {
                 Route::resource('', 'RoleController')->parameters(['' => 'role']);
 
                 Route::get('duplicate/{role}', [

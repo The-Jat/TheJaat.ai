@@ -27,7 +27,7 @@ class SocialLoginServiceProvider extends ServiceProvider
 
         AliasLoader::getInstance()->alias('SocialService', SocialService::class);
 
-        PanelSectionManager::default()->beforeRendering(function (): void {
+        PanelSectionManager::default()->beforeRendering(function () {
             PanelSectionManager::registerItem(
                 SettingOthersPanelSection::class,
                 fn () => PanelSectionItem::make('social-login')

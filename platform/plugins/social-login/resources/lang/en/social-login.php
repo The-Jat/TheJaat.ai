@@ -16,8 +16,6 @@ return [
             'app_id' => 'App ID',
             'app_secret' => 'App Secret',
             'helper' => 'Please go to https://console.developers.google.com/apis/dashboard to create new app update App ID, App Secret. Callback URL is :callback',
-            'use_google_button' => 'Use Google button',
-            'use_google_button_helper' => 'If you enable this option, the Google button will be used instead of the default button.',
         ],
         'github' => [
             'enable' => 'Enable GitHub login',
@@ -38,19 +36,7 @@ return [
             'helper' => 'Please go to https://www.linkedin.com/developers/apps/new to create new app update App ID, App Secret. Callback URL is :callback',
         ],
         'enable' => 'Enable Social login?',
-        'style' => 'Style',
-        'minimal' => 'Minimal',
-        'default' => 'Default',
-        'basic' => 'Basic',
-    ],
-    'socials' => [
-        'facebook' => 'Facebook',
-        'google' => 'Google',
-        'github' => 'GitHub',
-        'linkedin' => 'Linkedin',
-        'linkedin-openid' => 'Linkedin OpenID Connect',
     ],
     'menu' => 'Social Login',
     'description' => 'View and update your social login settings',
-    'sign_in_with' => 'Sign in with :provider',
 ];

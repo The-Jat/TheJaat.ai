@@ -412,20 +412,13 @@ class MediaManagement {
     handleModals() {
         let _self = this
 
+        /*Rename files*/
         _self.$body.on('show.bs.modal', '#modal_rename_items', () => {
             ActionsService.renderRenameItems()
         })
 
         _self.$body.on('show.bs.modal', '#modal_alt_text_items', () => {
             ActionsService.renderAltTextItems()
-        })
-
-        _self.$body.on('show.bs.modal', '#modal_share_items', () => {
-            ActionsService.renderShareItems()
-        })
-
-        _self.$body.on('change', '#modal_share_items select[data-bb-value="share-type"]', () => {
-            ActionsService.renderShareItems()
         })
 
         _self.$body.on('show.bs.modal', '#modal_crop_image', () => {
@@ -453,8 +446,6 @@ class MediaManagement {
 
                 const $modal = $(event.currentTarget).closest('.modal')
 
-                Botble.showButtonLoading($modal.find('button[type="submit"]'))
-
                 ActionsService.processAction(
                     {
                         action: 'properties',
@@ -463,7 +454,6 @@ class MediaManagement {
                     },
                     () => {
                         $modal.modal('hide')
-                        Botble.hideButtonLoading($modal.find('button[type="submit"]'))
 
                         _self.MediaService.getMedia(true)
                     }
@@ -476,9 +466,6 @@ class MediaManagement {
                 event.preventDefault()
 
                 const $form = $(event.currentTarget)
-
-                Botble.showButtonLoading($form.find('button[type="submit"]'))
-
                 const imageId = $form.find('input[name="image_id"]').val()
                 const cropData = $form.find('input[name="crop_data"]').val()
                 ActionsService.processAction(
@@ -492,8 +479,6 @@ class MediaManagement {
                             $form.closest('.modal').modal('hide')
                             _self.MediaService.getMedia(true)
                         }
-
-                        Botble.hideButtonLoading($form.find('button[type="submit"]'))
                     }
                 )
             })
@@ -511,8 +496,6 @@ class MediaManagement {
                     data.name = $current.val()
                     items.push(data)
                 })
-
-                Botble.showButtonLoading($form.find('button[type="submit"]'))
 
                 ActionsService.processAction(
                     {
@@ -533,8 +516,6 @@ class MediaManagement {
                                 }
                             })
                         }
-
-                        Botble.hideButtonLoading($form.find('button[type="submit"]'))
                     }
                 )
             })
@@ -553,8 +534,6 @@ class MediaManagement {
                     data.alt = $current.val()
                     items.push(data)
                 })
-
-                Botble.showButtonLoading($form.find('button[type="submit"]'))
 
                 ActionsService.processAction(
                     {
@@ -575,8 +554,6 @@ class MediaManagement {
                                 }
                             })
                         }
-
-                        Botble.hideButtonLoading($form.find('button[type="submit"]'))
                     }
                 )
             })
@@ -586,8 +563,6 @@ class MediaManagement {
             event.preventDefault()
             let items = []
             let $form = $(event.currentTarget)
-
-            Botble.showButtonLoading($form.find('button[type="submit"]'))
 
             Helpers.each(Helpers.getSelectedItems(), (value) => {
                 items.push({
@@ -606,8 +581,6 @@ class MediaManagement {
                     if (!res.error) {
                         _self.MediaService.getMedia(true)
                     }
-
-                    Botble.hideButtonLoading($form.find('button[type="submit"]'))
                 }
             )
         })
@@ -619,8 +592,6 @@ class MediaManagement {
                 event.preventDefault()
                 let $form = $(event.currentTarget)
 
-                Botble.showButtonLoading($form.find('button[type="submit"]'))
-
                 ActionsService.processAction(
                     {
                         action: $form.data('action'),
@@ -628,8 +599,6 @@ class MediaManagement {
                     () => {
                         $form.closest('.modal').modal('hide')
                         _self.MediaService.getMedia(true)
-
-                        Botble.hideButtonLoading($form.find('button[type="submit"]'))
                     }
                 )
             })

@@ -52,7 +52,6 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                 'media_files.updated_at as updated_at',
                 'media_files.options as options',
                 'media_files.folder_id as folder_id',
-                'media_files.visibility as visibility',
                 DB::raw('0 as is_folder'),
                 DB::raw('NULL as slug'),
                 DB::raw('NULL as parent_id'),
@@ -85,7 +84,6 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                     'media_folders.updated_at as updated_at',
                     DB::raw('NULL as options'),
                     DB::raw('NULL as folder_id'),
-                    DB::raw('NULL as visibility'),
                     DB::raw('1 as is_folder'),
                     'media_folders.slug as slug',
                     'media_folders.parent_id as parent_id',
@@ -108,12 +106,12 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         if (empty($folderId)) {
             $this->model = $this->model
                 ->leftJoin('media_folders', 'media_folders.id', '=', 'media_files.folder_id')
-                ->where(function ($query) use ($folderId): void {
+                ->where(function ($query) use ($folderId) {
                     /**
                      * @var Builder $query
                      */
                     $query
-                        ->where(function ($sub) use ($folderId): void {
+                        ->where(function ($sub) use ($folderId) {
                             /**
                              * @var Builder $sub
                              */
@@ -121,7 +119,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                                 ->where('media_files.folder_id', $folderId)
                                 ->whereNull('media_files.deleted_at');
                         })
-                        ->orWhere(function ($sub): void {
+                        ->orWhere(function ($sub) {
                             /**
                              * @var Builder $sub
                              */
@@ -129,7 +127,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                                 ->whereNull('media_files.deleted_at')
                                 ->whereNotNull('media_folders.deleted_at');
                         })
-                        ->orWhere(function ($sub): void {
+                        ->orWhere(function ($sub) {
                             /**
                              * @var Builder $sub
                              */
@@ -268,7 +266,6 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                 'media_files.updated_at as updated_at',
                 'media_files.options as options',
                 'media_files.folder_id as folder_id',
-                'media_files.visibility as visibility',
                 DB::raw('0 as is_folder'),
                 DB::raw('NULL as slug'),
                 DB::raw('NULL as parent_id'),
@@ -298,7 +295,6 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                     'media_folders.updated_at as updated_at',
                     DB::raw('NULL as options'),
                     DB::raw('NULL as folder_id'),
-                    DB::raw('NULL as visibility'),
                     DB::raw('1 as is_folder'),
                     'media_folders.slug as slug',
                     'media_folders.parent_id as parent_id',
@@ -322,7 +318,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
                     '=',
                     'media_folders.parent_id'
                 )
-                    ->where(function ($query): void {
+                    ->where(function ($query) {
                         /**
                          * @var Builder $query
                          */
@@ -344,7 +340,7 @@ class MediaFileRepository extends RepositoriesAbstract implements MediaFileInter
         if (empty($folderId)) {
             $this->model = $this->model
                 ->leftJoin('media_folders', 'media_folders.id', '=', 'media_files.folder_id')
-                ->where(function ($query): void {
+                ->where(function ($query) {
                     $query
                         ->where('media_files.folder_id', 0)
                         ->orWhereNull('media_folders.deleted_at');

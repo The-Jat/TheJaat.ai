@@ -185,21 +185,20 @@ class Botble {
         obj.stickyTableHeaders({ scrollableArea: obj, fixedOffset: 2 })
     }
 
-    static async copyToClipboard(textToCopy, parentTarget) {
+    static async copyToClipboard(textToCopy) {
         if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(textToCopy)
         } else {
-            Botble.unsecuredCopyToClipboard(textToCopy, parentTarget)
+            Botble.unsecuredCopyToClipboard(textToCopy)
         }
     }
 
-    static unsecuredCopyToClipboard(textToCopy, parentTarget) {
-        parentTarget = parentTarget || document.body
+    static unsecuredCopyToClipboard(textToCopy) {
         const textArea = document.createElement('textarea')
         textArea.value = textToCopy
         textArea.style.position = 'absolute'
         textArea.style.left = '-999999px'
-        parentTarget.append(textArea)
+        document.body.append(textArea)
         textArea.select()
 
         try {
@@ -208,7 +207,7 @@ class Botble {
             console.error('Unable to copy to clipboard', error)
         }
 
-        parentTarget.removeChild(textArea)
+        document.body.removeChild(textArea)
     }
 
     initGlobalModal() {
@@ -489,75 +488,6 @@ class Botble {
             }
         })
 
-        $(document).find('[data-bb-toggle="check-all"]').each(function (index, element) {
-            const $checkboxChildren = $(document).find($(element).attr('data-target'))
-
-            const $parent = $(element).find('input[type=checkbox]')
-
-            if ($checkboxChildren.length === $checkboxChildren.filter(':checked').length) {
-                $parent.prop('indeterminate', false)
-                $parent.prop('checked', true)
-            } else {
-                $parent.prop('indeterminate', true)
-            }
-        })
-
-        $(document).find('[data-bb-toggle="check-all"]').each(function (index, element) {
-            $(document).on('click', $(element).attr('data-target'), () => {
-                const $checkboxChildren = $(document).find($(element).attr('data-target'))
-
-                const $parent = $(element).find('input[type=checkbox]')
-
-                if ($checkboxChildren.length === $checkboxChildren.filter(':checked').length) {
-                    $parent.prop('indeterminate', false)
-                    $parent.prop('checked', true)
-                } else {
-                    $parent.prop('indeterminate', true)
-                }
-            })
-        })
-
-        $(document).on('change', '.check-all', (event) => {
-            let _self = $(event.currentTarget)
-            let set = _self.attr('data-set')
-            let checked = _self.find('input').prop('checked')
-            $(set).each((index, el) => {
-                if (checked) {
-                    $(el).prop('checked', true)
-                } else {
-                    $(el).prop('checked', false)
-                }
-            })
-        })
-
-        $(document).find('.check-all').each(function (index, element) {
-            $(document).on('click', $(element).attr('data-set'), () => {
-                const $checkboxChildren = $(document).find($(element).attr('data-set'))
-
-                const $parent = $(element).find('input[type=checkbox]')
-
-                if ($checkboxChildren.length === $checkboxChildren.filter(':checked').length) {
-                    $parent.prop('indeterminate', false)
-                    $parent.prop('checked', true)
-                } else {
-                    $parent.prop('indeterminate', true)
-                }
-            })
-        })
-
-        $(document).find('.check-all').each(function (index, element) {
-            const $checkboxChildren = $(document).find($(element).attr('data-set'))
-
-            const $parent = $(element).find('input[type=checkbox]')
-
-            if ($checkboxChildren.length === $checkboxChildren.filter(':checked').length) {
-                $parent.prop('indeterminate', false)
-                $parent.prop('checked', true)
-            } else {
-                $parent.prop('indeterminate', true)
-            }
-        })
-
         $.each($(document).find('select.select-search-full'), function (index, element) {
             Botble.select(element)
         })
@@ -811,27 +741,6 @@ class Botble {
         if (jQuery().areYouSure) {
             $('form.dirty-check').areYouSure()
         }
-
-        function urlify(text) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-
-            if (
-                text.includes('<a ')
-                || text.includes('</a>')
-                || text.includes(' href=')
-                || text.includes('target="_blank"')
-            ) {
-                return text
-            }
-
-            return text.replace(urlRegex, function(url) {
-                return '<a href="' + url + '" target="_blank">' + url + '</a>';
-            })
-        }
-
-        $.each($(document).find('.form-hint'), function (index, element) {
-            $(element).html(urlify($(element).html()))
-        })
 
         Botble.initDatePicker('.datepicker')
 
@@ -1228,38 +1137,24 @@ class Botble {
             const modal = form.closest('.modal')
             const button = modal.find('button[type="submit"]')
 
-            const imageUrl = form.find('input[name="url"]').val()
+            $httpClient
+                .make()
+                .withButtonLoading(button)
+                .post(form.prop('action'), {
+                    url: form.find('input[name="url"]').val(),
+                    folderId: 0,
+                })
+                .then(({ data }) => {
+                    form[0].reset()
+                    modal.modal('hide')
 
-            if (form.find('#download_image_to_local_storage').is(':checked')) {
-                $httpClient
-                    .make()
-                    .withButtonLoading(button)
-                    .post(form.prop('action'), {
-                        url: imageUrl,
-                        folderId: 0,
-                    })
-                    .then(({ data }) => {
-                        form[0].reset()
-                        modal.modal('hide')
-
-                        const $imageBox = $(form.find('input[name="image-box-target"]').val())
-                        $imageBox.find('.image-data').val(data.data.url).trigger('change')
-                        $imageBox.find('.preview-image').prop('src', data.data.src)
-                        $imageBox.find('[data-bb-toggle="image-picker-remove"]').show()
-                        $imageBox.find('.preview-image').removeClass('default-image')
-                        $imageBox.find('.preview-image-wrapper').show()
-                    })
-            } else {
-                form[0].reset()
-                modal.modal('hide')
-
-                const $imageBox = $(form.find('input[name="image-box-target"]').val())
-                $imageBox.find('.image-data').val(imageUrl).trigger('change')
-                $imageBox.find('.preview-image').prop('src', imageUrl)
-                $imageBox.find('[data-bb-toggle="image-picker-remove"]').show()
-                $imageBox.find('.preview-image').removeClass('default-image')
-                $imageBox.find('.preview-image-wrapper').show()
-            }
+                    const $imageBox = $(form.find('input[name="image-box-target"]').val())
+                    $imageBox.find('.image-data').val(data.data.url).trigger('change')
+                    $imageBox.find('.preview-image').prop('src', data.data.src)
+                    $imageBox.find('[data-bb-toggle="image-picker-remove"]').show()
+                    $imageBox.find('.preview-image').removeClass('default-image')
+                    $imageBox.find('.preview-image-wrapper').show()
+                })
         })
 
         $(document).on('click', '[data-bb-toggle="image-picker-remove"]', (event) => {
@@ -1405,89 +1300,51 @@ class Botble {
     }
 
     static initFieldCollapse() {
-        const parseValue = (value) => {
-            if (typeof value === 'string') {
-                try {
-                    return JSON.parse(value)
-                } catch (e) {
-                    return value
-                }
-            }
-            return value
-        }
+        $(document).on('click, change', '[data-bb-toggle="collapse"]', function (e) {
+            const target = $(this).data('bb-target')
 
-        const isEqual = (value1, value2) => String(value1) === String(value2)
+            let targetElement = null
 
-        const handleCheckbox = (target, isReverse, isChecked) => {
-            const targetElement = $(target)
-            isReverse
-                ? isChecked
-                    ? targetElement.slideUp()
-                    : targetElement.slideDown()
-                : isChecked
-                    ? targetElement.slideDown()
-                    : targetElement.slideUp()
-        }
-
-        const handleValueBasedCollapse = (target, value) => {
-            const targets = $(`${target}[data-bb-value]`)
-            targets.each((_, element) => {
-                const $element = $(element)
-                const bbValue = parseValue($element.data('bb-value'))
-                const shouldShow = Array.isArray(bbValue)
-                    ? bbValue.some((v) => isEqual(v, value))
-                    : isEqual(bbValue, value)
-                shouldShow ? $element.slideDown() : $element.slideUp()
-            })
-        }
-
-        const handleButtonCollapse = (target) => {
-            const targetElement = $(target)
-            if (targetElement.length) {
-                targetElement.slideToggle()
-            }
-        }
-
-        $(document).on('click change', '[data-bb-toggle="collapse"]', (e) => {
-            const $target = $(e.currentTarget)
-            const target = $target.data('bb-target')
-            const type = e.currentTarget.type
-
-            switch (type) {
+            switch (e.currentTarget.type) {
                 case 'checkbox':
-                    handleCheckbox(target, $target.data('bb-reverse'), $target.prop('checked'))
+                    targetElement = $(document).find(target)
+                    const isReverse = $(this).data('bb-reverse')
+                    const isChecked = $(this).prop('checked')
+
+                    if (isReverse) {
+                        isChecked ? targetElement.slideUp() : targetElement.slideDown()
+                    } else {
+                        isChecked ? targetElement.slideDown() : targetElement.slideUp()
+                    }
                     break
+
                 case 'radio':
                 case 'select-one':
-                    handleValueBasedCollapse(target, $target.val())
+                    targetElement = $(document).find(`${target}[data-bb-value="${$(this).val()}"]`)
+
+                    const targets = $(document).find(`${target}[data-bb-value]`)
+
+                    if (targetElement.length) {
+                        targets.not(targetElement).slideUp()
+                        targetElement.slideDown()
+                    } else {
+                        targets.slideUp()
+                    }
                     break
+
                 case 'button':
-                    handleButtonCollapse(target)
+                    targetElement = $(document).find(target)
+
+                    if (targetElement.length) {
+                        targetElement.slideToggle()
+                    }
                     break
+
                 default:
-                    console.warn(`[Botble] Unknown type ${type} of collapse`)
+                    console.warn(`[Botble] Unknown type ${e.currentTarget.type} of collapse`)
+
+                    break
             }
-        })
-
-        const collapsibleTargets = {}
-        $(document)
-            .find('[data-bb-collapse]')
-            .each((_, element) => {
-                collapsibleTargets[$(element).data('bb-trigger')] = true
-            })
-
-        Object.keys(collapsibleTargets).forEach((target) => {
-            $(document).on('change', target, (e) => {
-                const $target = $(e.currentTarget)
-                const value = $target.val()
-                const targetSelector = `[data-bb-trigger="${target}"]`
-
-                $(targetSelector).slideUp()
-
-                if (e.currentTarget.type !== 'checkbox' || $target.is(':checked')) {
-                    handleValueBasedCollapse(targetSelector, value)
-                }
-            })
         })
     }
 
@@ -1540,12 +1397,6 @@ class Botble {
         $(document).on('click', target, handleChildren)
         $(document).on('click', target, function () {
             handleParents(this)
-        })
-
-        $(document).ready(function () {
-            $(target).each(function () {
-                handleParents(this)
-            })
         })
     }
 
@@ -1646,11 +1497,12 @@ class Botble {
             ...options,
         }
 
-        let parent = $element.closest('div[data-select2-dropdown-parent]') || $element.closest('.modal-content') || $element.closest('.modal')
+        let parent = $element.closest('div[data-select2-dropdown-parent]') || $element.closest('.modal')
 
         if (parent.length) {
             options.dropdownParent = parent
             options.width = '100%'
+            options.minimumResultsForSearch = -1
         }
 
         $element.select2(options)
@@ -1829,11 +1681,6 @@ class Botble {
             const copiedMessage = target.data('clipboard-message')
             const action = target.data('clipboard-action') || 'copy'
             const isCut = action.toLowerCase() === 'cut'
-            const iconClipboard = target.find('[data-clipboard-icon]')
-            const iconClipboardSuccess = target.find('[data-clipboard-success-icon]')
-            const clipboardParent = target.data('clipboard-parent')
-            const clipboardParentTarget = clipboardParent ? document.querySelector(clipboardParent) : undefined
-
             let text = target.data('clipboard-text')
 
             if (!text) {
@@ -1846,19 +1693,11 @@ class Botble {
                 }
             }
 
-            await Botble.copyToClipboard(text, clipboardParentTarget)
+            await Botble.copyToClipboard(text)
 
             if (copiedMessage) {
                 Botble.showSuccess(copiedMessage)
             }
-
-            iconClipboard.addClass('d-none')
-            iconClipboardSuccess.removeClass('d-none')
-
-            setTimeout(() => {
-                iconClipboard.removeClass('d-none')
-                iconClipboardSuccess.addClass('d-none')
-            }, 1000)
         })
     }
 

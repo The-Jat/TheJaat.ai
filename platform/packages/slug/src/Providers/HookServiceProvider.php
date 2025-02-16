@@ -3,36 +3,22 @@
 namespace Botble\Slug\Providers;
 
 use Botble\Base\Contracts\BaseModel;
-use Botble\Base\Facades\Assets;
 use Botble\Base\Forms\FormAbstract;
 use Botble\Base\Supports\ServiceProvider;
 use Botble\Slug\Facades\SlugHelper;
 use Botble\Slug\Forms\Fields\PermalinkField;
-use Botble\Theme\Facades\Theme;
-use Botble\Theme\FormFront;
 
 class HookServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        add_filter(BASE_FILTER_BEFORE_RENDER_FORM, [$this, 'addSlugBox'], 1712);
+        FormAbstract::beforeRendering([$this, 'addSlugBox'], 17);
 
         add_filter('core_slug_language', [$this, 'setSlugLanguageForGenerator'], 17);
     }
 
     public function addSlugBox(FormAbstract $form): FormAbstract
     {
-        if ($form->isDisabledPermalinkField()) {
-            return $form;
-        }
-
-        if ($form instanceof FormFront) {
-            Theme::asset()->container('footer')->usePath(false)->add('slug-js', 'vendor/core/packages/slug/js/front-slug.js', ['jquery']);
-            Theme::asset()->usePath(false)->add('slug-css', 'vendor/core/packages/slug/css/slug.css');
-        } else {
-            Assets::addScriptsDirectly('vendor/core/packages/slug/js/slug.js')->addStylesDirectly('vendor/core/packages/slug/css/slug.css');
-        }
-
         $model = $form->getModel();
 
         if (! $model instanceof BaseModel || ! SlugHelper::isSupportedModel($model::class)) {

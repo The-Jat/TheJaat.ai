@@ -2,9 +2,6 @@
 
 namespace Botble\Base\Traits\Forms;
 
-use Botble\Base\Forms\FormAbstract;
-use Botble\Base\Forms\FormField;
-
 trait CanSpanColumns
 {
     protected int $colspan = 0;
@@ -23,18 +20,13 @@ trait CanSpanColumns
 
     public function getColumnSpan(int|string|null $breakpoint = null): array|int|string|null
     {
-        /**
-         * @var FormField $current
-         */
-        $current = $this;
-
         $columnSpan = [];
-        $span = $current->getOption('colspan');
+        $span = $this->getOption('colspan');
 
         /**
-         * @var FormAbstract $parent
+         * @var \Botble\Base\Forms\FormAbstract $parent
          */
-        $parent = $current->getParent();
+        $parent = $this->getParent();
 
         if ($span === 'full') {
             $parentSpan = $parent->getColumns();
@@ -46,7 +38,7 @@ trait CanSpanColumns
 
         if (! is_array($span)) {
             $span = [
-                'lg' => min(ceil(12 / ((int) $parent->getColumns('lg')) * $span), 12),
+                'lg' => ceil(12 / ((int) $parent->getColumns('lg')) * $span),
             ];
         }
 
@@ -60,7 +52,7 @@ trait CanSpanColumns
         }
 
         return array_map(function ($value) use ($span) {
-            return min($value * $span, 12);
+            return $value * $span;
         }, $parent->getColumns());
     }
 
@@ -68,7 +60,7 @@ trait CanSpanColumns
     {
         return view('core/base::forms.columns.column-span', [
             'field' => $this,
-            'html' => parent::render($options, $showLabel, $showField, $showError), // @phpstan-ignore-line
+            'html' => parent::render($options, $showLabel, $showField, $showError),
         ]);
     }
 }

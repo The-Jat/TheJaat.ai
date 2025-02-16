@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('galleries', function (Blueprint $table): void {
+        Schema::create('galleries', function (Blueprint $table) {
             $table->id();
             $table->string('name', 120);
             $table->longText('description');
@@ -19,7 +19,7 @@ return new class () extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('gallery_meta', function (Blueprint $table): void {
+        Schema::create('gallery_meta', function (Blueprint $table) {
             $table->id();
             $table->text('images')->nullable();
             $table->foreignId('reference_id')->index();

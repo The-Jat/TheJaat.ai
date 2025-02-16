@@ -5,7 +5,7 @@
     </div>
     <div class="post-block-list post-module-1 post-module-5">
         <p class="font-medium text-muted">{{ $config['description'] }}</p>
-        @if (theme_option('address'))
+        @if (theme_option('address') && theme_option('allow_address_in_about_me', '') == 'yes')
             <p>
                 <strong>{{ __('Address') }}</strong>
                 <br>

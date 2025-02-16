@@ -266,7 +266,7 @@ class PanelSection implements PanelSectionContract
 
         $content = apply_filters('panel_section_items_content', $content, $this);
 
-        return tap($content, function (string $content) use ($items): void {
+        return tap($content, function (string $content) use ($items) {
             PanelSectionItemsRendered::dispatch($this, $items, $content);
 
             do_action('panel_section_items_rendered', $this, $items, $content);
@@ -303,7 +303,7 @@ class PanelSection implements PanelSectionContract
 
         return tap(
             $content,
-            function (string $content): void {
+            function (string $content) {
                 PanelSectionRendered::dispatch($this, $content);
 
                 do_action('panel_section_rendered', $this, $content);

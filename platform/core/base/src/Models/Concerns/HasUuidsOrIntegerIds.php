@@ -9,7 +9,7 @@ trait HasUuidsOrIntegerIds
     public static function bootHasUuidsOrIntegerIds(): void
     {
         static::creating(static function (self $model): void {
-            if (static::isUsingIntegerId()) {
+            if (self::getTypeOfId() === 'BIGINT') {
                 return;
             }
 
@@ -19,7 +19,7 @@ trait HasUuidsOrIntegerIds
 
     public function newUniqueId(): ?string
     {
-        return match (static::getTypeOfId()) {
+        return match (self::getTypeOfId()) {
             'ULID' => (string) Str::ulid(),
             'BIGINT' => null,
             default => (string) Str::orderedUuid(),
@@ -28,7 +28,7 @@ trait HasUuidsOrIntegerIds
 
     public function getKeyType(): string
     {
-        if (static::isUsingStringId()) {
+        if (self::getTypeOfId() !== 'BIGINT') {
             return 'string';
         }
 
@@ -37,7 +37,7 @@ trait HasUuidsOrIntegerIds
 
     public function getIncrementing(): bool
     {
-        if (static::isUsingStringId()) {
+        if (self::getTypeOfId() !== 'BIGINT') {
             return false;
         }
 
@@ -46,12 +46,12 @@ trait HasUuidsOrIntegerIds
 
     public static function determineIfUsingUuidsForId(): bool
     {
-        return static::getTypeOfId() === 'UUID';
+        return self::getTypeOfId() === 'UUID';
     }
 
     public static function determineIfUsingUlidsForId(): bool
     {
-        return static::getTypeOfId() === 'ULID';
+        return self::getTypeOfId() === 'ULID';
     }
 
     public static function getTypeOfId(): string
@@ -69,18 +69,8 @@ trait HasUuidsOrIntegerIds
 
     public function ensureIdCanBeCreated(): void
     {
-        if (static::getTypeOfId() !== 'BIGINT') {
-            $this->{$this->getKey()} = $this->newUniqueId();
+        if (self::getTypeOfId() !== 'BIGINT') {
+            $this->id = $this->newUniqueId();
         }
-    }
-
-    public static function isUsingIntegerId(): bool
-    {
-        return static::getTypeOfId() === 'BIGINT';
-    }
-
-    public static function isUsingStringId(): bool
-    {
-        return ! static::isUsingIntegerId();
     }
 }

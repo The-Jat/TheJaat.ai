@@ -31,6 +31,7 @@ class UserForm extends FormAbstract
                     ->label(trans('core/acl::users.info.first_name'))
                     ->required()
                     ->maxLength(30)
+                    ->toArray()
             )
             ->add(
                 'last_name',
@@ -39,6 +40,7 @@ class UserForm extends FormAbstract
                     ->label(trans('core/acl::users.info.last_name'))
                     ->required()
                     ->maxLength(30)
+                    ->toArray()
             )
             ->add(
                 'username',
@@ -47,8 +49,9 @@ class UserForm extends FormAbstract
                     ->label(trans('core/acl::users.username'))
                     ->required()
                     ->maxLength(30)
+                    ->toArray()
             )
-            ->add('email', TextField::class, EmailFieldOption::make()->required())
+            ->add('email', TextField::class, EmailFieldOption::make()->required()->toArray())
             ->add(
                 'password',
                 'password',
@@ -57,6 +60,7 @@ class UserForm extends FormAbstract
                     ->required()
                     ->maxLength(60)
                     ->colspan(2)
+                    ->toArray()
             )
             ->add(
                 'password_confirmation',
@@ -66,6 +70,7 @@ class UserForm extends FormAbstract
                     ->required()
                     ->maxLength(60)
                     ->colspan(2)
+                    ->toArray()
             )
             ->add(
                 'role_id',
@@ -74,6 +79,7 @@ class UserForm extends FormAbstract
                     ->label(trans('core/acl::users.role'))
                     ->choices(['' => trans('core/acl::users.select_role')] + $roles->all())
                     ->when($defaultRole, fn (SelectFieldOption $option) => $option->selected($defaultRole->id))
+                    ->toArray()
             )
             ->setBreakFieldPoint('role_id');
     }

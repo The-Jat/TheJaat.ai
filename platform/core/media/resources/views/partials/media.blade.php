@@ -40,18 +40,6 @@
         :required="true"
     />
 
-    <x-core::form.checkbox
-        :label="trans('core/media::media.download_image_to_local_storage')"
-        name="download_image_to_local_storage"
-        value="1"
-        id="download_image_to_local_storage"
-        :checked="true"
-    >
-        <x-slot:helper-text>
-            {{ trans('core/media::media.download_image_to_local_storage_helper') }}
-        </x-slot:helper-text>
-    </x-core::form.checkbox>
-
     <x-slot:footer>
         <x-core::button
             type="button"

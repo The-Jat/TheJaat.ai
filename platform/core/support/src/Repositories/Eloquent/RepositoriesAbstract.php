@@ -12,9 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 
-/**
- * @deprecated
- */
 abstract class RepositoriesAbstract implements RepositoryInterface
 {
     protected BaseModel|BaseQueryBuilder|Builder|Model $originalModel;
@@ -359,14 +356,14 @@ abstract class RepositoriesAbstract implements RepositoryInterface
             $originalModel = $this->originalModel instanceof BaseQueryBuilder ? $this->originalModel->getModel() : $this->originalModel;
 
             $perPage = (int) Arr::get($params, 'paginate.per_page') ?: 10;
-            $pageName = Arr::get($params, 'paginate.page_name', 'page');
+
             $currentPage = (int) Arr::get($params, 'paginate.current_paged', 1) ?: 1;
 
             $result = $this->applyBeforeExecuteQuery($data)
                 ->$paginateType(
                     $perPage > 0 ? $perPage : 10,
                     [$originalModel->getTable() . '.' . $originalModel->getKeyName()],
-                    $pageName,
+                    'page',
                     $currentPage > 0 ? $currentPage : 1
                 );
         } else {

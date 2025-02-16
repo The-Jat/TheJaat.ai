@@ -3,7 +3,6 @@
 namespace Botble\LanguageAdvanced\Http\Controllers;
 
 use Botble\Base\Events\UpdatedContentEvent;
-use Botble\Base\Forms\FormAbstract;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\LanguageAdvanced\Http\Requests\LanguageAdvancedRequest;
 use Botble\LanguageAdvanced\Supports\LanguageAdvancedManager;
@@ -17,7 +16,9 @@ class LanguageAdvancedController extends BaseController
     {
         $model = $request->input('model');
 
-        abort_unless(class_exists($model), 404);
+        if (! class_exists($model)) {
+            abort(404);
+        }
 
         $data = (new $model())->findOrFail($id);
 
@@ -48,7 +49,7 @@ class LanguageAdvancedController extends BaseController
                 'prefix' => SlugHelper::getPrefix($model),
             ]);
 
-            $translate = DB::table($table)->where($condition)->exists();
+            $translate = DB::table($table)->where($condition)->first();
 
             if ($translate) {
                 DB::table($table)->where($condition)->update($slugData);
@@ -59,17 +60,8 @@ class LanguageAdvancedController extends BaseController
             UpdatedSlugEvent::dispatch($data, $data->slugable);
         }
 
-        $form = $request->input('form');
-
-        if (class_exists($form) && is_subclass_of($form, FormAbstract::class)) {
-            $form = $form::createFromModel($data);
-
-            $form->saveMetadataFields();
-        }
-
         return $this
             ->httpResponse()
-            ->usePreviousRouteName()
             ->withUpdatedSuccessMessage();
     }
 }

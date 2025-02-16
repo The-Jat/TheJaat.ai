@@ -12,20 +12,15 @@ use Illuminate\Support\Facades\File;
 
 class Cache implements CacheInterface
 {
-    final public function __construct(
+    public function __construct(
         protected CacheManager $cache,
         protected ?string $cacheGroup,
         protected array $config = []
     ) {
         $this->config = ! empty($config) ? $config : [
-            'cache_time' => 10 * 60,
+            'cache_time' => setting('cache_time', 10) * 60,
             'stored_keys' => storage_path('cache_keys.json'),
         ];
-    }
-
-    public static function make(string $group): static
-    {
-        return new static(app(CacheManager::class), $group);
     }
 
     public function get(string $key): mixed
@@ -139,10 +134,5 @@ class Cache implements CacheInterface
         }
 
         return true;
-    }
-
-    public function generateCacheKeyFromInput(): string
-    {
-        return serialize(request()->input()) . serialize(BaseHelper::getHomepageUrl());
     }
 }

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ site_title }}</title>
+    {{ css }}
 </head>
 
 <body class="bb-bg-body">
@@ -26,7 +27,7 @@
                                                             <tr>
                                                                 <td>
                                                                     <a href="{{ site_url }}">
-                                                                        <img class="bb-logo" src="{{ site_logo }}" alt="{{ site_title }}" style="max-height: {{ max_height_for_logo }}px" />
+                                                                        <img class="bb-logo" src="{{ site_logo }}" alt="{{ site_title }}" />
                                                                     </a>
                                                                 </td>
                                                                 <td class="bb-text-right">

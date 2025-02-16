@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('pages', function (Blueprint $table): void {
+        Schema::create('pages', function (Blueprint $table) {
             $table->id();
             $table->string('name', 120);
             $table->longText('content')->nullable();

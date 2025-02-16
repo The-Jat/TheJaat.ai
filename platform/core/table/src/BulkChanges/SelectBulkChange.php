@@ -4,7 +4,6 @@ namespace Botble\Table\BulkChanges;
 
 use Botble\Table\Abstracts\TableBulkChangeAbstract;
 use Closure;
-use Illuminate\Validation\Rule;
 
 class SelectBulkChange extends TableBulkChangeAbstract
 {
@@ -16,7 +15,9 @@ class SelectBulkChange extends TableBulkChangeAbstract
 
     public static function make(array $data = []): static
     {
-        return parent::make()->type('customSelect');
+        return parent::make()
+            ->type('customSelect')
+            ->validate(['required', 'string']);
     }
 
     public function searchable(bool $searchable = true): static
@@ -50,10 +51,6 @@ class SelectBulkChange extends TableBulkChangeAbstract
 
         if ($this->searchable) {
             $data['type'] = 'select-search';
-        }
-
-        if (! isset($this->validate)) {
-            $data['validate'] = ['required', Rule::in(array_keys($this->choices))];
         }
 
         return $data;
